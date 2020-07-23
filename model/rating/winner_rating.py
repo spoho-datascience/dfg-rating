@@ -1,6 +1,7 @@
 import numpy as np
 import networkx as nx
-import random
+
+import json
 
 from model.rating.base_rating import BaseRating
 
@@ -52,7 +53,11 @@ if __name__ == '__main__':
         (2, 0, {"day": 3, "winner": 0}),
         (3, 1, {"day": 3, "winner": 3})
     ]
+    print(f"Network: {matches_list}")
     G.add_edges_from(matches_list)
     wr = WinnerRating('type', {})
+    print("All ratings:")
     print(wr.get_all(G))
-    print(wr.get(G, [0,1]))
+    t = [0,1]
+    print(f"Rating of teams {t}")
+    print(wr.get(G, t))
