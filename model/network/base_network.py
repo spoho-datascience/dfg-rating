@@ -14,6 +14,7 @@ class BaseNetwork(ABC):
     """
 
     def __init__(self, type, params):
+        self.data = None
         self.type = type
         self.params = params
 

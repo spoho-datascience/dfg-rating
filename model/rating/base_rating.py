@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
 
+from model.network.base_network import BaseNetwork
+
 
 class BaseRating(ABC):
 
     """Abstract class defining the interface of Rating object.
 
     Attributes:
-        type (str): Text descriptor of the network type.
+        type (str): Text descriptor of the rating type.
         params (dict): Dictionary of key-value parameters for the network configuration
     """
 
@@ -15,7 +17,7 @@ class BaseRating(ABC):
         self.params = params
 
     @abstractmethod
-    def get_all(self, n):
+    def get_all(self, n: BaseNetwork):
         """Computes the temporal rating of each team in a given network
 
         Args:

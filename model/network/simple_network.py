@@ -1,9 +1,6 @@
-import random
 import networkx as nx
 
 from model.network.base_network import BaseNetwork
-
-import utils.graphs as utils_graphs
 
 
 class RoundRobinNetwork(BaseNetwork):
