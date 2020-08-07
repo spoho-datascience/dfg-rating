@@ -61,8 +61,8 @@ if __name__ == '__main__':
     network = s = RoundRobinNetwork(
         "type",
         {
-            "number_of_teams": 8,
-            "days_between_rounds": 5
+            "number_of_teams": 10,
+            "days_between_rounds": 7
         }
     )
     print(">> Creating network")
