@@ -6,12 +6,12 @@ class BaseRating(ABC):
     """Abstract class defining the interface of Rating object.
 
     Attributes:
-        type (str): Text descriptor of the network type.
+        rating_type (str): Text descriptor of the network type.
         params (dict): Dictionary of key-value parameters for the network configuration
     """
 
-    def __init__(self, type, params):
-        self.type = type
+    def __init__(self, rating_type, params):
+        self.type = rating_type
         self.params = params
 
     @abstractmethod
