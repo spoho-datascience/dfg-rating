@@ -1,5 +1,5 @@
 import click
-from ui.commands import actions
+from dfg_rating.ui.commands import actions
 
 
 def header():

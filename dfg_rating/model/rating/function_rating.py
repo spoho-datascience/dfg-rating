@@ -3,7 +3,7 @@ import numpy as np
 
 class FunctionRating:
     """Rating based on function generation
-    Functions follow standar NumPy names and args
+    Functions follow standard NumPy names and args
     https://numpy.org/doc/stable/reference/random/generator.html
 
     Attributes:
@@ -24,13 +24,14 @@ class FunctionRating:
         """Compute single rating"""
         if self.distribution_method is not None:
             s = self.distribution_method(*self.arguments)
-            print(s)
+            return s
 
     def compute_array(self, length):
         """Compute array of ratings"""
         if self.distribution_method is not None:
             s = self.distribution_method(*self.arguments, length)
-            print(s)
+            return s
+
 
 
 

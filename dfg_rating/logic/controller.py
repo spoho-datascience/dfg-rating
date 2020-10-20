@@ -1,5 +1,5 @@
-from model.network.base_network import BaseNetwork
-from model.network.simple_network import RoundRobinNetwork
+from dfg_rating.model.network.simple_network import RoundRobinNetwork
+from dfg_rating.model.rating.function_rating import FunctionRating
 
 
 class Controller:
@@ -41,11 +41,13 @@ class Controller:
         self.networks[name] = n
         return 1
 
-    def add_new_rating(self, network_name, rating_type):
-        pass
-
+    def add_new_rating(self, network_name: str, team_id: int, rating_type: str, rating_name, *rating_params):
+        n = self.networks[network_name]
+        print(rating_params[0])
+        n.add_rating(FunctionRating(rating_params[0], rating_params[1:]), team_id, rating_name)
 
     def list(self, attribute):
         return [
-            (element, self.__getattribute__(attribute)[element].type) for element in self.__getattribute__(attribute).keys()
+            (element, self.__getattribute__(attribute)[element].type) for element in
+            self.__getattribute__(attribute).keys()
         ]

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from model.network.base_network import BaseNetwork
+from dfg_rating.model.network.base_network import BaseNetwork
 
 
 class BaseRating(ABC):

@@ -11,7 +11,7 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        dfg_rating=dfg_rating:cli
+        dfg_rating=dfg_rating.client:cli
     ''',
     author='Marc Garnica Caparrós',
     author_email='m.garnica@dshs-koeln.de'

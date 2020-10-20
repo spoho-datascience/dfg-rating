@@ -1,10 +1,11 @@
 import click
-from logic import controller
-from ui import menu, commands
+
+from dfg_rating.logic import controller
+from dfg_rating.ui import commands, menu
 
 
 @click.command()
-@click.option('-i', is_flag=True)
+@click.option('-i', is_flag=True, help='Enable interactive command line')
 def cli(i):
     """Framework interaction menu"""
     main_controller = controller.Controller()

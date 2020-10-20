@@ -1,10 +1,8 @@
 import numpy as np
 import networkx as nx
 
-import json
-
-from model.network.base_network import BaseNetwork
-from model.rating.base_rating import BaseRating
+from dfg_rating.model.network.base_network import BaseNetwork
+from dfg_rating.model.rating.base_rating import BaseRating
 
 
 class WinnerRating(BaseRating):

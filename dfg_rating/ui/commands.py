@@ -1,8 +1,6 @@
-from typing import List
-
 import click
 
-from logic.controller import Controller
+from dfg_rating.logic.controller import Controller
 
 actions = [
     'Show <networks | ratings | actions>',
@@ -25,8 +23,20 @@ def create_network(mc):
 
 def add_new_rating(mc):
     n_name = click.prompt('Name of the network', type=str)
-    r_type = click.prompt('Type of rating', type=str)
-    mc.add_new_rating(n_name, r_type)
+    team_id = click.prompt('Team identifier', type=int)
+    r_type = click.prompt('Type of rating (function)', type=str)
+    r_name = click.prompt('Name of the rating', type=str)
+    if r_type == 'function':
+        func_name = click.prompt('Distribution method (normal)', type=str)
+        if func_name != 'normal':
+            click.echo(click.style("Method not known", fg='red'))
+            return
+        loc = click.prompt('Mean', type=str)
+        scale = click.prompt('Standard deviation (non-negative)', type=int)
+    else:
+        pass
+
+    mc.add_new_rating(n_name, team_id, r_type, r_name, func_name, loc, scale)
     pass
 
 
@@ -46,8 +56,8 @@ def run(action, mc: Controller):
         success, message = mc.print_network(click.prompt("Name of the network", type=str))
         if not success:
             click.echo(click.style(message, fg='red'))
+    elif action == 5:
 
-    elif action == 4:
         add_new_rating(mc)
     else:
         click.echo(click.style('Command not implemented yet', fg='white'))
