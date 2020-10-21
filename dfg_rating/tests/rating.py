@@ -12,9 +12,9 @@ rr_network = s = RoundRobinNetwork(
 rr_network.create_data()
 
 normal_rating = FunctionRating('normal', 10, 1)
-print(type(normal_rating.get_all(rr_network)))
-print(normal_rating.get_all(rr_network))
+print(type(normal_rating.get_all_ratings(rr_network)))
+print(normal_rating.get_aldl_ratings(rr_network))
 
 winner_rating = WinnerRating('winner')
-print(type(winner_rating.get_all(rr_network)))
-print(winner_rating.get_all(rr_network))
+print(type(winner_rating.get_all_ratings(rr_network)))
+print(winner_rating.get_all_ratings(rr_network))

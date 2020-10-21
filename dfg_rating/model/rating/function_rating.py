@@ -24,7 +24,7 @@ class FunctionRating(BaseRating):
 
         pass
 
-    def get_all(self, n: BaseNetwork):
+    def get_all_ratings(self, n: BaseNetwork):
         n_teams = len(n.data)
         games = n.data.edges(data=True)
         n_rounds = len(get_rounds(games))
@@ -35,7 +35,7 @@ class FunctionRating(BaseRating):
         return ratings
 
 
-    def get(self, n: BaseNetwork, t: TeamId):
+    def get_ratings(self, n: BaseNetwork, t: TeamId):
         pass
 
     def _compute(self):

@@ -20,10 +20,10 @@ class RoundRobinNetwork(BaseNetwork):
             boolean: True if the process has been successful, False if else.
         """
         graph = nx.DiGraph()
-        n_teams = self.params.get('number_of_teams', 0)
-        n_rounds = self.params.get('rounds', n_teams - 1)
-        days_between_rounds = self.params.get('days_between_rounds', 1)
-        n_games_per_round = self.params.get('games_per_round', int(math.ceil(n_teams / 2)))
+        n_teams = self.params.get_ratings('number_of_teams', 0)
+        n_rounds = self.params.get_ratings('rounds', n_teams - 1)
+        days_between_rounds = self.params.get_ratings('days_between_rounds', 1)
+        n_games_per_round = self.params.get_ratings('games_per_round', int(math.ceil(n_teams / 2)))
 
         teams_list = [t for t in range(0, n_teams)]
         if n_teams % 2 != 0:
@@ -67,8 +67,8 @@ class RoundRobinNetwork(BaseNetwork):
         self.data.nodes[team_id]['ratings'][rating_name] = rating_values
 
     def add_rating(self, rating: FunctionRating, team_id, rating_name):
-        n_teams = self.params.get('number_of_teams', 0)
-        n_rounds = self.params.get('rounds', n_teams - 1)
+        n_teams = self.params.get_ratings('number_of_teams', 0)
+        n_rounds = self.params.get_ratings('rounds', n_teams - 1)
         if team_id > 0:
             self._add_rating_to_team(team_id, rating.compute_array(n_rounds), rating_name)
         else:

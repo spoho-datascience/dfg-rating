@@ -10,7 +10,7 @@ class WinnerRating(BaseRating):
     """Winner dummy rating adding 1 to the winner team rating.
     """
 
-    def get_all(self, network: BaseNetwork):
+    def get_all_ratings(self, network: BaseNetwork):
         n_teams = len(network.data)
         games = network.data.edges(data=True)
         n_rounds = len(get_rounds(games))
@@ -21,7 +21,7 @@ class WinnerRating(BaseRating):
             ratings[data['winner']][data['day'] + 1] += 1
         return ratings
 
-    def get(self, network: BaseNetwork, team_id: TeamId):
+    def get_ratings(self, network: BaseNetwork, team_id: TeamId):
         games = list(network.data.in_edges(team_id, data=True)) + list(network.data.out_edges(team_id, data=True))
         n_rounds = len(get_rounds(games))
         ratings = np.zeros([len(team_id), n_rounds + 1])
