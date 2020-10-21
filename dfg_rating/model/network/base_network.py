@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
+from typing import NewType
 
+TeamId = NewType('TeamId', int)
 
 class BaseNetwork(ABC):
     """Abstract class defining the interface of Network object.
@@ -8,14 +10,14 @@ class BaseNetwork(ABC):
     An edge between two teams identifies a competition between them
 
     Attributes:
-        type (str): Text descriptor of the network type.
+        network_type (str): Text descriptor of the network type.
         params (dict): Dictionary of key-value parameters for the network configuration
 
     """
 
-    def __init__(self, type, params):
+    def __init__(self, network_type, params):
         self.data = None
-        self.type = type
+        self.type = network_type
         self.params = params
 
     @abstractmethod
