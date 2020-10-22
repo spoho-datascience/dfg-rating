@@ -15,7 +15,9 @@ class BaseForecast(ABC):
     def __init__(self, forecast_type: str, outcomes: List[str], probs: List[float] = None):
         self.type = forecast_type
         self.outcomes = outcomes
-        self.probabilities = np.array(probs)
+        number_of_outcomes = len(self.outcomes)
+        self.probabilities = np.array(probs) if probs is not None else np.full(number_of_outcomes, float(1.0 / float(number_of_outcomes)))
+
 
     @abstractmethod
     def get_forecast(self, match=None):
@@ -25,7 +27,4 @@ class BaseForecast(ABC):
 class SimpleForecast(BaseForecast):
 
     def get_forecast(self, match=None):
-        number_of_outcomes = len(self.outcomes)
-        if self.probabilities is None:
-            self.probabilities = np.full(number_of_outcomes, float(1.0 / float(number_of_outcomes)))
         return self.probabilities
