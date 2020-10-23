@@ -28,7 +28,6 @@ class FunctionRating(BaseRating):
         n_teams = len(n.data)
         games = n.data.edges(data=True)
         n_rounds = len(get_rounds(games))
-        print(n_teams, n_rounds)
         ratings = np.empty((n_teams, n_rounds + 1))
         for i in range(0, n_teams):
             ratings[i] = self._compute_array(array_length=n_rounds + 1)

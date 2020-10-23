@@ -44,7 +44,7 @@ class Controller:
     def add_new_rating(self, network_name: str, team_id: int, rating_type: str, rating_name, *rating_params):
         n = self.networks[network_name]
         print(rating_params[0])
-        n.add_rating(FunctionRating(rating_params[0], rating_params[1:]), team_id, rating_name)
+        n.add_rating(FunctionRating(rating_params[0], rating_params[1:]), rating_name, team_id)
 
     def list(self, attribute):
         return [

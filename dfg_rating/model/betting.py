@@ -21,7 +21,7 @@ class FixedBetting(BaseBetting):
         betting_inputs = forecast.get_forecast() * odds
 
         def decide_betting(i):
-            return 0.01 * self.bank_role if i > 1 else 0.0
+            return 0.01 * self.bank_role if i > 1.0 else 0.0
 
         bets = np.array([decide_betting(i) for i in betting_inputs])
         return bets
