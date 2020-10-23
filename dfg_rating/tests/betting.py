@@ -1,4 +1,4 @@
-from dfg_rating.model.betting import FixedBetting
+from dfg_rating.model.betting.betting import FixedBetting
 from dfg_rating.model.bookmaker.base_bookmaker import SimpleBookmaker, SimulatedBookmakerError, BookmakerMargin
 from dfg_rating.model.forecast.base_forecast import SimpleForecast
 
