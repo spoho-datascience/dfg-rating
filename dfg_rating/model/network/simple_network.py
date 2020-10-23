@@ -38,8 +38,10 @@ class RoundRobinNetwork(BaseNetwork):
                 if (slice_a[game] != -1) and (slice_b[game] != -1):
                     if season_round % 2 == 0:
                         graph.add_edge(slice_a[game], slice_b[game], round=season_round, day=day)
+                        graph.add_edge(slice_b[game], slice_a[game], round=season_round + self.n_rounds, day=day + (self.n_rounds * self.days_between_rounds))
                     else:
                         graph.add_edge(slice_b[game], slice_a[game], round=season_round, day=day)
+                        graph.add_edge(slice_a[game], slice_b[game], round=season_round + self.n_rounds, day=day + (self.n_rounds * self.days_between_rounds))
 
             day += self.days_between_rounds
             rotate = slice_a[-1]
