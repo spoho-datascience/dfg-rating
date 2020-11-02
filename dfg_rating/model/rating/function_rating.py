@@ -33,7 +33,6 @@ class FunctionRating(BaseRating):
             ratings[i] = self._compute_array(array_length=n_rounds + 1)
         return ratings
 
-
     def get_ratings(self, n: BaseNetwork, t: TeamId):
         pass
 

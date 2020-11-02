@@ -22,38 +22,33 @@ class FactorBookmakerError(BookmakerError):
 
     def apply(self, f: BaseForecast):
         error_factor = random.uniform(-1.0, 1.0)
-        print(f"Factor of the error: {error_factor}")
         true_probabilities = f.get_forecast()
-        print(f"True probs {true_probabilities}")
         abs_error = error_factor * self.error
         if self.scope == "single":
             abs_error = abs(error_factor) * self.error
         applied_probabilities = abs_error + true_probabilities
-        print(f"Error applied: {applied_probabilities}")
         return applied_probabilities / sum(applied_probabilities)
 
 
 class SimulatedBookmakerError(BookmakerError):
     # TODO: Bettor error is assumed to be the same as the Bookmaker error
 
-    def __init__(self, error: float):
-        self.error = error
-        self.bettor_error = error
-        pass
+    def __init__(self, error: str, *args):
+        try:
+            self.error_method = getattr(np.random.default_rng(), error)
+        except AttributeError as attr:
+            print("Error method not available")
+            return
+        self.error_arguments = []
+        for arg in args:
+            self.error_arguments.append(arg)
 
     def apply(self, true_forecast: BaseForecast):
         p = true_forecast.get_forecast()
         logit_probs = np.log(p / (1 - p))
-        correlation = 1.0
-        covariance_reversed_diagonal = self.error * self.bettor_error * correlation
-        bookmaker, bettor = np.random.multivariate_normal(
-            mean=[0, 0],
-            cov=[
-                [np.square(self.error), covariance_reversed_diagonal],
-                [covariance_reversed_diagonal, np.square(self.bettor_error)]
-            ]
-        )
-        return 1 / (1 + (np.exp((-1 * logit_probs) + bookmaker)))
+        error = self.error_method(*(self.error_arguments + [len(logit_probs)]))
+        final_probs = 1 / (1 + (np.exp((-1 * (logit_probs + error)))))
+        return final_probs / sum(final_probs)
 
 
 # Types of Bookmaker marking
@@ -101,6 +96,5 @@ class SimpleBookmaker(BaseBookmaker):
         pass
 
     def _compute_odds(self):
-        print(f"Bookmaker forecast {self.forecast.get_forecast()}")
         odds = self.margin.apply(self.forecast)
         return odds
