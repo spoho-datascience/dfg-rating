@@ -37,7 +37,7 @@ print(">> Creating simple fixed betting")
 betting = FixedBetting(1000)
 
 print(">> Playing season")
-s.play_data(true_forecast)
+s.play(true_forecast)
 s.print_data(print_attributes=False)
 
 print(">> Simulation:")

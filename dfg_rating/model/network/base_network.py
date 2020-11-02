@@ -6,6 +6,17 @@ from dfg_rating.model.forecast.base_forecast import BaseForecast
 
 TeamId = NewType('TeamId', int)
 
+
+def weighted_winner(forecast):
+    weights = forecast.get_forecast().cumsum()
+    x = np.random.default_rng().uniform(0, 1)
+    print(weights)
+    print(x)
+    for i in range(len(weights)):
+        if x < weights[i]:
+            return forecast.outcomes[i]
+
+
 class BaseNetwork(ABC):
     """Abstract class defining the interface of Network object.
     A network is a set of nodes and edges defining the relationship between teams in a tournament.
@@ -42,16 +53,10 @@ class BaseNetwork(ABC):
     def iterate_over_games(self):
         pass
 
-    def play_data(self, forecast: BaseForecast):
+    def play(self, forecast: BaseForecast):
         for away_team, home_team, edge_attributes in self.iterate_over_games():
             # TODO construct an object Match
-            match_forecast = forecast.get_forecast()
-            # Now the winner is the option with higher forecast
-            winner = np.argmax(match_forecast)
-            if winner == 0:
-                self.data.edges[away_team, home_team]['winner'] = home_team
-            elif winner == 1:
-                self.data.edges[away_team, home_team]['winner'] = away_team
-            else:
-                self.data.edges[away_team, home_team]['winner'] = -1
+            # Random winner with weighted choices
+            winner = weighted_winner(forecast)
+            self.data.edges[away_team, home_team]['winner'] = winner
 

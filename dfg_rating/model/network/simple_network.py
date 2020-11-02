@@ -57,7 +57,7 @@ class RoundRobinNetwork(BaseNetwork):
             for away_team, home_team, edge_attributes in sorted(self.data.edges.data(), key=lambda t: t[2]['round']):
                 print(f"({away_team} -> {home_team} at round {edge_attributes['round']}, day {edge_attributes['day']})")
                 if 'winner' in edge_attributes:
-                    print(f"Match team winner: {edge_attributes['winner']}")
+                    print(f"Result: {edge_attributes['winner']}")
             print("---------------")
         if print_attributes:
             if 'ratings' in self.data.nodes[0]:
