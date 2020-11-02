@@ -7,11 +7,9 @@ from dfg_rating.model.forecast.base_forecast import BaseForecast
 TeamId = NewType('TeamId', int)
 
 
-def weighted_winner(forecast):
+def weighted_winner(forecast: BaseForecast):
     weights = forecast.get_forecast().cumsum()
     x = np.random.default_rng().uniform(0, 1)
-    print(weights)
-    print(x)
     for i in range(len(weights)):
         if x < weights[i]:
             return forecast.outcomes[i]
@@ -53,10 +51,17 @@ class BaseNetwork(ABC):
     def iterate_over_games(self):
         pass
 
-    def play(self, forecast: BaseForecast):
+    def play(self):
         for away_team, home_team, edge_attributes in self.iterate_over_games():
             # TODO construct an object Match
             # Random winner with weighted choices
-            winner = weighted_winner(forecast)
+            if 'True' not in edge_attributes['forecasts']:
+                print("Playing seasion: Missing True forecast")
+            winner = weighted_winner(edge_attributes['forecasts']['True'])
             self.data.edges[away_team, home_team]['winner'] = winner
 
+    def _add_rating_to_team(self, team_id, rating_values, rating_name):
+        self.data.nodes[team_id].setdefault('ratings', {})[rating_name] = rating_values
+
+    def _add_forecast_to_team(self, match, forecast: BaseForecast, forecast_name):
+        self.data.edges[match].setdefault('forecasts', {})[forecast_name] = forecast

@@ -33,7 +33,7 @@ class BaseRating(ABC):
         pass
 
     @abstractmethod
-    def get_ratings(self, n: BaseNetwork, t: TeamId):
+    def get_ratings(self, n: BaseNetwork, t: [TeamId]):
         """Computes the temporal rating of a given set of teams in a given network
 
         Args:

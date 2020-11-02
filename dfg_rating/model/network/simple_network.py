@@ -1,6 +1,7 @@
 import math
 import networkx as nx
 
+from dfg_rating.model.forecast.base_forecast import BaseForecast
 from dfg_rating.model.network.base_network import BaseNetwork
 from dfg_rating.model.rating.base_rating import BaseRating
 from dfg_rating.model.rating.function_rating import FunctionRating
@@ -51,35 +52,37 @@ class RoundRobinNetwork(BaseNetwork):
         self.data = graph
         return True
 
-    def print_data(self, print_schedule=True, print_attributes=True):
-        if print_schedule:
+    def print_data(self, **print_kwargs):
+        if print_kwargs.get('schedule', False):
             print("Network schedule")
             for away_team, home_team, edge_attributes in sorted(self.data.edges.data(), key=lambda t: t[2]['round']):
                 print(f"({away_team} -> {home_team} at round {edge_attributes['round']}, day {edge_attributes['day']})")
-                if 'winner' in edge_attributes:
+                if (print_kwargs.get('winner', False)) & ('winner' in edge_attributes):
                     print(f"Result: {edge_attributes['winner']}")
+                if (print_kwargs.get('forecasts', False)) & ('forecasts' in edge_attributes):
+                    for forecast in print_kwargs.get('forecasts_list', []):
+                        print(f"Forecast: {edge_attributes['forecasts'][forecast].print()}")
             print("---------------")
-        if print_attributes:
-            if 'ratings' in self.data.nodes[0]:
+        if print_kwargs.get('attributes', False):
+            if (print_kwargs.get('ratings', False)) & ('ratings' in self.data.nodes[0]):
                 print("Teams ratings")
                 for team in self.data.nodes:
                     print(f"Team {team}:")
-                    for key, value in self.data.nodes[team]['ratings'].items():
-                        print(f"Rating {key}: > {value}")
+                    for rating in print_kwargs.get('ratings_list', []):
+                        print(f"Rating {rating} for team {team}: > {self.data.nodes[team]['ratings'][rating]}")
 
     def iterate_over_games(self):
         return sorted(self.data.edges.data(), key=lambda t: t[2]['round'])
 
-    def _add_rating_to_team(self, team_id, rating_values, rating_name):
-        self.data.nodes[team_id]['ratings'] = {}
-        self.data.nodes[team_id]['ratings'][rating_name] = rating_values
-
     def add_rating(self, rating: BaseRating, rating_name, team_id=None):
-        self.n_teams = self.params.get('number_of_teams', 0)
-        self.n_rounds = self.params.get('rounds', self.n_teams - 1)
         if team_id:
-            self._add_rating_to_team(team_id, rating.get_ratings(self, team_id), rating_name)
+            self._add_rating_to_team(team_id, rating.get_ratings(self, [team_id]), rating_name)
         else:
+            ratings = rating.get_all_ratings(self)
             for team in self.data.nodes:
-                self._add_rating_to_team(int(team), rating.get_all_ratings(self), rating_name)
+                self._add_rating_to_team(int(team), ratings[int(team)], rating_name)
+
+    def add_forecast(self, forecast: BaseForecast, forecast_name):
+        for match in self.data.edges:
+            self._add_forecast_to_team(match, forecast, forecast_name)
 

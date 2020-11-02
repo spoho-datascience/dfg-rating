@@ -6,7 +6,6 @@ from dfg_rating.model.rating.base_rating import BaseRating, get_rounds
 
 
 class WinnerRating(BaseRating):
-
     """Winner dummy rating adding 1 to the winner team rating.
     """
 
@@ -15,19 +14,42 @@ class WinnerRating(BaseRating):
         games = network.data.edges(data=True)
         n_rounds = len(get_rounds(games))
         ratings = np.zeros([n_teams, n_rounds + 1])
-        for away_team, home_team, data in sorted(games, key=lambda edge: edge[2]['day']):
-            ratings[away_team][data['day'] + 1] = ratings[away_team][data['day']]
-            ratings[home_team][data['day'] + 1] = ratings[home_team][data['day']]
-            ratings[data['winner']][data['day'] + 1] += 1
+        current_round = -1
+        for away_team, home_team, data in sorted(games, key=lambda edge: edge[2]['round']):
+            # In the case that a team is not playing that round, we make sure it gets the same rating as before.
+            if int(data['round']) != current_round:
+                current_round = data['round']
+                for t in range(n_teams):
+                    ratings[t][current_round + 1] = ratings[t][current_round]
+
+            ratings[away_team][data['round'] + 1] = ratings[away_team][data['round']] + (
+                1 if data['winner'] == 'away'
+                else 0.5 if data['winner'] == 'draw'
+                else 0
+            )
+            ratings[home_team][data['round'] + 1] = ratings[home_team][data['round']] + (
+                1 if data['winner'] == 'home'
+                else 0.5 if data['winner'] == 'draw'
+                else 0
+            )
+
         return ratings
 
-    def get_ratings(self, network: BaseNetwork, team_id: TeamId):
-        games = list(network.data.in_edges(team_id, data=True)) + list(network.data.out_edges(team_id, data=True))
-        n_rounds = len(get_rounds(games))
+    def get_ratings(self, network: BaseNetwork, team_id: [TeamId]):
+        home_games = list(network.data.in_edges(team_id, data=True))
+        away_games = list(network.data.out_edges(team_id, data=True))
+        n_rounds = len(get_rounds(home_games + away_games))
         ratings = np.zeros([len(team_id), n_rounds + 1])
-        for away_team, home_team, data in sorted(games, key=lambda x: x[2]['day']):
-            if data['winner'] in team_id:
-                ratings[data['winner']][data['day'] + 1] = ratings[data['winner']][data['day']] + 1
+        for away_team, home_team, data in sorted(home_games, key=lambda x: x[2]['day']):
+            ratings[home_team][data['round'] + 1] = ratings[home_team][data['round']] + 1 if data['winner'] == 'home' \
+                else 0.5 if data['winner'] == 'draw' \
+                else 0
+
+        for away_team, home_team, data in sorted(home_games, key=lambda x: x[2]['round']):
+            ratings[away_team][data['round'] + 1] = ratings[away_team][data['round']] + 1 if data['winner'] == 'away' \
+                else 0.5 if data['winner'] == 'draw' \
+                else 0
+
         return ratings
 
 

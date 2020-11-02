@@ -23,6 +23,13 @@ class BaseForecast(ABC):
     def get_forecast(self, match=None):
         pass
 
+    def print(self):
+        forecast_string = ""
+        for i in range(len(self.outcomes)):
+            forecast_string += f" {self.outcomes[i]}: {self.probabilities[i]} -"
+        forecast_string = forecast_string[:-1]
+        print(forecast_string)
+
 
 class SimpleForecast(BaseForecast):
 
