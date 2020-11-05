@@ -2,6 +2,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from typing import NewType
 
+from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
 from dfg_rating.model.forecast.base_forecast import BaseForecast
 
 TeamId = NewType('TeamId', int)
@@ -23,14 +24,14 @@ class BaseNetwork(ABC):
 
     Attributes:
         network_type (str): Text descriptor of the network type.
-        params (dict): Dictionary of key-value parameters for the network configuration
+        kwargs (dict): Dictionary of key-value parameters for the network configuration
 
     """
 
-    def __init__(self, network_type, params):
+    def __init__(self, network_type: str, **kwargs):
         self.data = None
         self.type = network_type
-        self.params = params
+        self.params = kwargs
         self.n_teams = self.params.get('number_of_teams', 0)
         self.n_rounds = self.params.get('rounds', self.n_teams - 1 + self.n_teams % 2)
         self.days_between_rounds = self.params.get('days_between_rounds', 1)
@@ -42,7 +43,7 @@ class BaseNetwork(ABC):
         pass
 
     @abstractmethod
-    def print_data(self):
+    def print_data(self, **kwargs):
         """Serialize and print via terminal the network content.
         """
         pass
@@ -55,9 +56,9 @@ class BaseNetwork(ABC):
         for away_team, home_team, edge_attributes in self.iterate_over_games():
             # TODO construct an object Match
             # Random winner with weighted choices
-            if 'True' not in edge_attributes['forecasts']:
-                print("Playing seasion: Missing True forecast")
-            winner = weighted_winner(edge_attributes['forecasts']['True'])
+            if 'true_forecast' not in edge_attributes['forecasts']:
+                print("Playing season: Missing True forecast")
+            winner = weighted_winner(edge_attributes['forecasts']['true_forecast'])
             self.data.edges[away_team, home_team]['winner'] = winner
 
     def _add_rating_to_team(self, team_id, rating_values, rating_name):
@@ -65,3 +66,15 @@ class BaseNetwork(ABC):
 
     def _add_forecast_to_team(self, match, forecast: BaseForecast, forecast_name):
         self.data.edges[match].setdefault('forecasts', {})[forecast_name] = forecast
+
+    @abstractmethod
+    def add_rating(self, new_rating, rating_name):
+        pass
+
+    @abstractmethod
+    def add_forecast(self, forecast: BaseForecast, forecast_name):
+        pass
+
+    @abstractmethod
+    def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker):
+        pass

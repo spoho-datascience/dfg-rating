@@ -19,7 +19,7 @@ s.print_data(schedule=True)
 true_forecast = SimpleForecast('simple', ['home', 'draw', 'away'], [0.4523, 0.2975, 0.2502])
 s.add_forecast(true_forecast, 'True')
 s.play()
-s.print_data(schedule=True, winner=True, forecasts=True, forecasts_list=['True'])
+s.print_data(schedule=True, winner=True, forecasts=True, forecasts_list=['true_forecast'])
 print(">> Creating winner rating")
 s.add_rating(WinnerRating('winner', {}), 'winner')
 

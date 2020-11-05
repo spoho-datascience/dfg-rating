@@ -1,6 +1,7 @@
 import math
 import networkx as nx
 
+from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
 from dfg_rating.model.forecast.base_forecast import BaseForecast
 from dfg_rating.model.network.base_network import BaseNetwork
 from dfg_rating.model.rating.base_rating import BaseRating
@@ -22,7 +23,7 @@ class RoundRobinNetwork(BaseNetwork):
             boolean: True if the process has been successful, False if else.
         """
         graph = nx.DiGraph()
-        
+
         n_games_per_round = self.params.get('games_per_round', int(math.ceil(self.n_teams / 2)))
 
         teams_list = [t for t in range(0, self.n_teams)]
@@ -39,10 +40,12 @@ class RoundRobinNetwork(BaseNetwork):
                 if (slice_a[game] != -1) and (slice_b[game] != -1):
                     if season_round % 2 == 0:
                         graph.add_edge(slice_a[game], slice_b[game], round=season_round, day=day)
-                        graph.add_edge(slice_b[game], slice_a[game], round=season_round + self.n_rounds, day=day + (self.n_rounds * self.days_between_rounds))
+                        graph.add_edge(slice_b[game], slice_a[game], round=season_round + self.n_rounds,
+                                       day=day + (self.n_rounds * self.days_between_rounds))
                     else:
                         graph.add_edge(slice_b[game], slice_a[game], round=season_round, day=day)
-                        graph.add_edge(slice_a[game], slice_b[game], round=season_round + self.n_rounds, day=day + (self.n_rounds * self.days_between_rounds))
+                        graph.add_edge(slice_a[game], slice_b[game], round=season_round + self.n_rounds,
+                                       day=day + (self.n_rounds * self.days_between_rounds))
 
             day += self.days_between_rounds
             rotate = slice_a[-1]
@@ -60,15 +63,27 @@ class RoundRobinNetwork(BaseNetwork):
                 if (print_kwargs.get('winner', False)) & ('winner' in edge_attributes):
                     print(f"Result: {edge_attributes['winner']}")
                 if (print_kwargs.get('forecasts', False)) & ('forecasts' in edge_attributes):
-                    for forecast in print_kwargs.get('forecasts_list', []):
-                        print(f"Forecast: {edge_attributes['forecasts'][forecast].print()}")
+                    forecasts_list = print_kwargs.get('forecasts_list', [])
+                    if len(forecasts_list) == 0:
+                        forecasts_list = list(edge_attributes['forecasts'].keys())
+                    for forecast in forecasts_list:
+                        print(f"Forecast {forecast}: {edge_attributes['forecasts'][forecast].print()}")
+                if (print_kwargs.get('odds', False)) & ('odds' in edge_attributes):
+                    bookmakers_list = print_kwargs.get('bookmakers_list', [])
+                    if len(bookmakers_list) == 0:
+                        bookmakers_list = list(edge_attributes['odds'].keys())
+                    for bm in bookmakers_list:
+                        print(f"Bookmaker {bm} odds: {edge_attributes['odds'][bm]}")
             print("---------------")
         if print_kwargs.get('attributes', False):
             if (print_kwargs.get('ratings', False)) & ('ratings' in self.data.nodes[0]):
                 print("Teams ratings")
                 for team in self.data.nodes:
                     print(f"Team {team}:")
-                    for rating in print_kwargs.get('ratings_list', []):
+                    ratings_list = print_kwargs.get('ratings_list', [])
+                    if len(ratings_list) == 0:
+                        ratings_list = list(self.data.nodes[team]['ratings'].keys())
+                    for rating in ratings_list:
                         print(f"Rating {rating} for team {team}: > {self.data.nodes[team]['ratings'][rating]}")
 
     def iterate_over_games(self):
@@ -86,3 +101,14 @@ class RoundRobinNetwork(BaseNetwork):
         for match in self.data.edges:
             self._add_forecast_to_team(match, forecast, forecast_name)
 
+    def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker):
+        for away_team, home_team, edge_attributes in self.iterate_over_games():
+            if 'true_forecast' not in edge_attributes['forecasts']:
+                print("Playing season: Missing True forecast")
+            match_true_forecast = edge_attributes['forecasts']['true_forecast']
+            odds = bookmaker.get_odds(match_true_forecast)
+            self.data.edges[
+                away_team, home_team
+            ].setdefault(
+                'odds', {}
+            )[bookmaker_name] = bookmaker.get_odds(match_true_forecast)

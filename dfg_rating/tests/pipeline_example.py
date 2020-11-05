@@ -22,7 +22,7 @@ s.print_data(schedule=True)
 print(">> Creating true rating")
 s.add_rating(FunctionRating('normal', 5, 1), 'True_rating')
 s.print_data(attributes=True, ratings=True, ratings_list=['True_rating'])
-true_forecast = SimpleForecast('simple', ['home', 'draw', 'away'], [0.4523, 0.2975, 0.2502])
+true_forecast = SimpleForecast('simple', outcomes=['home', 'draw', 'away'], probs=[0.4523, 0.2975, 0.2502])
 print(">> Adding simple forecast to the network and simulating observed results")
 true_forecast.print()
 s.add_forecast(true_forecast, 'True')
@@ -32,7 +32,7 @@ print(">> Creating winner rating")
 s.add_rating(WinnerRating('winner', {}), 'winner')
 print(">> Printing network")
 s.print_data(
-    attributes=True, ratings=True, ratings_list=['winner', 'True_rating'], forecasts=True, forecasts_list=['True']
+    attributes=True, ratings=True, ratings_list=['winner', 'True_rating'], forecasts=True, forecasts_list=['true_forecast']
 )
 print(">> Creating simple Model Forecast with equally distributed probabilities")
 model_forecast = SimpleForecast('simple', ['home', 'draw', 'away'])
@@ -62,7 +62,7 @@ for away_team, home_team, edge_attributes in s.iterate_over_games():
         print("##########################################################")
         print(f"Round {current_round}")
     print(f"({away_team} -> {home_team}), winner = {edge_attributes['winner']}")
-    tf = edge_attributes['forecasts']['True']
+    tf = edge_attributes['forecasts']['true_forecast']
     mf = edge_attributes['forecasts']['model_forecast']
     print(f"True probablities {tf.get_forecast()}")
     print(f"Model probabilities {mf.get_forecast()}")

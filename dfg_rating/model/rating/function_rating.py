@@ -13,16 +13,14 @@ class FunctionRating(BaseRating):
         distribution (str): Function name
     """
 
-    def __init__(self, distribution: str, *args):
+    def __init__(self, rating_type: str, **args):
+        super().__init__(rating_type)
         try:
-            self.distribution_method = getattr(np.random.default_rng(), distribution)
+            self.distribution_method = getattr(np.random.default_rng(), args['distribution'])
+            args.pop('distribution', None)
         except AttributeError as attr:
             self.distribution_method = None
-        self.arguments = []
-        for arg in args:
-            self.arguments.append(arg)
-
-        pass
+        self.arguments = args
 
     def get_all_ratings(self, n: BaseNetwork):
         n_teams = len(n.data)
@@ -39,11 +37,13 @@ class FunctionRating(BaseRating):
     def _compute(self):
         """Compute single rating"""
         if self.distribution_method is not None:
-            s = self.distribution_method(*self.arguments)
+            s = self.distribution_method(self.arguments)
             return s
 
     def _compute_array(self, array_length):
         """Compute array of ratings"""
+        new_args = self.arguments
+        new_args['size'] = array_length
         if self.distribution_method is not None:
-            s = self.distribution_method(*self.arguments, array_length)
+            s = self.distribution_method(**new_args)
             return s
