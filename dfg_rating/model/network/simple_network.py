@@ -106,7 +106,6 @@ class RoundRobinNetwork(BaseNetwork):
             if 'true_forecast' not in edge_attributes['forecasts']:
                 print("Playing season: Missing True forecast")
             match_true_forecast = edge_attributes['forecasts']['true_forecast']
-            odds = bookmaker.get_odds(match_true_forecast)
             self.data.edges[
                 away_team, home_team
             ].setdefault(
