@@ -17,7 +17,10 @@ class BaseForecast(ABC):
         self.outcomes = kwargs.get('outcomes', [])
         number_of_outcomes = len(self.outcomes)
         probs = kwargs.get('probs', None)
-        self.probabilities = np.array(probs) if probs is not None else np.full(number_of_outcomes, float(1.0 / float(number_of_outcomes)))
+        self.probabilities = np.array(probs) if probs is not None \
+            else np.full(number_of_outcomes, float(1.0 / float(number_of_outcomes)))
+        if self.probabilities.sum() != 1.0:
+            print("Warning: Forecast probabilities should sum 1")
 
 
     @abstractmethod
