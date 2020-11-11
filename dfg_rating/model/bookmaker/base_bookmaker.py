@@ -60,7 +60,8 @@ class BookmakerMargin:
         self.margin = margin
 
     def apply(self, f: BaseForecast):
-        return (1 / f.get_forecast()) * (1 - self.margin)
+        raw_odds = (1 / f.get_forecast()) * (1 - self.margin)
+        return np.maximum(np.full_like(raw_odds, 1), (1 / f.get_forecast()) * (1 - self.margin))
 
 
 # Bookmaker implementation
