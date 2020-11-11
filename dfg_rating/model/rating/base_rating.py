@@ -19,9 +19,9 @@ class BaseRating(ABC):
         params (dict): Dictionary of key-value parameters for the network configuration
     """
 
-    def __init__(self, rating_type, params={}):
+    def __init__(self, rating_type, **kwargs):
         self.type = rating_type
-        self.params = params
+        self.params = kwargs
 
     @abstractmethod
     def get_all_ratings(self, n: BaseNetwork):
@@ -33,7 +33,7 @@ class BaseRating(ABC):
         pass
 
     @abstractmethod
-    def get_ratings(self, n: BaseNetwork, t: TeamId):
+    def get_ratings(self, n: BaseNetwork, t: [TeamId]):
         """Computes the temporal rating of a given set of teams in a given network
 
         Args:

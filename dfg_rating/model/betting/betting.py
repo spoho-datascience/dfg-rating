@@ -17,7 +17,6 @@ class FixedBetting(BaseBetting):
         self.bank_role = bank_role
 
     def bet(self, forecast: BaseForecast, odds):
-        print(forecast.get_forecast())
         betting_inputs = forecast.get_forecast() * odds
 
         def decide_betting(i):

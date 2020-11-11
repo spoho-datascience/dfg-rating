@@ -16,16 +16,19 @@ class BookmakerError:
 class FactorBookmakerError(BookmakerError):
 
     def __init__(self, error: float, scope: str = None):
-        self.type = 'PercentageBookmakerError'
+        self.type = 'factor'
         self.error = error
         self.scope = scope
 
     def apply(self, f: BaseForecast):
         error_factor = random.uniform(-1.0, 1.0)
         true_probabilities = f.get_forecast()
-        abs_error = error_factor * self.error
-        if self.scope == "single":
+        if self.scope == "positive":
             abs_error = abs(error_factor) * self.error
+        elif self.scope == "negative":
+            abs_error = -1 * abs(error_factor) * self.error
+        else:
+            abs_error = error_factor * self.error
         applied_probabilities = abs_error + true_probabilities
         return applied_probabilities / sum(applied_probabilities)
 
@@ -33,20 +36,19 @@ class FactorBookmakerError(BookmakerError):
 class SimulatedBookmakerError(BookmakerError):
     # TODO: Bettor error is assumed to be the same as the Bookmaker error
 
-    def __init__(self, error: str, *args):
+    def __init__(self, error: str, **args):
         try:
             self.error_method = getattr(np.random.default_rng(), error)
         except AttributeError as attr:
             print("Error method not available")
             return
-        self.error_arguments = []
-        for arg in args:
-            self.error_arguments.append(arg)
+        self.error_arguments = args
 
     def apply(self, true_forecast: BaseForecast):
         p = true_forecast.get_forecast()
         logit_probs = np.log(p / (1 - p))
-        error = self.error_method(*(self.error_arguments + [len(logit_probs)]))
+        self.error_arguments['size'] = len(logit_probs)
+        error = self.error_method(**self.error_arguments)
         final_probs = 1 / (1 + (np.exp((-1 * (logit_probs + error)))))
         return final_probs / sum(final_probs)
 
@@ -58,7 +60,8 @@ class BookmakerMargin:
         self.margin = margin
 
     def apply(self, f: BaseForecast):
-        return (1 / f.get_forecast()) + (1 - self.margin)
+        raw_odds = (1 / f.get_forecast()) * (1 - self.margin)
+        return np.maximum(np.full_like(raw_odds, 1), (1 / f.get_forecast()) * (1 - self.margin))
 
 
 # Bookmaker implementation
@@ -71,7 +74,7 @@ class BaseBookmaker(ABC):
         margin: Bookmaker margin.
     """
 
-    def __init__(self, bookmaker_type: str, error: BookmakerError, margin: BookmakerMargin):
+    def __init__(self, bookmaker_type: str, error: BookmakerError, margin: BookmakerMargin, **kwargs):
         self.type = bookmaker_type
         self.error = error
         self.margin = margin
@@ -92,7 +95,7 @@ class BaseBookmaker(ABC):
 class SimpleBookmaker(BaseBookmaker):
 
     def _compute_forecast(self, true_forecast: BaseForecast):
-        self.forecast = SimpleForecast('simple', true_forecast.outcomes, self.error.apply(true_forecast))
+        self.forecast = SimpleForecast('simple', outcomes=true_forecast.outcomes, probs=self.error.apply(true_forecast))
         pass
 
     def _compute_odds(self):

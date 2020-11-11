@@ -12,19 +12,30 @@ class BaseForecast(ABC):
         outcomes: List of outcomes.
     """
 
-    def __init__(self, forecast_type: str, outcomes: List[str], probs: List[float] = None):
+    def __init__(self, forecast_type: str, **kwargs):
         self.type = forecast_type
-        self.outcomes = outcomes
+        self.outcomes = kwargs.get('outcomes', [])
         number_of_outcomes = len(self.outcomes)
-        self.probabilities = np.array(probs) if probs is not None else np.full(number_of_outcomes, float(1.0 / float(number_of_outcomes)))
+        probs = kwargs.get('probs', None)
+        self.probabilities = np.array(probs) if probs is not None \
+            else np.full(number_of_outcomes, float(1.0 / float(number_of_outcomes)))
+        if self.probabilities.sum() != 1.0:
+            print("Warning: Forecast probabilities should sum 1")
 
 
     @abstractmethod
-    def get_forecast(self, match=None):
+    def get_forecast(self):
         pass
+
+    def print(self):
+        forecast_string = ""
+        for i in range(len(self.outcomes)):
+            forecast_string += f" {self.outcomes[i]}: {self.probabilities[i]} -"
+        forecast_string = forecast_string[:-1]
+        return forecast_string
 
 
 class SimpleForecast(BaseForecast):
 
-    def get_forecast(self, match=None):
+    def get_forecast(self):
         return self.probabilities

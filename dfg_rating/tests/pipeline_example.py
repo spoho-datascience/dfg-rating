@@ -1,44 +1,48 @@
 from dfg_rating.model.betting.betting import FixedBetting
-from dfg_rating.model.bookmaker.base_bookmaker import SimpleBookmaker, FactorBookmakerError, BookmakerMargin
+from dfg_rating.model.bookmaker.base_bookmaker import SimpleBookmaker, FactorBookmakerError, BookmakerMargin, \
+    SimulatedBookmakerError
 from dfg_rating.model.forecast.base_forecast import SimpleForecast
 from dfg_rating.model.network.simple_network import RoundRobinNetwork
 from dfg_rating.model.rating.function_rating import FunctionRating
+from dfg_rating.model.rating.winner_rating import WinnerRating
 
 print(">> Pipeline start")
 print(">> Testing Simple Network model")
 s = RoundRobinNetwork(
     "type",
-    {
-        "number_of_teams": 6,
-        "days_between_rounds": 3
-    }
+    number_of_teams=6, days_between_rounds=3
 )
 print(">> Creating network")
 s.create_data()
 print(">> Printing network")
-s.print_data()
+s.print_data(schedule=True)
 print(">> Creating true rating")
-s.add_rating(FunctionRating('normal', 5, 1), 'normal')
+s.add_rating(FunctionRating(rating_type='function', distribution='normal', loc=5, scale=1), 'True_rating')
+s.print_data(attributes=True, ratings=True, ratings_list=['True_rating'])
+true_forecast = SimpleForecast('simple', outcomes=['home', 'draw', 'away'], probs=[0.4523, 0.2975, 0.2502])
+print(">> Adding simple forecast to the network and simulating observed results")
+true_forecast.print()
+s.add_forecast(true_forecast, 'true_forecast')
+s.play()
+s.print_data(schedule=True, winner=True)
+print(">> Creating winner rating")
+s.add_rating(WinnerRating('winner'), 'winner')
 print(">> Printing network")
-s.print_data(print_schedule=False)
-print(">> Creating simple True Forecast with predefined probabilities")
-true_forecast = SimpleForecast('simple', ['home', 'draw', 'away'], [0.4523, 0.2975, 0.2501])
-print(true_forecast.get_forecast())
+s.print_data(
+    attributes=True, ratings=True, ratings_list=['winner', 'True_rating'], forecasts=True, forecasts_list=['true_forecast']
+)
 print(">> Creating simple Model Forecast with equally distributed probabilities")
-model_forecast = SimpleForecast('simple', ['home', 'draw', 'away'])
-print(model_forecast.get_forecast())
+model_forecast = SimpleForecast('simple', outcomes=['home', 'draw', 'away'])
+model_forecast.print()
+s.add_forecast(model_forecast, 'model_forecast')
 print(">> Creating simple Bookmaker with factor error and margin")
 b = SimpleBookmaker(
     'simple',
-    FactorBookmakerError(error=0.1),
+    SimulatedBookmakerError(error='uniform', low=0, high=1),
     BookmakerMargin(0.1)
 )
 print(">> Creating simple fixed betting")
 betting = FixedBetting(1000)
-
-print(">> Playing season")
-s.play(true_forecast)
-s.print_data(print_attributes=False)
 
 print(">> Simulation:")
 print("##########################################################")
@@ -55,10 +59,11 @@ for away_team, home_team, edge_attributes in s.iterate_over_games():
         print("##########################################################")
         print(f"Round {current_round}")
     print(f"({away_team} -> {home_team}), winner = {edge_attributes['winner']}")
-    print(f"True proabilities {true_forecast.get_forecast()}")
-    print(f"Model probabilities {model_forecast.get_forecast()}")
-    bm_odds = b.get_odds(true_forecast)
+    tf = edge_attributes['forecasts']['true_forecast']
+    mf = edge_attributes['forecasts']['model_forecast']
+    print(f"True probablities {tf.get_forecast()}")
+    print(f"Model probabilities {mf.get_forecast()}")
+    bm_odds = b.get_odds(tf)
     print(f"Bookmaker odds {bm_odds}")
-    print(f"Bets {betting.bet(model_forecast, bm_odds)}")
-
+    print(f"Bets {betting.bet(mf, bm_odds)}")
     print("--------------------------------------------------------------")
