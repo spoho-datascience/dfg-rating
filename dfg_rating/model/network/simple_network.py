@@ -59,7 +59,7 @@ class RoundRobinNetwork(BaseNetwork):
         if print_kwargs.get('schedule', False):
             print("Network schedule")
             for away_team, home_team, edge_attributes in sorted(self.data.edges.data(), key=lambda t: t[2]['round']):
-                print(f"({away_team} -> {home_team} at round {edge_attributes['round']}, day {edge_attributes['day']})")
+                print(f"({home_team} vs. {away_team} at round {edge_attributes['round']}, day {edge_attributes['day']})")
                 if (print_kwargs.get('winner', False)) & ('winner' in edge_attributes):
                     print(f"Result: {edge_attributes['winner']}")
                 if (print_kwargs.get('forecasts', False)) & ('forecasts' in edge_attributes):
