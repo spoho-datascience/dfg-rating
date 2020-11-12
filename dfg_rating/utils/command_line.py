@@ -1,3 +1,6 @@
+from halo import Halo
+
+
 def read_custom_key_value(line: str, cast=None):
     result = []
     for argument in line.split(","):
@@ -14,3 +17,11 @@ def read_args_list(args_list, cast=None, separator=","):
         for i in range(len(splitted)):
             splitted[i] = eval(cast)(splitted[i])
     return splitted
+
+
+def show_progress_bar(text, start=False, sp=None):
+    spinner = Halo(text=text)
+    if start:
+        return spinner.start()
+    else:
+        sp.succeed(text)
