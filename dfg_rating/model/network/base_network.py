@@ -117,7 +117,7 @@ class WhiteNetwork(BaseNetwork):
         if print_kwargs.get('schedule', False):
             print("Network schedule")
             for away_team, home_team, edge_attributes in sorted(self.data.edges.data(), key=lambda t: t[2]['day']):
-                print(f"({home_team} vs. {away_team} at ATP {edge_attributes['ATP']}, day {edge_attributes['day']})")
+                print(f"({home_team} vs. {away_team} at Date {edge_attributes['Date']}, day {edge_attributes['day']})")
 
             print("---------------")
         if print_kwargs.get('attributes', False):
