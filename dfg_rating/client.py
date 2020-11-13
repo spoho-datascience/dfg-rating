@@ -2,6 +2,7 @@ import click
 
 from dfg_rating.logic import controller
 from dfg_rating.ui import commands, menu
+from dfg_rating.ui.gui import init
 
 
 @click.command()
@@ -36,4 +37,7 @@ def cli(i):
             click.echo(click.style('Error in the execution consult logs', fg='red'))
             print(e)
             pass
+
+def viz():
+    init()
 
