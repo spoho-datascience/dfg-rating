@@ -17,7 +17,7 @@ class Controller:
     inputs = {
         "network": {
             "single-soccer-simple": {
-                "number_of_teams": {
+                "teams": {
                     "label": "Number of teams",
                     "type": int
                 },

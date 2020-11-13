@@ -40,15 +40,15 @@ class WinnerRating(BaseRating):
         away_games = list(network.data.out_edges(team_id, data=True))
         n_rounds = len(get_rounds(home_games + away_games))
         ratings = np.zeros([len(team_id), n_rounds + 1])
-        for away_team, home_team, data in sorted(home_games, key=lambda x: x[2]['day']):
-            ratings[home_team][data['round'] + 1] = ratings[home_team][data['round']] + 1 if data['winner'] == 'home' \
-                else 0.5 if data['winner'] == 'draw' \
-                else 0
-
-        for away_team, home_team, data in sorted(home_games, key=lambda x: x[2]['round']):
-            ratings[away_team][data['round'] + 1] = ratings[away_team][data['round']] + 1 if data['winner'] == 'away' \
-                else 0.5 if data['winner'] == 'draw' \
-                else 0
+        for away_team, home_team, data in sorted(home_games + away_games, key=lambda x: x[2]['round']):
+            if away_team in team_id:
+                ratings[away_team][data['round'] + 1] = ratings[away_team][data['round']] + 1 if data['winner'] == 'away' \
+                    else 0.5 if data['winner'] == 'draw' \
+                    else 0
+            if home_team in team_id:
+                ratings[home_team][data['round'] + 1] = ratings[home_team][data['round']] + 1 if data['winner'] == 'home' \
+                    else 0.5 if data['winner'] == 'draw' \
+                    else 0
 
         return ratings
 

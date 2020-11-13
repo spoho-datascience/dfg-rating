@@ -1,5 +1,6 @@
 """Networks including more than one season
 """
+import networkx as nx
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
 from dfg_rating.model.forecast.base_forecast import BaseForecast
 from dfg_rating.model.network.simple_network import RoundRobinNetwork
@@ -21,12 +22,21 @@ class LeagueNetwork(RoundRobinNetwork):
         self.out_teams = self.n_teams - self.league_teams
 
     def create_data(self):
-        pass
+        if self.data is None:
+            season_args = self.params
+            season_args['teams'] = self.league_teams
+            print(season_args)
+            season_network = RoundRobinNetwork('subtype', **season_args)
+            season_network.create_data()
+            self.data = season_network.data
+            for away_team, home_team, edge in self.iterate_over_games():
+                self.data.edges[away_team, home_team]['season'] = 1
 
-    def print_data(self, **print_kwargs):
-        pass
+        if self.all_teams_have_true_rating():
+            pass
+        else:
+            print("Cannot create network data: Missing true ratings")
 
-    def iterate_over_games(self):
         pass
 
     def add_rating(self, rating: BaseRating, rating_name, team_id=None):
@@ -37,3 +47,6 @@ class LeagueNetwork(RoundRobinNetwork):
 
     def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker):
         pass
+
+    def all_teams_have_true_rating(self):
+        return all('true_rating' in self.data.nodes[n] for n in self.data.nodes)

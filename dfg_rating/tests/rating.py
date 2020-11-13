@@ -5,7 +5,7 @@ from dfg_rating.model.rating.winner_rating import WinnerRating
 
 rr_network = s = RoundRobinNetwork(
     "type",
-    number_of_teams=5,
+    teams=5,
     days_between_rounds=3
 )
 rr_network.create_data()

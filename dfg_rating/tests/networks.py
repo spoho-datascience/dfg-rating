@@ -8,7 +8,7 @@ print(">> Testing Simple Network model")
 network = s = RoundRobinNetwork(
     "type",
     {
-        "number_of_teams": 3,
+        "teams": 3,
         "days_between_rounds": 3
     }
 )

@@ -55,40 +55,6 @@ class RoundRobinNetwork(BaseNetwork):
         self.data = graph
         return True
 
-    def print_data(self, **print_kwargs):
-        if print_kwargs.get('schedule', False):
-            print("Network schedule")
-            for away_team, home_team, edge_attributes in sorted(self.data.edges.data(), key=lambda t: t[2]['round']):
-                print(f"({away_team} -> {home_team} at round {edge_attributes['round']}, day {edge_attributes['day']})")
-                if (print_kwargs.get('winner', False)) & ('winner' in edge_attributes):
-                    print(f"Result: {edge_attributes['winner']}")
-                if (print_kwargs.get('forecasts', False)) & ('forecasts' in edge_attributes):
-                    forecasts_list = print_kwargs.get('forecasts_list', [])
-                    if len(forecasts_list) == 0:
-                        forecasts_list = list(edge_attributes['forecasts'].keys())
-                    for forecast in forecasts_list:
-                        print(f"Forecast {forecast}: {edge_attributes['forecasts'][forecast].print()}")
-                if (print_kwargs.get('odds', False)) & ('odds' in edge_attributes):
-                    bookmakers_list = print_kwargs.get('bookmakers_list', [])
-                    if len(bookmakers_list) == 0:
-                        bookmakers_list = list(edge_attributes['odds'].keys())
-                    for bm in bookmakers_list:
-                        print(f"Bookmaker {bm} odds: {edge_attributes['odds'][bm]}")
-            print("---------------")
-        if print_kwargs.get('attributes', False):
-            if (print_kwargs.get('ratings', False)) & ('ratings' in self.data.nodes[0]):
-                print("Teams ratings")
-                for team in self.data.nodes:
-                    print(f"Team {team}:")
-                    ratings_list = print_kwargs.get('ratings_list', [])
-                    if len(ratings_list) == 0:
-                        ratings_list = list(self.data.nodes[team]['ratings'].keys())
-                    for rating in ratings_list:
-                        print(f"Rating {rating} for team {team}: > {self.data.nodes[team]['ratings'][rating]}")
-
-    def iterate_over_games(self):
-        return sorted(self.data.edges.data(), key=lambda t: t[2]['round'])
-
     def add_rating(self, rating: BaseRating, rating_name, team_id=None):
         if team_id:
             self._add_rating_to_team(team_id, rating.get_ratings(self, [team_id]), rating_name)
