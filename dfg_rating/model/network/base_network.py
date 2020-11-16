@@ -1,9 +1,10 @@
 import numpy as np
 from abc import ABC, abstractmethod
 from typing import NewType
+import pandas as pd
 
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
-from dfg_rating.model.forecast.base_forecast import BaseForecast
+from dfg_rating.model.forecast.base_forecast import BaseForecast, SimpleForecast
 
 TeamId = NewType('TeamId', int)
 
@@ -14,6 +15,10 @@ def weighted_winner(forecast: BaseForecast):
     for i in range(len(weights)):
         if x < weights[i]:
             return forecast.outcomes[i]
+
+
+def base_edge_filter(edge):
+    return True
 
 
 class BaseNetwork(ABC):
@@ -47,13 +52,9 @@ class BaseNetwork(ABC):
             print("Network schedule")
             season_counter = 0
             for away_team, home_team, edge_attributes in sorted(self.data.edges.data(),
-                                                                key=lambda t: (t[2].get('season', 1), t[2]['round'])):
-                if 'season' in edge_attributes:
-                    if season_counter != edge_attributes['season']:
-                        print(f"Season {edge_attributes['season']}")
-                        season_counter = edge_attributes["season"]
+                                                                key=lambda t: (t[2].get('season', 0), t[2]['round'])):
                 print(
-                    f"({home_team} vs. {away_team} at round {edge_attributes['round']}, day {edge_attributes['day']})")
+                    f"({home_team} vs. {away_team} at season {edge_attributes['season']} round {edge_attributes['round']}, day {edge_attributes['day']})")
                 if (print_kwargs.get('winner', False)) & ('winner' in edge_attributes):
                     print(f"Result: {edge_attributes['winner']}")
                 if (print_kwargs.get('forecasts', False)) & ('forecasts' in edge_attributes):
@@ -78,25 +79,68 @@ class BaseNetwork(ABC):
                     if len(ratings_list) == 0:
                         ratings_list = list(self.data.nodes[team]['ratings'].keys())
                     for rating in ratings_list:
-                        print(f"Rating {rating} for team {team}: > {self.data.nodes[team]['ratings'][rating]}")
+                        print(f"Rating {rating} for team {team}: > {self.data.nodes[team].get('ratings', {}).get(rating, {})}")
 
     def iterate_over_games(self):
-        return sorted(self.data.edges.data(), key=lambda t: (t[2].get('season', 1), t[2]['round']))
+        return sorted(self.data.edges(keys=True, data=True), key=lambda t: (t[3].get('season', 0), t[3]['round']))
+
+    def play_sub_network(self, games):
+        for away_team, home_team, edge_key, edge_attributes in games:
+            # Random winner with weighted choices
+            if 'true_forecast' not in edge_attributes.get('forecasts', {}):
+                # Creating a true forecasts
+                self.add_forecast(
+                    SimpleForecast(outcomes=['home', 'draw', 'away'], probs=[0.4523, 0.2975, 0.2502]),
+                    'true_forecast'
+                )
+                pass
+            winner = weighted_winner(edge_attributes['forecasts']['true_forecast'])
+            self.data.edges[away_team, home_team, edge_key]['winner'] = winner
 
     def play(self):
-        for away_team, home_team, edge_attributes in self.iterate_over_games():
-            # TODO construct an object Match
-            # Random winner with weighted choices
-            if 'true_forecast' not in edge_attributes['forecasts']:
-                print("Playing season: Missing True forecast")
-            winner = weighted_winner(edge_attributes['forecasts']['true_forecast'])
-            self.data.edges[away_team, home_team]['winner'] = winner
+        self.play_sub_network(self.iterate_over_games())
 
-    def _add_rating_to_team(self, team_id, rating_values, rating_name):
-        self.data.nodes[team_id].setdefault('ratings', {})[rating_name] = rating_values
+    def _add_rating_to_team(self, team_id, rating_values, rating_name, season=-1):
+        if season is None:
+            season = -1
+        self.data.nodes[team_id].setdefault('ratings', {}).setdefault(rating_name, {})[season] = rating_values
 
     def _add_forecast_to_team(self, match, forecast: BaseForecast, forecast_name):
         self.data.edges[match].setdefault('forecasts', {})[forecast_name] = forecast
+
+    def get_teams(
+            self,
+            ascending: bool = False,
+            maximum_number_of_teams: int = None,
+            in_league=True,
+            ratings=None,
+            season=None,
+            round=None):
+        if ratings is None:
+            ratings = ['ranking']
+            team_nodes = self.data.nodes
+        maximum_number_of_teams = maximum_number_of_teams or self.n_teams
+        if season is None:
+            season = -1
+        season_round = round if round is not None else self.n_rounds
+        teams = {}
+        set_of_nodes = [node for node in self.data.nodes if node in list(self.league_teams_labels.values())] \
+            if in_league else [node for node in self.data.nodes]
+        for node in set_of_nodes:
+            for rating in ratings:
+                try:
+                    teams.setdefault(rating, []).append(
+                        self.data.nodes[node].get('ratings', {}).get(rating, {}).get(season, {})[season_round - 1]
+                    )
+                    teams.setdefault('labels', []).append(node)
+                except KeyError as K:
+                    # log error
+                    pass
+        print(teams)
+
+        df = pd.DataFrame(teams).sort_values(by='ranking', ascending=ascending)
+        df.set_index('labels', inplace=True)
+        return df.head(maximum_number_of_teams).to_dict()['ranking']
 
     @abstractmethod
     def add_rating(self, new_rating, rating_name):

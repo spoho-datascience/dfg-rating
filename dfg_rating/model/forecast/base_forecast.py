@@ -1,7 +1,6 @@
 import numpy as np
 
 from abc import ABC, abstractmethod
-from typing import List
 
 
 class BaseForecast(ABC):
@@ -33,6 +32,9 @@ class BaseForecast(ABC):
 
 
 class SimpleForecast(BaseForecast):
+
+    def __init__(self, **kwargs):
+        super().__init__('simple', **kwargs)
 
     def get_forecast(self):
         return self.probabilities

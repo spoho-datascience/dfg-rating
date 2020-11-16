@@ -52,7 +52,7 @@ print("##########################################################")
 init = True
 current_round = None
 
-for away_team, home_team, edge_attributes in s.iterate_over_games():
+for away_team, home_team, edge_key, edge_attributes in s.iterate_over_games():
     if init:
         init = False
         current_round = edge_attributes['round']

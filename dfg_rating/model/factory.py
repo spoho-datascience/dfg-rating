@@ -15,8 +15,8 @@ def new_network(network_type: str, **kwargs) -> BaseNetwork:
     Options:
      - single-soccer-simple: RoundRobinNetwork
     """
-    if network_type == 'single-soccer-simple':
-        return RoundRobinNetwork(network_type, **kwargs)
+    if network_type == 'round-robin':
+        return RoundRobinNetwork(**kwargs)
     else:
         raise ValueError
 
@@ -29,9 +29,9 @@ def new_rating(rating_type: str, **kwargs) -> BaseRating:
      - basic-winner: WinnerRating
     """
     if rating_type == 'random-function':
-        return FunctionRating(rating_type, **kwargs)
+        return FunctionRating(**kwargs)
     elif rating_type == 'basic-winner':
-        return WinnerRating(rating_type, **kwargs)
+        return WinnerRating(**kwargs)
     else:
         raise ValueError
 
@@ -43,7 +43,7 @@ def new_forecast(forecast_type: str, **kwargs) -> BaseForecast:
      - simple: SimpleForecast
     """
     if forecast_type == 'simple':
-        return SimpleForecast(forecast_type, **kwargs)
+        return SimpleForecast(**kwargs)
     else:
         raise ValueError
 
@@ -81,7 +81,7 @@ def new_bookmaker(bookmaker_type: str, **kwargs):
          - simple: SimpleForecast
         """
     if bookmaker_type == 'simple':
-        return SimpleBookmaker(bookmaker_type, **kwargs)
+        return SimpleBookmaker(**kwargs)
     else:
         raise ValueError
 

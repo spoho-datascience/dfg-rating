@@ -1,6 +1,6 @@
 import numpy as np
 
-from dfg_rating.model.network.base_network import BaseNetwork, TeamId
+from dfg_rating.model.network.base_network import BaseNetwork, TeamId, base_edge_filter
 from dfg_rating.model.rating.base_rating import BaseRating, get_rounds
 
 
@@ -13,8 +13,8 @@ class FunctionRating(BaseRating):
         distribution (str): Function name
     """
 
-    def __init__(self, rating_type: str, **args):
-        super().__init__(rating_type)
+    def __init__(self, **args):
+        super().__init__('random-function')
         try:
             self.distribution_method = getattr(np.random.default_rng(), args['distribution'])
             args.pop('distribution', None)
@@ -22,16 +22,16 @@ class FunctionRating(BaseRating):
             self.distribution_method = None
         self.arguments = args
 
-    def get_all_ratings(self, n: BaseNetwork):
+    def get_all_ratings(self, n: BaseNetwork, edge_filter=base_edge_filter):
         n_teams = len(n.data)
-        games = n.data.edges(data=True)
+        games = filter(edge_filter, n.data.edges(keys=True, data=True))
         n_rounds = len(get_rounds(games))
         ratings = np.empty((n_teams, n_rounds + 1))
         for i in range(0, n_teams):
             ratings[i] = self._compute_array(array_length=n_rounds + 1)
         return ratings
 
-    def get_ratings(self, n: BaseNetwork, t: TeamId):
+    def get_ratings(self, n: BaseNetwork, t: TeamId, edge_filter=base_edge_filter):
         pass
 
     def _compute(self):

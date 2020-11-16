@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import NewType
 
-from dfg_rating.model.network.base_network import BaseNetwork, TeamId
+from dfg_rating.model.network.base_network import BaseNetwork, TeamId, base_edge_filter
 
 
 def get_rounds(games):
     """Helper function to retrieve the rounds of a list of games
     """
-    rounds = set([data['day'] for a, h, data in games])
+    rounds = set([data['day'] for a, h, k, data in games])
     return rounds
 
 
@@ -24,20 +24,23 @@ class BaseRating(ABC):
         self.params = kwargs
 
     @abstractmethod
-    def get_all_ratings(self, n: BaseNetwork):
+    def get_all_ratings(self, n: BaseNetwork, edge_filter=base_edge_filter):
         """Computes the temporal rating of each team in a given network
 
         Args:
-            n (Network): 
+            :param n:
+            :param edge_filter:
         """
         pass
 
     @abstractmethod
-    def get_ratings(self, n: BaseNetwork, t: [TeamId]):
+    def get_ratings(self, n: BaseNetwork, t: [TeamId], edge_filter=base_edge_filter):
         """Computes the temporal rating of a given set of teams in a given network
 
         Args:
-            n (Network): 
-            t (list(int)): Team identifiers list
+            :param edge_filter:
+            :param t:
+            :param n:
         """
+        print("Method not implemented for this class")
         pass

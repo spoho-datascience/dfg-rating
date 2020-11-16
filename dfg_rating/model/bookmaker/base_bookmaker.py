@@ -93,8 +93,11 @@ class BaseBookmaker(ABC):
 
 class SimpleBookmaker(BaseBookmaker):
 
+    def __init__(self, error: BookmakerError, margin: BookmakerMargin, **kwargs):
+        super().__init__('simple', error, margin, **kwargs)
+
     def _compute_forecast(self, true_forecast: BaseForecast):
-        self.forecast = SimpleForecast('simple', outcomes=true_forecast.outcomes, probs=self.error.apply(true_forecast))
+        self.forecast = SimpleForecast(outcomes=true_forecast.outcomes, probs=self.error.apply(true_forecast))
         pass
 
     def _compute_odds(self):
