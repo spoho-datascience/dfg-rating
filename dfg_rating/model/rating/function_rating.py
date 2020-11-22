@@ -22,7 +22,8 @@ class FunctionRating(BaseRating):
             self.distribution_method = None
         self.arguments = args
 
-    def get_all_ratings(self, n: BaseNetwork, edge_filter=base_edge_filter):
+    def get_all_ratings(self, n: BaseNetwork, edge_filter=None):
+        edge_filter = edge_filter or base_edge_filter
         n_teams = len(n.data)
         games = filter(edge_filter, n.data.edges(keys=True, data=True))
         n_rounds = len(get_rounds(games))
@@ -31,7 +32,7 @@ class FunctionRating(BaseRating):
             ratings[i] = self._compute_array(array_length=n_rounds + 1)
         return ratings
 
-    def get_ratings(self, n: BaseNetwork, t: TeamId, edge_filter=base_edge_filter):
+    def get_ratings(self, n: BaseNetwork, t: TeamId, edge_filter=None):
         pass
 
     def _compute(self):

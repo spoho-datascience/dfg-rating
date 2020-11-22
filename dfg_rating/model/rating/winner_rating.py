@@ -11,7 +11,8 @@ class WinnerRating(BaseRating):
     def __init__(self, **kwargs):
         super().__init__('basic-winner', **kwargs)
 
-    def get_all_ratings(self, network: BaseNetwork, edge_filter=base_edge_filter):
+    def get_all_ratings(self, network: BaseNetwork, edge_filter=None):
+        edge_filter = edge_filter or base_edge_filter
         n_teams = len(network.data)
         games = network.data.edges(keys=True, data=True)
         n_rounds = len(get_rounds(games))
@@ -37,7 +38,8 @@ class WinnerRating(BaseRating):
 
         return ratings
 
-    def get_ratings(self, network: BaseNetwork, team_id: [TeamId], edge_filter=base_edge_filter):
+    def get_ratings(self, network: BaseNetwork, team_id: [TeamId], edge_filter=None):
+        edge_filter = edge_filter or base_edge_filter
         home_games = list(network.data.in_edges(team_id, keys=True, data=True))
         away_games = list(network.data.out_edges(team_id, keys=True, data=True))
         n_rounds = len(get_rounds(home_games + away_games))

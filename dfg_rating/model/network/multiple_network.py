@@ -36,9 +36,12 @@ class LeagueNetwork(RoundRobinNetwork):
     def create_data(self):
         for season in range(self.seasons):
             print(f"Season {season}")
+            # Create the new season matches
             self.fill_graph(self.league_teams_labels, season=season)
             season_games = list(filter(lambda match: match[3].get('season', -1) == season, self.iterate_over_games()))
+            # Simulate the execution of those matches
             self.play_sub_network(season_games)
+            # Add league ranking to the teams with this new season
             self.add_rating(self.ranking_rating, 'ranking', season=season)
             promoted_items = random.sample(range(self.out_teams), self.league_promotion)
             promoted_teams = [self.out_teams_labels[promoted_items[i]] for i in range(self.league_promotion)]

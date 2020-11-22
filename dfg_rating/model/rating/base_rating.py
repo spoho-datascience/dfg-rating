@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import NewType
 
-from dfg_rating.model.network.base_network import BaseNetwork, TeamId, base_edge_filter
-
+from dfg_rating.model.network.base_network import BaseNetwork, TeamId
 
 def get_rounds(games):
     """Helper function to retrieve the rounds of a list of games
@@ -24,7 +22,7 @@ class BaseRating(ABC):
         self.params = kwargs
 
     @abstractmethod
-    def get_all_ratings(self, n: BaseNetwork, edge_filter=base_edge_filter):
+    def get_all_ratings(self, n: BaseNetwork, edge_filter=None):
         """Computes the temporal rating of each team in a given network
 
         Args:
@@ -34,7 +32,7 @@ class BaseRating(ABC):
         pass
 
     @abstractmethod
-    def get_ratings(self, n: BaseNetwork, t: [TeamId], edge_filter=base_edge_filter):
+    def get_ratings(self, n: BaseNetwork, t: [TeamId], edge_filter=None):
         """Computes the temporal rating of a given set of teams in a given network
 
         Args:

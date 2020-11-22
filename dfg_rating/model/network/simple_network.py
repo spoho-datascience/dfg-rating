@@ -81,7 +81,7 @@ class RoundRobinNetwork(BaseNetwork):
             self.data = graph
 
     def create_data(self):
-        self.data = self.fill_graph()
+        self.fill_graph()
         return True
 
     def add_rating(self, rating: BaseRating, rating_name, team_id=None, season=None):

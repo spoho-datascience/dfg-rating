@@ -36,7 +36,8 @@ class LeagueRating(BaseRankingRating):
         for i in range(len(results)):
             self.points_system[results[i]] = points[i]
 
-    def get_all_ratings(self, league_network: BaseNetwork, edge_filter=base_edge_filter):
+    def get_all_ratings(self, league_network: BaseNetwork, edge_filter=None):
+        edge_filter = edge_filter or base_edge_filter
         n_teams = league_network.n_teams
         games = league_network.data.edges(keys=True, data=True)
         n_rounds = len(get_rounds(games))
@@ -62,9 +63,10 @@ class LeagueRating(BaseRankingRating):
 
         return ratings
 
-    def get_ratings(self, league_network: BaseNetwork, team: [TeamId], edge_filter=base_edge_filter):
-        home_games = list(league_network.data.in_edges(team, data=True))
-        away_games = list(league_network.data.out_edges(team, data=True))
+    def get_ratings(self, league_network: BaseNetwork, team: [TeamId], edge_filter=None):
+        edge_filter = edge_filter or base_edge_filter
+        home_games = list(league_network.data.in_edges(team, keys=True, data=True))
+        away_games = list(league_network.data.out_edges(team, keys=True, data=True))
         n_rounds = len(get_rounds(home_games + away_games))
         ratings = np.zeros([len(team), n_rounds + 1])
         for away_team, home_team, data in sorted(filter(edge_filter, home_games + away_games), key=lambda x: x[2]['day']):
