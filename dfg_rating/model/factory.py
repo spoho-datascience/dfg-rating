@@ -5,6 +5,7 @@ from dfg_rating.model.forecast.base_forecast import SimpleForecast, BaseForecast
 from dfg_rating.model.network.base_network import BaseNetwork
 from dfg_rating.model.network.simple_network import RoundRobinNetwork
 from dfg_rating.model.rating.base_rating import BaseRating
+from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating
 from dfg_rating.model.rating.function_rating import FunctionRating
 from dfg_rating.model.rating.winner_rating import WinnerRating
 
@@ -32,6 +33,8 @@ def new_rating(rating_type: str, **kwargs) -> BaseRating:
         return FunctionRating(**kwargs)
     elif rating_type == 'basic-winner':
         return WinnerRating(**kwargs)
+    elif rating_type == 'controlled-random':
+        return ControlledTrendRating(**kwargs)
     else:
         raise ValueError
 

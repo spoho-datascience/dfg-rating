@@ -22,7 +22,8 @@ def cli(i):
             else:
                 commands.run(action, main_controller)
         except KeyError as key_error_exception:
-            click.echo(click.style(f"Method or argument [{key_error_exception.args[0]}] not present in the system", fg='red'))
+            click.echo(
+                click.style(f"Method or argument [{key_error_exception.args[0]}] not present in the system", fg='red'))
             pass
         except ValueError as value_error:
             click.echo(click.style(f"Factory error [{value_error.args[0]}]", fg='red'))
@@ -38,6 +39,6 @@ def cli(i):
             print(e)
             pass
 
+
 def viz():
     init()
-

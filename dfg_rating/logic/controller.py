@@ -4,6 +4,7 @@ from dfg_rating.model import factory
 from dfg_rating.model.betting.betting import BaseBetting
 from dfg_rating.model.bookmaker.base_bookmaker import BookmakerError, BookmakerMargin, BaseBookmaker
 from dfg_rating.model.network.base_network import BaseNetwork
+from dfg_rating.model.rating.controlled_trend_rating import ControlledRandomFunction
 from dfg_rating.model.rating.function_rating import FunctionRating
 
 
@@ -39,7 +40,7 @@ class Controller:
                     "cast": "float"
                 }
             },
-            "basic-winner": {}
+            "basic-winner": {},
         },
         "forecast": {
             "simple": {
@@ -156,3 +157,16 @@ class Controller:
     def create_betting_strategy(self, betting_name:str, betting_type:str, **kwargs):
         bs = factory.new_betting_strategy(betting_type, **kwargs)
         self.bettings[betting_name] = bs
+
+    def run_demo(self):
+        self.new_network("test_network", "round-robin", teams=12, days_between_rounds=3)
+        self.add_new_rating(
+            "test_network", "controlled-random", "true_rating",
+            starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=200),
+            delta=ControlledRandomFunction(distribution='normal', loc=0, scale=3),
+            trend=ControlledRandomFunction(distribution='normal', loc=0, scale=75),
+            season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
+
+        )
+
+
