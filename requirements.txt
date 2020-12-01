@@ -11,7 +11,7 @@ dash-html-components==1.1.1
 dash-renderer==1.8.3
 dash-table==4.11.0
 decorator==4.4.2
--e git+git@github.com:marcgarnica13/dfg-rating.git@1a8e294196f1940c39f314144fe06be28ec053ce#egg=dfg_rating
+-e git+git@github.com:marcgarnica13/dfg-rating.git@c6e85f6381069f1a9ee8ba44c860411efbd5afac#egg=dfg_rating
 Flask==1.1.2
 Flask-Compress==1.8.0
 future==0.18.2
