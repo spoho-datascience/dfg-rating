@@ -144,7 +144,7 @@ class Controller:
     def new_bookmaker_margin(self, margin_type, **error_kwargs):
         return factory.new_bookmaker_margin(margin_type, **error_kwargs)
 
-    def create_bookmaker(self, bookmaker_name:str, bookmaker_type:str, **kwargs):
+    def create_bookmaker(self, bookmaker_name: str, bookmaker_type: str, **kwargs):
         bm = factory.new_bookmaker(bookmaker_type, **kwargs)
         self.bookmakers[bookmaker_name] = bm
 
@@ -153,20 +153,19 @@ class Controller:
         bm = self.bookmakers[bookmaker_name]
         n.add_odds(bookmaker_name, bm)
 
-
-    def create_betting_strategy(self, betting_name:str, betting_type:str, **kwargs):
+    def create_betting_strategy(self, betting_name: str, betting_type: str, **kwargs):
         bs = factory.new_betting_strategy(betting_type, **kwargs)
         self.bettings[betting_name] = bs
 
     def run_demo(self):
-        self.new_network("test_network", "round-robin", teams=12, days_between_rounds=3)
-        self.add_new_rating(
-            "test_network", "controlled-random", "true_rating",
-            starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=200),
-            delta=ControlledRandomFunction(distribution='normal', loc=0, scale=3),
-            trend=ControlledRandomFunction(distribution='normal', loc=0, scale=75),
-            season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
-
+        """
+        self.new_network(
+            "test_network", "multiple-round-robin",
+            teams=26, seasons=3, league_teams=18, league_promotion=3, days_between_rounds=3,
         )
-
-
+        """
+        self.new_network(
+            "test_network", "round-robin",
+            teams=18, days_between_rounds=10,
+        )
+        # """

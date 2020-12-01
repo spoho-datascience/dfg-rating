@@ -20,7 +20,7 @@ def init():
     app.layout = html.Div(
         children=dbc.Container([
             dbc.Row(
-                dbc.Col(html.H1('DFG Rating Analysis GUI'), width=4),
+                dbc.Col(html.H1('DFG Rating Analysis GUI', style={"text-align": "center"}), width=4),
                 justify='center'
             ),
             dbc.Row(
@@ -37,5 +37,5 @@ def init():
             )
         ], fluid=True)
     )
-    app.run_server(debug=True)
+    app.run_server(debug=True, port=8001)
     return True

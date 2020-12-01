@@ -36,7 +36,7 @@ class WinnerRating(BaseRating):
                 else 0
             )
 
-        return ratings
+        return ratings, {}
 
     def get_ratings(self, network: BaseNetwork, team_id: [TeamId], edge_filter=None):
         edge_filter = edge_filter or base_edge_filter
@@ -54,7 +54,7 @@ class WinnerRating(BaseRating):
                     else 0.5 if data['winner'] == 'draw' \
                     else 0
 
-        return ratings
+        return ratings, {}
 
 
 if __name__ == '__main__':

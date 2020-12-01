@@ -3,8 +3,10 @@ import networkx as nx
 
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
 from dfg_rating.model.forecast.base_forecast import BaseForecast
+from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
 from dfg_rating.model.network.base_network import BaseNetwork, base_edge_filter
 from dfg_rating.model.rating.base_rating import BaseRating
+from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
 from dfg_rating.model.rating.function_rating import FunctionRating
 
 
@@ -82,6 +84,19 @@ class RoundRobinNetwork(BaseNetwork):
 
     def create_data(self):
         self.fill_graph()
+        self.add_rating(
+            ControlledTrendRating(
+                starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=200),
+                delta=ControlledRandomFunction(distribution='normal', loc=0, scale=3),
+                trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
+                season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
+            ),
+            'true_rating', season=0
+        )
+        self.add_forecast(
+            LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-0.302, 0.870, 0.870]),
+            'true_forecast'
+        )
         return True
 
     def add_rating(self, rating: BaseRating, rating_name, team_id=None, season=None):
@@ -91,13 +106,14 @@ class RoundRobinNetwork(BaseNetwork):
             )
             return new_filter
         if team_id:
-            self._add_rating_to_team(team_id, rating.get_ratings(
-                self, [team_id], edge_filter if season else base_edge_filter()
-            ), rating_name, season=season)
+            rating_values, rating_hp = rating.get_ratings(
+                self, [team_id], edge_filter if season else base_edge_filter
+            )
+            self._add_rating_to_team(team_id, rating_values, rating_hp, rating_name, season=season)
         else:
-            ratings = rating.get_all_ratings(self, edge_filter if season else base_edge_filter)
+            ratings, rating_hp = rating.get_all_ratings(self, edge_filter if season else base_edge_filter)
             for team in self.data.nodes:
-                self._add_rating_to_team(int(team), ratings[int(team)], rating_name, season=season)
+                self._add_rating_to_team(int(team), ratings[int(team)], rating_hp, rating_name, season=season)
 
     def add_forecast(self, forecast: BaseForecast, forecast_name):
         for match in self.data.edges:

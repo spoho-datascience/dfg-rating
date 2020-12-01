@@ -39,7 +39,7 @@ class FunctionRating(BaseRating):
         """Compute single rating"""
         if self.distribution_method is not None:
             s = self.distribution_method(self.arguments)
-            return s
+            return s, self.rating_properties()
 
     def _compute_array(self, array_length):
         """Compute array of ratings"""
@@ -47,4 +47,10 @@ class FunctionRating(BaseRating):
         new_args['size'] = array_length
         if self.distribution_method is not None:
             s = self.distribution_method(**new_args)
-            return s
+            return s, self.rating_properties()
+
+    def rating_properties(self, array_length=1):
+        props = {"distribution_method": self.distribution_method, "array_length": array_length}
+        for arg, value in self.arguments.items():
+            props[arg] = value
+        return props

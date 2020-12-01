@@ -2,10 +2,31 @@ from abc import ABC, abstractmethod
 
 from dfg_rating.model.network.base_network import BaseNetwork, TeamId
 
+
 def get_rounds(games):
     """Helper function to retrieve the rounds of a list of games
     """
-    rounds = set([data['day'] for a, h, k, data in games])
+    rounds = set([data['round'] for a, h, k, data in games])
+    return rounds
+
+
+def get_seasons(games):
+    seasons = set([data['season'] for a, h, k, data in games])
+    return seasons
+
+
+def get_rounds_per_season(games):
+    away, home, key, data = [g for g in games][0]
+    first_season = data.get('season', 0)
+
+    def filter_games(g):
+        filter = (
+            (g[3]['season'] == first_season)
+        )
+        return filter
+
+    single_season = filter(filter_games, games)
+    rounds = set([data['round'] for a, h, k, data in single_season])
     return rounds
 
 
@@ -23,7 +44,8 @@ class BaseRating(ABC):
 
     @abstractmethod
     def get_all_ratings(self, n: BaseNetwork, edge_filter=None):
-        """Computes the temporal rating of each team in a given network
+        """Computes the temporal rating of each team in a given network. Return the rating values and the rating
+        hyperparameters.
 
         Args:
             :param n:
@@ -33,7 +55,8 @@ class BaseRating(ABC):
 
     @abstractmethod
     def get_ratings(self, n: BaseNetwork, t: [TeamId], edge_filter=None):
-        """Computes the temporal rating of a given set of teams in a given network
+        """Computes the temporal rating of a given set of teams in a given network. Return the rating values and
+        the rating hyperparameters.
 
         Args:
             :param edge_filter:

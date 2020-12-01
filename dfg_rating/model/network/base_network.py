@@ -7,13 +7,14 @@ from typing import NewType
 
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
 from dfg_rating.utils.command_line import show_progress_bar
-from dfg_rating.model.forecast.base_forecast import BaseForecast, SimpleForecast
+from dfg_rating.model.forecast.base_forecast import BaseForecast
 
 TeamId = NewType('TeamId', int)
 
 
-def weighted_winner(forecast: BaseForecast):
-    weights = forecast.get_forecast().cumsum()
+def weighted_winner(forecast: BaseForecast, match_data, home_team, away_team):
+    f = abs(forecast.get_forecast(match_data, home_team, away_team))
+    weights = f.cumsum()
     x = np.random.default_rng().uniform(0, 1)
     for i in range(len(weights)):
         if x < weights[i]:
@@ -42,6 +43,7 @@ class BaseNetwork(ABC):
         self.params = kwargs
         self.n_teams = self.params.get('teams', 0)
         self.n_rounds = self.params.get('rounds', self.n_teams - 1 + self.n_teams % 2)
+        self.seasons = kwargs.get('seasons', 1)
         self.days_between_rounds = self.params.get('days_between_rounds', 1)
 
     @abstractmethod
@@ -90,23 +92,30 @@ class BaseNetwork(ABC):
     def play_sub_network(self, games):
         for away_team, home_team, edge_key, edge_attributes in games:
             # Random winner with weighted choices
-            if 'true_forecast' not in edge_attributes.get('forecasts', {}):
-                # Creating a true forecasts
-                self.add_forecast(
-                    SimpleForecast(outcomes=['home', 'draw', 'away'], probs=[0.4523, 0.2975, 0.2502]),
-                    'true_forecast'
-                )
+            if 'true_rating' not in self.data.nodes[away_team].get('ratings', {}):
+                print('Error: Network needs true rating')
                 pass
-            winner = weighted_winner(edge_attributes['forecasts']['true_forecast'])
+            if 'true_forecast' not in edge_attributes.get('forecasts', {}):
+                print('Error: Network needs true forecast')
+                pass
+            winner = weighted_winner(edge_attributes['forecasts']['true_forecast'], edge_attributes, self.data.nodes[home_team], self.data.nodes[away_team])
             self.data.edges[away_team, home_team, edge_key]['winner'] = winner
 
     def play(self):
         self.play_sub_network(self.iterate_over_games())
 
-    def _add_rating_to_team(self, team_id, rating_values, rating_name, season=-1):
+    def _add_rating_to_team(self, team_id, rating_values, rating_hyperparameters, rating_name, season=-1):
         if season is None:
-            season = -1
+            season = 0
         self.data.nodes[team_id].setdefault('ratings', {}).setdefault(rating_name, {})[season] = rating_values
+
+        self.data.nodes[team_id].setdefault(
+            'ratings', {}
+        ).setdefault(
+            'hyper_parameters', {}
+        ).setdefault(
+            rating_name, {}
+        )[season] = rating_hyperparameters[team_id] if team_id in rating_hyperparameters else rating_hyperparameters
 
     def _add_forecast_to_team(self, match, forecast: BaseForecast, forecast_name):
         self.data.edges[match].setdefault('forecasts', {})[forecast_name] = forecast
@@ -139,7 +148,6 @@ class BaseNetwork(ABC):
                 except KeyError as K:
                     # log error
                     pass
-        print(teams)
 
         df = pd.DataFrame(teams).sort_values(by='ranking', ascending=ascending)
         df.set_index('labels', inplace=True)

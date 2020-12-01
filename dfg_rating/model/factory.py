@@ -2,7 +2,9 @@ from dfg_rating.model.betting.betting import FixedBetting
 from dfg_rating.model.bookmaker.base_bookmaker import FactorBookmakerError, BookmakerMargin, SimpleBookmaker, \
     SimulatedBookmakerError
 from dfg_rating.model.forecast.base_forecast import SimpleForecast, BaseForecast
+from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
 from dfg_rating.model.network.base_network import BaseNetwork
+from dfg_rating.model.network.multiple_network import LeagueNetwork
 from dfg_rating.model.network.simple_network import RoundRobinNetwork
 from dfg_rating.model.rating.base_rating import BaseRating
 from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating
@@ -18,6 +20,8 @@ def new_network(network_type: str, **kwargs) -> BaseNetwork:
     """
     if network_type == 'round-robin':
         return RoundRobinNetwork(**kwargs)
+    elif network_type == 'multiple-round-robin':
+        return LeagueNetwork(**kwargs)
     else:
         raise ValueError
 
@@ -47,6 +51,8 @@ def new_forecast(forecast_type: str, **kwargs) -> BaseForecast:
     """
     if forecast_type == 'simple':
         return SimpleForecast(**kwargs)
+    if forecast_type == 'logistic-function':
+        return LogFunctionForecast(**kwargs)
     else:
         raise ValueError
 

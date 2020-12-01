@@ -61,7 +61,7 @@ class LeagueRating(BaseRankingRating):
                 else self.points_system['lose']
             )
 
-        return ratings
+        return ratings, self.points_system
 
     def get_ratings(self, league_network: BaseNetwork, team: [TeamId], edge_filter=None):
         edge_filter = edge_filter or base_edge_filter
@@ -84,4 +84,4 @@ class LeagueRating(BaseRankingRating):
                     else self.points_system['draw'] if data['winner'] == 'draw'
                     else self.points_system['lose']
                 )
-        return ratings
+        return ratings, self.points_system
