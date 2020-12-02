@@ -43,69 +43,89 @@ class ControlledTrendRating(BaseRating):
         self.seasons = list(get_seasons(filtered_games))
         n_seasons = len(self.seasons)
         self.rounds_per_season = len(get_rounds_per_season(filtered_games))
+        # The ratings object is initialized with as many positions as number of rounds in the network
+        # and 2 extra positions (begin, end) of the season.
         ratings = np.zeros([n_teams, n_rounds + (2 * n_seasons)])
-        agg = {}
-        current_season = -1
-        for away_team, home_team, match_key, match_data in sorted(filtered_games,
-                                                                  key=lambda edge: edge[3]['round']):
-            if away_team not in agg:
-                agg[away_team] = {
-                    'current_season': -1,
-                    'last_day': 0
-                }
-            if home_team not in agg:
-                agg[home_team] = {
-                    'current_season': -1,
-                    'last_day': 0
-                }
-            if agg[home_team]['current_season'] != match_data.get('season', 0):
-                current_season = match_data.get('season', 0)
-                agg[home_team]['current_season'] = current_season
-                ratings[home_team, (current_season - self.seasons[0]) * self.rounds_per_season] = \
-                    self.init_ratings(agg, home_team, match_data, current_season, n, ratings)
-            if agg[away_team]['current_season'] != match_data.get('season', 0):
-                current_season = match_data.get('season', 0)
-                agg[away_team]['current_season'] = current_season
-                ratings[away_team, (current_season - self.seasons[0]) * self.rounds_per_season] = \
-                    self.init_ratings(agg, away_team, match_data, current_season, n, ratings)
-            ratings[away_team][(match_data['round'] + 1) + ((current_season - self.seasons[0]) * self.rounds_per_season)] = \
-                ratings[away_team][(match_data['round']) + ((current_season - self.seasons[0]) * self.rounds_per_season)] + self.new_rating_value(agg, away_team, match_data)
-            ratings[home_team][(match_data['round'] + 1) + ((current_season - self.seasons[0]) * self.rounds_per_season)] = \
-                ratings[home_team][(match_data['round']) + ((current_season - self.seasons[0]) * self.rounds_per_season)] + self.new_rating_value(agg, home_team, match_data)
-            if ((match_data['round'] + 2) % (self.rounds_per_season + 1)) == 0:
-                ratings[home_team][(match_data['round'] + 2) + ((current_season - self.seasons[0]) * self.rounds_per_season)] = \
-                    ratings[home_team][(match_data['round'] + 1) + ((current_season - self.seasons[0]) * self.rounds_per_season)]
-                ratings[away_team][(match_data['round'] + 2) + ((current_season - self.seasons[0]) * self.rounds_per_season)] = \
-                    ratings[away_team][(match_data['round'] + 1) + ((current_season - self.seasons[0]) * self.rounds_per_season)]
+        """Aggregated object gathering the trends and starting points of each team per season.
+        {
+            0: {
+                "trends": 1,
+                "starting_points": 2,
+                "last_day": 0
+            }
+        }
+        """
+        for current_season in range(n_seasons):
+            self.agg = {}
+            self.init_season_ratings(current_season, n, ratings)
+            for r in range(self.rounds_per_season):
+                def round_fitler(edge):
+                    return edge[3]['round'] == r
 
+                for away_team, home_team, match_key, match_data in filter(round_fitler, filtered_games):
+                    current_round = match_data['round']
+                    current_position = (current_season * (self.rounds_per_season + 2)) + (current_round + 1)
+                    ratings[away_team, current_position] = ratings[
+                                                               away_team, current_position - 1
+                                                           ] + self.new_rating_value(away_team, match_data)
+                    self.agg[away_team]['last_day'] = match_data['day']
+                    ratings[home_team, current_position] = ratings[
+                                                               home_team, current_position - 1
+                                                           ] + self.new_rating_value(home_team, match_data)
+                    self.agg[home_team]['last_day'] = match_data['day']
+            self.end_season_ratings(current_season, n, ratings)
         return ratings, self.props
 
-    def init_ratings(self, agg, team, match_data, current_season, n, ratings) -> float:
-        agg[team]['trend'] = self.trend.get()[0]
-        if current_season == 0:
+    def init_season_ratings(self, season, n, ratings):
+        init_position = season * (self.rounds_per_season + 2)
+        for team in n.data.nodes:
+            self.agg.setdefault(
+                team, {}
+            )['trend'] = self.trend.get()[0]
+            self.props.setdefault(
+                team, {}
+            ).setdefault(
+                'trends', []
+            ).append(self.agg[team]['trend'])
+            team_starting = self.init_ratings(team, season, n, ratings)
+            self.props.setdefault(
+                team, {}
+            ).setdefault(
+                'starting_points', []
+            ).append(team_starting)
+            ratings[team, init_position] = team_starting
+
+    def init_ratings(self, team, current_season, n, ratings) -> float:
+        if self.seasons[current_season] == 0:
+            """First season on the simulation, new starting point"""
             starting_point = self.starting_point.get()[0]
-        elif current_season == self.seasons[0]:
+        elif current_season == 0:
+            """First season in the ratings computation but not in the network. Reading previous season"""
             starting_point = self.apply_season_change(
                 last_season_rating=n.data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(
-                    current_season - 1, self.starting_point.get()
+                    self.seasons[current_season] - 1, self.starting_point.get()
                 )[-1]
             )
         else:
+            """New season for the ratings. Getting previous rating"""
             starting_point = self.apply_season_change(
-                last_season_rating=ratings[team][(current_season * self.rounds_per_season) - 1]
+                last_season_rating=ratings[team][current_season * (self.rounds_per_season + 1)]
             )
-        self.props.setdefault(team, {}).setdefault('starting_points', []).append(starting_point)
-        self.props.setdefault(team, {}).setdefault('trends', []).append(agg[team]['trend'])
         return starting_point
+
+    def end_season_ratings(self, season, network, ratings):
+        end_position = (season + 1) * (self.rounds_per_season + 2) - 1
+        for team in network.data.nodes:
+            ratings[team, end_position] = ratings[team, end_position - 1]
 
     def apply_season_change(self, last_season_rating):
         return last_season_rating + self.season_delta.get()[0]
 
-    def new_rating_value(self, agg, team, match_data):
-        delta_days = match_data['day'] - agg[team]['last_day']
-        agg[team]['last_day'] = match_data['day']
+    def new_rating_value(self, team, match_data):
+        delta_days = match_data['day'] - self.agg[team].get('last_day', 0)
+        self.agg[team]['last_day'] = match_data['day']
         total_delta = sum(self.delta.get(delta_days))
-        round_ranking = agg[team]['trend'] * delta_days
+        round_ranking = self.agg[team]['trend'] * delta_days
 
         return round_ranking + total_delta
 

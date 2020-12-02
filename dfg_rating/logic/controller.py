@@ -158,14 +158,14 @@ class Controller:
         self.bettings[betting_name] = bs
 
     def run_demo(self):
-        # """
+        """
         self.new_network(
             "test_network", "multiple-round-robin",
-            teams=26, seasons=3, league_teams=18, league_promotion=3, days_between_rounds=3,
+            teams=26, seasons=4, league_teams=18, league_promotion=3, days_between_rounds=3,
         )
         """
         self.new_network(
             "test_network", "round-robin",
-            teams=18, days_between_rounds=10,
+            teams=26, days_between_rounds=10,
         )
-        """
+        # """
