@@ -1,11 +1,26 @@
+"""Module of helpers for Network visualizations
+"""
 import networkx as nx
 import plotly.graph_objects as go
 
 from dfg_rating.model.network.base_network import BaseNetwork, base_edge_filter
 
 
-def create_network_figure(network: BaseNetwork, filter_edge=base_edge_filter):
-    # Code for viz network
+def create_network_figure(network: BaseNetwork, filter_edge=base_edge_filter) -> go.Figure:
+    """Network visualization
+
+    Creates a figure positioning all the nodes and edges of a given network.
+    See https://networkx.org/documentation/stable/reference/drawing.html#module-networkx.drawing.layout for graph
+    viz options.
+
+    Args:
+        network: Sport network of teams and matches.
+        filter_edge: Optional; Function to filter the edges of the network.
+
+    Returns:
+        A dict-based plotly Figure object with network visualization.
+
+    """
     # Assigning node positions
     network.print_data(schedule=True)
     graph = nx.MultiDiGraph(((u, v, k, e) for u, v, k, e in network.data.edges.data(keys=True, data=True)))

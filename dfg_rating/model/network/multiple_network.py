@@ -41,7 +41,7 @@ class LeagueNetwork(RoundRobinNetwork):
                 ControlledTrendRating(
                     starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=200),
                     delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10),
-                    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=75),
+                    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
                     season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
                 ),
                 'true_rating', season=season

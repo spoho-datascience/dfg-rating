@@ -1,14 +1,23 @@
+"""Main client class handling the command line interface
+
+"""
 import click
 
 from dfg_rating.logic import controller
 from dfg_rating.ui import commands, menu
-from dfg_rating.ui.gui import init
+from dfg_rating.ui import gui
 
 
 @click.command()
 @click.option('-i', is_flag=True, help='Enable interactive command line')
-def cli(i):
-    """Framework interaction menu"""
+def cli(i: bool):
+    """Framework interaction menu
+
+    While(true) loop. Executes the commands specified by command line and shows results
+
+    Args:
+        i: Optional; If i is True the interface is interactive by text
+    """
     main_controller = controller.Controller()
     menu.header()
     while 1:
@@ -41,4 +50,5 @@ def cli(i):
 
 
 def viz():
-    init()
+    """Launches Visualization App"""
+    gui.init()

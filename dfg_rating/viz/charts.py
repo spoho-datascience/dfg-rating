@@ -1,3 +1,7 @@
+"""Module of helpers building charts and data visualizations
+"""
+from typing import List
+
 import plotly.graph_objects as go
 import plotly.express as px
 import numpy as np
@@ -5,9 +9,26 @@ import numpy as np
 from dfg_rating.model.network.base_network import BaseNetwork
 
 
-def create_ratings_charts(network: BaseNetwork, rating='true_rating', colorscale=px.colors.qualitative.Light24):
+def create_ratings_charts(
+        network: BaseNetwork, rating: str = 'true_rating', color_scale: List[str] = px.colors.qualitative.Light24
+) -> go.Figure:
+    """Rating chart evolution
+
+    Given a certain rating name and a network. It creates a figure with the rating evolution for all the teams
+    in the network. The color scale can be also specified. The figure contains each rating values per round of
+    the network season and the trend evolution of each rating.
+
+    Args:
+        network: Sport network of teams and matches.
+        rating: Optional; Rating name to plot.
+        color_scale: Optional; Color scale for the figure.
+
+    Returns:
+        A dict-based plotly Figure object with the rating chart for all the teams in the network.
+
+    """
     fig = go.Figure()
-    reduced_colorscale = np.random.choice(colorscale, network.n_teams)
+    reduces_color_scale = np.random.choice(color_scale, network.n_teams)
     for team in network.data.nodes:
         total_rating_array = np.array([])
         total_trend_x = np.array([])
@@ -29,7 +50,7 @@ def create_ratings_charts(network: BaseNetwork, rating='true_rating', colorscale
             x=[i for i in range(len(total_rating_array))],
             y=total_rating_array,
             mode='lines+markers',
-            line=dict(color=reduced_colorscale[team]),
+            line=dict(color=reduces_color_scale[team]),
             name=f"Team {team}"
         ))
         fig.add_trace(go.Scatter(
@@ -38,7 +59,7 @@ def create_ratings_charts(network: BaseNetwork, rating='true_rating', colorscale
             mode='lines',
             line=dict(
                 width=0.5,
-                color=reduced_colorscale[team],
+                color=reduces_color_scale[team],
             ),
             name=f"Trend team {team}"
         ))
