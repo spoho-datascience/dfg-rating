@@ -1,7 +1,12 @@
+import os
+
 import psycopg2 as psql
 from configparser import ConfigParser
 
+from psycopg2.extras import DictCursor, execute_values
+
 from dfg_rating import settings
+from dfg_rating.settings import get_relative_path
 
 
 class PostgreSQLDriver:
@@ -36,14 +41,42 @@ class PostgreSQLDriver:
         try:
             self.connection = psql.connect(**self.connection_params)
             cur = self.connection.cursor()
-            print('PostgreSQL database version:')
             cur.execute('SELECT version()')
             db_version = cur.fetchone()
             print(db_version)
-            cur.close()
+            tables_list = self.execute_query(file_name=os.path.join("..", "data", "sql", "setup", "get_tables_list.sql"))
+            print(f"Table lists {tables_list}")
+            if len(tables_list) == 0:
+                self.execute_query(file_name=os.path.join("..", "data", "sql", "setup", "create_tables.sql"), commit=True)
         except (Exception, psql.DatabaseError) as error:
             print(error)
-        finally:
-            if self.connection is not None:
-                self.connection.close()
-                print('Database connection closed.')
+
+    def close(self):
+        if self.connection is not None:
+            self.connection.close()
+            print('Database connection closed.')
+
+    def execute_query(self, file_name=None, query=None, commit=False):
+        if file_name is not None:
+            try:
+                cursor: DictCursor = self.connection.cursor(cursor_factory=DictCursor)
+                sql_file = open(get_relative_path(file_name))
+                cursor.execute(sql_file.read())
+                sql_file.close()
+                if commit:
+                    self.connection.commit()
+                return cursor.fetchall()
+            except (Exception, psql.DatabaseError) as error:
+                print(error)
+
+    def insert_many(self, query_string, values):
+        try:
+            cursor: DictCursor = self.connection.cursor(cursor_factory=DictCursor)
+            execute_values(cursor, query_string, values)
+            self.connection.commit()
+        except (Exception, psql.DatabaseError) as error:
+            print(error)
+
+
+
+
