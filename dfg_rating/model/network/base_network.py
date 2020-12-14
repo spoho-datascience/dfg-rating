@@ -230,9 +230,15 @@ class BaseNetwork(ABC):
         return all_ratings
 
     def deserialize_network(self, matches, forecasts, ratings):
-        graph = nx.DiGraph()
+        graph = nx.MultiDiGraph()
+        max_season = 0
+        max_round = 0
+        max_day = 1
         for m in matches:
             edge_dict = {key: value for key, value in m.items()}
+            max_day = edge_dict['day'] if edge_dict['round'] > max_round else max_day
+            max_round = edge_dict['round'] if edge_dict['round'] > max_round else max_round
+            max_season = edge_dict['season'] if edge_dict['season'] > max_round else max_round
             match_forecasts = [f for f in forecasts if f['match_id'] == m['match_id']]
             for f in match_forecasts:
                 edge_dict.setdefault('forecasts', {})[f['forecast_name']] = SimpleForecast(
@@ -249,12 +255,23 @@ class BaseNetwork(ABC):
                 int(r['season']), []
             ).append(r['value'])
 
-            ratings_object.setdefault(
+            graph.nodes[int(r['team_id'])].setdefault(
+                'ratings', {}
+            ).setdefault(
                 'hyper_parameters', {}
+            ).setdefault(
+                r['rating_name'], {}
             ).setdefault(
                 int(r['season']), {"trends": [r['trend']], "starting_points": [r['starting_point']]}
             )
         self.data = graph
+        self.n_rounds = max_round + 1
+        self.seasons = max_season + 1
+        self.days_between_rounds = max_day / self.n_rounds
+        print(self.days_between_rounds)
+
+    def get_number_of_teams(self):
+        return len(self.data.nodes)
 
     @abstractmethod
     def add_rating(self, new_rating, rating_name):

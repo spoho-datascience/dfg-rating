@@ -14,7 +14,7 @@ def init():
     app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SANDSTONE])
     app.title = "DFG Rating"
     main_controller = controller.Controller()
-    main_controller.run_demo()
+    main_controller.load_all_database()
     pio.templates.default = "plotly_white"
 
     app.layout = html.Div(

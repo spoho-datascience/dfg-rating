@@ -16,7 +16,7 @@ class PostgreSQLDriver:
             self.connection_params = self.read_config_params(config_file)
             print(self.connection_params)
         self.connection = None
-        self.connect()
+        #self.connect()
         pass
 
     def read_config_params(self, filename="database.ini", section='postgresql'):
@@ -38,18 +38,19 @@ class PostgreSQLDriver:
         return db
 
     def connect(self):
-        try:
-            self.connection = psql.connect(**self.connection_params)
-            cur = self.connection.cursor()
-            cur.execute('SELECT version()')
-            db_version = cur.fetchone()
-            print(db_version)
-            tables_list = self.execute_query(file_name=os.path.join("..", "data", "sql", "setup", "get_tables_list.sql"))
-            print(f"Table lists {tables_list}")
-            if len(tables_list) == 0:
-                self.execute_query(file_name=os.path.join("..", "data", "sql", "setup", "create_tables.sql"), commit=True)
-        except (Exception, psql.DatabaseError) as error:
-            print(error)
+        if self.connection is None:
+            try:
+                self.connection = psql.connect(**self.connection_params)
+                cur = self.connection.cursor()
+                cur.execute('SELECT version()')
+                db_version = cur.fetchone()
+                print(db_version)
+                tables_list = self.execute_query(file_name=os.path.join("..", "data", "sql", "setup", "get_tables_list.sql"))
+                print(f"Table lists {tables_list}")
+                if len(tables_list) == 0:
+                    self.execute_query(file_name=os.path.join("..", "data", "sql", "setup", "create_tables.sql"), commit=True)
+            except (Exception, psql.DatabaseError) as error:
+                print(error)
 
     def close(self):
         if self.connection is not None:

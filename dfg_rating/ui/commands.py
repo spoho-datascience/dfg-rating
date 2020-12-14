@@ -7,6 +7,7 @@ actions = [
     'Show <networks | ratings | actions>',
     'Create Network',
     'Load Network',
+    'Save Network',
     'Simulate results',
     'Print Network',
     'Add new rating',
@@ -40,6 +41,18 @@ def create_network(mc):
     params = automatic_params(mc, "network", n_type)
     mc.new_network(n_name, n_type, **params)
     pass
+
+def load_network(mc):
+    n_name = click.prompt('Name of the network', type=str)
+    result, message = mc.load_network(n_name)
+    if result:
+        click.echo(click.style(f"{message}"))
+    else:
+        click.echo(click.style(f"{message}", fg='red'))
+
+def save_network(mc):
+    n_name = click.prompt('Name of the network', type=str)
+    result, message = mc.save_network(n_name)
 
 
 def add_new_rating(mc):
@@ -109,12 +122,18 @@ def run(action, mc: Controller):
     # Create Network
     elif action == 2:
         create_network(mc)
-    # Simulate results
+    # Load Network
+    elif action == 3:
+        load_network(mc)
+    # Save Network
     elif action == 4:
+        save_network(mc)
+    # Simulate results
+    elif action == 5:
         network_name = click.prompt('Name of the network', type=str)
         mc.play_network(network_name)
     # Print Network
-    elif action == 5:
+    elif action == 6:
         network_name = click.prompt("Name of the network", type=str)
         params = {}
         args_list = click.prompt("Elements to print: ", type=str)
@@ -124,24 +143,24 @@ def run(action, mc: Controller):
         if not success:
             click.echo(click.style(message, fg='red'))
     # Add new Rating
-    elif action == 6:
+    elif action == 7:
         add_new_rating(mc)
     # Add new Forecast
-    elif action == 7:
+    elif action == 8:
         add_new_forecast(mc)
     # Create Bookmaker
-    elif action == 8:
+    elif action == 9:
         create_bookmaker(mc)
     # Add odds
-    elif action == 9:
+    elif action == 10:
         network_name = click.prompt('Name of the network', type=str)
         bookmaker_name = click.prompt('Name of the bookmaker', type=str)
         mc.add_odds(network_name, bookmaker_name)
     # Create Betting strategy
-    elif action == 10:
+    elif action == 11:
         create_betting_strategy(mc)
     # Bet
-    elif action == 11:
+    elif action == 12:
         new_betting(mc)
     # Default
     else:
