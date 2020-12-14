@@ -3,6 +3,7 @@ import os
 import psycopg2 as psql
 from configparser import ConfigParser
 
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from psycopg2.extras import DictCursor, execute_values
 
 from dfg_rating import settings
@@ -45,6 +46,20 @@ class PostgreSQLDriver:
                 cur.execute('SELECT version()')
                 db_version = cur.fetchone()
                 print(db_version)
+                cur.execute("SELECT * FROM pg_catalog.pg_database WHERE datname = 'dfg_rating';")
+                databases = cur.fetchall()
+                print(databases)
+                cur.close()
+                self.connection.commit()
+                if len(databases) == 0:
+                    self.connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+                    cur = self.connection.cursor()
+                    print("Creating dfg_rating database")
+                    cur.execute('CREATE DATABASE dfg_rating;')
+                    self.connection.close()
+                print("dfg_rating exists. Loading database")
+                self.connection_params['database'] = 'dfg_rating'
+                self.connection = psql.connect(**self.connection_params)
                 tables_list = self.execute_query(file_name=os.path.join("..", "data", "sql", "setup", "get_tables_list.sql"))
                 print(f"Table lists {tables_list}")
                 if len(tables_list) == 0:
