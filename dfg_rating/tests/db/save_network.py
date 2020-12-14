@@ -13,10 +13,9 @@ serialized_network = test_network.serialize_network('test_network')
 p = PostgreSQLDriver()
 for table, table_rows in serialized_network.items():
     columns = table_rows[0].keys()
-    query_string = f"INSERT INTO {table}({','.join(columns)}) VALUES %s"
+    query_string = f"INSERT INTO {table}({','.join(columns)}) VALUES %s ON CONFLICT DO NOTHING"
     values = [[value for value in r.values()] for r in table_rows]
     p.insert_many(query_string, values)
-
 p.close()
 
 

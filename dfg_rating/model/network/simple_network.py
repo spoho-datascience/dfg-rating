@@ -16,7 +16,7 @@ class RoundRobinNetwork(BaseNetwork):
 
     """
     def __init__(self, **kwargs):
-        super().__init__(f"{kwargs.get('extra_type', '')}-round-robin", **kwargs)
+        super().__init__(f"{kwargs.get('extra_type', '')}round-robin", **kwargs)
 
     def fill_graph(self, team_labels={}, season=0):
         """Propagates data from parameters.

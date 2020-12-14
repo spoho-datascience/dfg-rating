@@ -68,14 +68,28 @@ class PostgreSQLDriver:
                 return cursor.fetchall()
             except (Exception, psql.DatabaseError) as error:
                 print(error)
+        elif query is not None:
+            try:
+                cursor: DictCursor = self.connection.cursor(cursor_factory=DictCursor)
+                cursor.execute(query)
+                if commit:
+                    self.connection.commit()
+                return cursor.fetchall()
+            except (Exception, psql.DatabaseError) as error:
+                print(error)
 
     def insert_many(self, query_string, values):
+        print(query_string)
         try:
             cursor: DictCursor = self.connection.cursor(cursor_factory=DictCursor)
             execute_values(cursor, query_string, values)
-            self.connection.commit()
+            #self.connection.commit()
+        except (psql.errors.UniqueViolation) as e:
+            print("Entity already exists")
         except (Exception, psql.DatabaseError) as error:
             print(error)
+        finally:
+            self.connection.commit()
 
 
 

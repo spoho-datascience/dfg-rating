@@ -7,7 +7,7 @@ from typing import NewType
 
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
 from dfg_rating.utils.command_line import show_progress_bar
-from dfg_rating.model.forecast.base_forecast import BaseForecast
+from dfg_rating.model.forecast.base_forecast import BaseForecast, SimpleForecast
 
 TeamId = NewType('TeamId', int)
 
@@ -156,6 +156,7 @@ class BaseNetwork(ABC):
     def serialize_network(self, network_name):
         serialized_network = {}
         matches, forecasts = self._serialize_matches(network_name)
+        serialized_network['networks'] = [{"network_name": network_name, "network_type": self.type}]
         serialized_network['matches'] = matches
         serialized_network['forecasts'] = forecasts
         serialized_network['ratings'] = self._serialize_ratings(network_name)
@@ -187,7 +188,7 @@ class BaseNetwork(ABC):
                     "match_id": new_match['match_id']
                 }
                 for i in range(len(f.outcomes)):
-                    new_forecast[f.outcomes[i]] = f.probabilities[i]
+                    new_forecast[f"probability_{f.outcomes[i]}"] = f.probabilities[i]
                 forecasts.append(new_forecast)
             matches.append(new_match)
 
@@ -226,15 +227,34 @@ class BaseNetwork(ABC):
                                 "starting_point": hyper_dict.get('starting_points', [-1])[0]
                             }
                             all_ratings.append(new_rating)
-            return all_ratings
+        return all_ratings
 
+    def deserialize_network(self, matches, forecasts, ratings):
+        graph = nx.DiGraph()
+        for m in matches:
+            edge_dict = {key: value for key, value in m.items()}
+            match_forecasts = [f for f in forecasts if f['match_id'] == m['match_id']]
+            for f in match_forecasts:
+                edge_dict.setdefault('forecasts', {})[f['forecast_name']] = SimpleForecast(
+                        outcomes=['home', 'draw', 'away'],
+                        probs=[f['probability_home'], f['probability_draw'], f['probability_away']]
+                )
+            graph.add_edge(m['away_team'], m['home_team'], **edge_dict)
+        for r in ratings:
+            graph.nodes[int(r['team_id'])]['name'] = r['team_name']
+            ratings_object = graph.nodes[int(r['team_id'])].setdefault(
+                'ratings', {}
+            ).setdefault(r['rating_name'], {})
+            ratings_object.setdefault(
+                int(r['season']), []
+            ).append(r['value'])
 
-
-
-
-
-
-
+            ratings_object.setdefault(
+                'hyper_parameters', {}
+            ).setdefault(
+                int(r['season']), {"trends": [r['trend']], "starting_points": [r['starting_point']]}
+            )
+        self.data = graph
 
     @abstractmethod
     def add_rating(self, new_rating, rating_name):
