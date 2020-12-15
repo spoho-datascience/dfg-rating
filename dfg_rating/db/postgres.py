@@ -25,7 +25,6 @@ class PostgreSQLDriver:
         parser = ConfigParser()
         # read config file
         parser.read(settings.get_relative_path(filename))
-        print(list(parser.keys()))
 
         # get section, default to postgresql
         db = {}
@@ -48,7 +47,6 @@ class PostgreSQLDriver:
                 print(db_version)
                 cur.execute("SELECT * FROM pg_catalog.pg_database WHERE datname = 'dfg_rating';")
                 databases = cur.fetchall()
-                print(databases)
                 cur.close()
                 self.connection.commit()
                 if len(databases) == 0:
@@ -57,11 +55,10 @@ class PostgreSQLDriver:
                     print("Creating dfg_rating database")
                     cur.execute('CREATE DATABASE dfg_rating;')
                     self.connection.close()
-                print("dfg_rating exists. Loading database")
+                print("dfg_rating database exists. Loading database")
                 self.connection_params['database'] = 'dfg_rating'
                 self.connection = psql.connect(**self.connection_params)
                 tables_list = self.execute_query(file_name=os.path.join("..", "data", "sql", "setup", "get_tables_list.sql"))
-                print(f"Table lists {tables_list}")
                 if len(tables_list) == 0:
                     self.execute_query(file_name=os.path.join("..", "data", "sql", "setup", "create_tables.sql"), commit=True)
             except (Exception, psql.DatabaseError) as error:

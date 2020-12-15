@@ -38,11 +38,11 @@ def cli(i: bool):
             click.echo(click.style(f"Factory error [{value_error.args[0]}]", fg='red'))
             pass
         except click.exceptions.Abort:
-            click.echo(click.style(" \b Closing session", fg='white'))
+            click.echo(click.style(" \b Closing session and connections", fg='white'))
             main_controller.close()
             break
         except KeyboardInterrupt as k:
-            click.echo(click.style(" \b Closing session", fg='white'))
+            click.echo(click.style(" \b Closing session and connections", fg='white'))
             main_controller.close()
             break
         except Exception as e:
