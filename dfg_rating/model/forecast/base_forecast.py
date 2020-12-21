@@ -12,11 +12,12 @@ class BaseForecast(ABC):
     """
 
     def __init__(self, forecast_type: str, **kwargs):
+        self.computed = False
         self.type = forecast_type
         self.outcomes = kwargs.get('outcomes', [])
         number_of_outcomes = len(self.outcomes)
         probs = kwargs.get('probs', None)
-        self.probabilities = np.array(probs, dtype=np.float128) if probs is not None else np.full(number_of_outcomes, float(1.0 / float(number_of_outcomes)))
+        self.probabilities = np.array(probs) if probs is not None else np.full(number_of_outcomes, float(1.0 / float(number_of_outcomes)))
 
 
     @abstractmethod
@@ -24,6 +25,8 @@ class BaseForecast(ABC):
         pass
 
     def print(self):
+        if not self.computed:
+            self.get_forecast()
         forecast_string = ""
         for i in range(len(self.outcomes)):
             forecast_string += f" {self.outcomes[i]}: {self.probabilities[i]} -"
@@ -35,6 +38,7 @@ class SimpleForecast(BaseForecast):
 
     def __init__(self, **kwargs):
         super().__init__('simple', **kwargs)
+        self.computed = True
 
     def get_forecast(self, match_data=None, home_team=None, away_team=None):
         return self.probabilities

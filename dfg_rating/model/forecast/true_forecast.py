@@ -32,6 +32,7 @@ class LogFunctionForecast(BaseForecast):
             ) - self.logit_link_function(
                 outcome_number=i-1, covar=diff
             )
+        self.computed = True
         return self.probabilities
 
     def logit_link_function(self, outcome_number, covar):

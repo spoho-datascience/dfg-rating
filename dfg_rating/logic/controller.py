@@ -8,6 +8,10 @@ from dfg_rating.model.rating.controlled_trend_rating import ControlledRandomFunc
 from dfg_rating.model.rating.function_rating import FunctionRating
 
 
+def get_new_class(class_name:str, **kwargs):
+    return factory.new_class(class_name, **kwargs)
+
+
 class Controller:
     """Execution controller for the simulator
     It manages all the commands sent to the model and stores all the staging entities.
@@ -26,6 +30,28 @@ class Controller:
                     "label": "Days between rounds",
                     "type": int
                 }
+            },
+            "multiple-round-robin": {
+                "teams": {
+                    "label": "Number of teams",
+                    "type": int
+                },
+                "days_between_rounds": {
+                    "label": "Days between rounds",
+                    "type": int
+                },
+                "seasons": {
+                    "label": "Number of seasons",
+                    "type": int
+                },
+                "league_teams": {
+                    "label": "Number of teams in the league",
+                    "type": int
+                },
+                "league_promotion": {
+                    "label": "Number of delegation/promotion spots",
+                    "type": int
+                }
             }
         },
         "rating": {
@@ -41,6 +67,29 @@ class Controller:
                 }
             },
             "basic-winner": {},
+            "controlled-random": {
+                "starting_point": {
+                    "label": "Ranking starting point definition",
+                    "type": "custom_class",
+                    "cast": "controlled-random-function"
+                },
+                "delta": {
+                    "label": "Ranking daily delta definition",
+                    "type": "custom_class",
+                    "cast": "controlled-random-function"
+                },
+                "trend": {
+                    "label": "Ranking daily trend definition",
+                    "type": "custom_class",
+                    "cast": "controlled-random-function"
+                },
+                "season_delta": {
+                    "label": "Ranking season delta definition",
+                    "type": "custom_class",
+                    "cast": "controlled-random-function"
+                }
+
+            }
         },
         "forecast": {
             "simple": {
@@ -50,6 +99,17 @@ class Controller:
                 },
                 "probs": {
                     "label": "Predefined probabilities",
+                    "type": "custom_args_list",
+                    "cast": "float"
+                }
+            },
+            "logistic-function": {
+                "outcomes": {
+                    "label": "Outcomes list",
+                    "type": "custom_args_list"
+                },
+                "coefficients": {
+                    "label": "List of coefficients",
                     "type": "custom_args_list",
                     "cast": "float"
                 }
@@ -94,6 +154,19 @@ class Controller:
                 "bank_role": {
                     "label": "Bank role",
                     "type": float
+                }
+            }
+        },
+        "classes": {
+            "controlled-random-function": {
+                "distribution": {
+                    "label": "Distribution method",
+                    "type": str
+                },
+                "dist_args": {
+                    "label": "Distribution args (arg1_name=arg1_value, argN_name=argN_value)",
+                    "type": "custom_key_value",
+                    "cast": "float"
                 }
             }
         }

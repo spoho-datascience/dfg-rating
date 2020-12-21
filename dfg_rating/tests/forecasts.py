@@ -17,6 +17,7 @@ tested_rating = ControlledTrendRating(
 )
 
 rr_network.add_rating(tested_rating, 'true_rating')
+rr_network.add_forecast(f_log, "test_f")
 
 for away_team, home_team, match_key, match_data in rr_network.iterate_over_games():
     f_log.get_forecast(match_data, rr_network.data.nodes[home_team], rr_network.data.nodes[away_team])

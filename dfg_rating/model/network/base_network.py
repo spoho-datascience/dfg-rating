@@ -118,6 +118,8 @@ class BaseNetwork(ABC):
         )[season] = rating_hyperparameters[team_id] if team_id in rating_hyperparameters else rating_hyperparameters
 
     def _add_forecast_to_team(self, match, forecast: BaseForecast, forecast_name):
+        match_data = self.data.edges[match]
+        forecast.get_forecast(match_data, self.data.nodes[match[0]], self.data.nodes[match[1]])
         self.data.edges[match].setdefault('forecasts', {})[forecast_name] = forecast
 
     def get_teams(

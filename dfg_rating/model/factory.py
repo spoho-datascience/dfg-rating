@@ -7,7 +7,7 @@ from dfg_rating.model.network.base_network import BaseNetwork
 from dfg_rating.model.network.multiple_network import LeagueNetwork
 from dfg_rating.model.network.simple_network import RoundRobinNetwork
 from dfg_rating.model.rating.base_rating import BaseRating
-from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating
+from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
 from dfg_rating.model.rating.function_rating import FunctionRating
 from dfg_rating.model.rating.winner_rating import WinnerRating
 
@@ -49,6 +49,7 @@ def new_forecast(forecast_type: str, **kwargs) -> BaseForecast:
     Options:
      - simple: SimpleForecast
     """
+    print(kwargs)
     if forecast_type == 'simple':
         return SimpleForecast(**kwargs)
     if forecast_type == 'logistic-function':
@@ -105,3 +106,8 @@ def new_betting_strategy(betting_type: str, **kwargs):
         return FixedBetting(**kwargs)
     else:
         raise ValueError
+
+
+def new_class(class_name: str, **kwargs):
+    if class_name == "controlled-random-function":
+        return ControlledRandomFunction(**kwargs)
