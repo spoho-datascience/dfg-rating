@@ -145,7 +145,7 @@ class Controller:
         if network_name not in self.networks:
             return 0, f"Network <{network_name}> does not exist"
         self.db.connect()
-        serialized_network = self.networks[network_name].serialize_network('test_network')
+        serialized_network = self.networks[network_name].serialize_network(network_name)
         for table, table_rows in serialized_network.items():
             columns = table_rows[0].keys()
             query_string = f"INSERT INTO {table}({','.join(columns)}) VALUES %s ON CONFLICT DO NOTHING"

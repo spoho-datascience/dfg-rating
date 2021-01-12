@@ -5,10 +5,11 @@ from dfg_rating.model import factory
 from dfg_rating.model.network.base_network import WhiteNetwork, BaseNetwork
 
 p = PostgreSQLDriver()
+p.connect()
 network_name = "test_network"
 
 networks = p.execute_query(query=f"SELECT * FROM public.networks m WHERE m.network_name = '{network_name}'")
-#print(networks)
+print(networks)
 matches = p.execute_query(query=f"SELECT * FROM public.matches m WHERE m.network_name = '{network_name}'")
 print(matches)
 forecasts = p.execute_query(query=f"SELECT * FROM public.forecasts f WHERE f.network_name = '{network_name}'")
