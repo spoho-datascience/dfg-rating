@@ -94,7 +94,7 @@ class RoundRobinNetwork(BaseNetwork):
             'true_rating', season=0
         )
         self.add_forecast(
-            LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-0.302, 0.870, 0.870]),
+            LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-0.302, 0.870]),
             'true_forecast'
         )
         return True
@@ -125,7 +125,9 @@ class RoundRobinNetwork(BaseNetwork):
                 print("Playing season: Missing True forecast")
             match_true_forecast = edge_attributes['forecasts']['true_forecast']
             self.data.edges[
-                away_team, home_team
+                away_team, home_team, edge_key
             ].setdefault(
                 'odds', {}
-            )[bookmaker_name] = bookmaker.get_odds(match_true_forecast)
+            )[bookmaker_name] = bookmaker.get_odds(
+                match_true_forecast, edge_attributes, self.data.nodes[home_team], self.data.nodes[away_team]
+            )
