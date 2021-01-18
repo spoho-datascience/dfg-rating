@@ -30,7 +30,7 @@ class FunctionRating(BaseRating):
         ratings = np.empty((n_teams, n_rounds + 1))
         for i in range(0, n_teams):
             ratings[i] = self._compute_array(array_length=n_rounds + 1)
-        return ratings
+        return ratings, self.rating_properties()
 
     def get_ratings(self, n: BaseNetwork, t: TeamId, edge_filter=None):
         pass
@@ -47,7 +47,7 @@ class FunctionRating(BaseRating):
         new_args['size'] = array_length
         if self.distribution_method is not None:
             s = self.distribution_method(**new_args)
-            return s, self.rating_properties()
+            return s
 
     def rating_properties(self, array_length=1):
         props = {"distribution_method": self.distribution_method, "array_length": array_length}

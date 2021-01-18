@@ -36,6 +36,7 @@ def cli(i: bool):
             pass
         except ValueError as value_error:
             click.echo(click.style(f"Factory error [{value_error.args[0]}]", fg='red'))
+            print(value_error.args)
             pass
         except click.exceptions.Abort:
             click.echo(click.style(" \b Closing session", fg='white'))

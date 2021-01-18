@@ -1,7 +1,7 @@
 from dfg_rating.model.forecast.base_forecast import SimpleForecast
 from dfg_rating.model.network.simple_network import RoundRobinNetwork
 from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
-
+from dfg_rating.model.rating.function_rating import FunctionRating
 
 rr_network = s = RoundRobinNetwork(
     teams=6,
@@ -10,6 +10,7 @@ rr_network = s = RoundRobinNetwork(
 rr_network.create_data()
 rr_network.add_forecast(SimpleForecast(outcomes=['home', 'draw', 'away']), 'true_forecast')
 rr_network.play()
+"""
 
 tested_rating = ControlledTrendRating(
     starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=200),
@@ -18,9 +19,15 @@ tested_rating = ControlledTrendRating(
     season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
 )
 
-
 def edge_fitler(e):
-    return e[3]['round'] == 0
+    return e[3]['round'] == 0"""
 
+fr = FunctionRating(
+    distribution='normal',
+    loc=100,
+    scale=2
+)
 
-print(tested_rating.get_all_ratings(rr_network))
+rr_network.add_rating(fr, 'test_rating')
+rr_network.print_data(attributes=True, ratings=True)
+
