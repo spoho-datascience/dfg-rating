@@ -78,7 +78,7 @@ def new_bookmaker_margin(margin_type: str, **kwargs):
         Options:
          - simple: SimpleForecast
         """
-    if margin_type == 'base':
+    if margin_type == 'simple':
         return BookmakerMargin(**kwargs)
     else:
         raise ValueError

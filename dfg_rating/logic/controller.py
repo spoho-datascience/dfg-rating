@@ -143,7 +143,7 @@ class Controller:
             }
         },
         "bookmaker_margin": {
-            "base": {
+            "simple": {
                 "margin": {
                     "label": "Bookmaker margin",
                     "type": float
