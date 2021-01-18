@@ -39,10 +39,12 @@ def cli(i: bool):
             print(value_error.args)
             pass
         except click.exceptions.Abort:
-            click.echo(click.style(" \b Closing session", fg='white'))
+            click.echo(click.style(" \b Closing session and connections", fg='white'))
+            main_controller.close()
             break
         except KeyboardInterrupt as k:
-            click.echo(click.style(" \b Closing session", fg='white'))
+            click.echo(click.style(" \b Closing session and connections", fg='white'))
+            main_controller.close()
             break
         except Exception as e:
             click.echo(click.style('Error in the execution consult logs', fg='red'))

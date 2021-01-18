@@ -539,4 +539,5 @@ crashlytics.properties
 crashlytics-build.properties
 fabric.properties
 
-dfg_rating/database.ini
+#Private config files
+database.ini

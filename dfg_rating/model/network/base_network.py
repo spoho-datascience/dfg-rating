@@ -7,7 +7,7 @@ from typing import NewType
 
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
 from dfg_rating.utils.command_line import show_progress_bar
-from dfg_rating.model.forecast.base_forecast import BaseForecast
+from dfg_rating.model.forecast.base_forecast import BaseForecast, SimpleForecast
 
 TeamId = NewType('TeamId', int)
 
@@ -79,12 +79,12 @@ class BaseNetwork(ABC):
             if (print_kwargs.get('ratings', False)) & ('ratings' in self.data.nodes[0]):
                 print("Teams ratings")
                 for team in self.data.nodes:
-                    print(f"Team {team}:")
+                    print(f"Team {team} attributes:")
                     ratings_list = print_kwargs.get('ratings_list', [])
                     if len(ratings_list) == 0:
                         ratings_list = list(self.data.nodes[team]['ratings'].keys())
                     for rating in ratings_list:
-                        print(f"Rating {rating} for team {team}: > {self.data.nodes[team].get('ratings', {}).get(rating, {})}")
+                        print(f"Rating <{rating}> for team {team}: > {self.data.nodes[team].get('ratings', {}).get(rating, {})}")
 
     def iterate_over_games(self):
         return sorted(self.data.edges(keys=True, data=True), key=lambda t: (t[3].get('season', 0), t[3]['round']))
@@ -155,6 +155,126 @@ class BaseNetwork(ABC):
         df.set_index('labels', inplace=True)
         return df.head(maximum_number_of_teams).to_dict()['ranking']
 
+    def serialize_network(self, network_name):
+        serialized_network = {}
+        matches, forecasts = self._serialize_matches(network_name)
+        serialized_network['networks'] = [{"network_name": network_name, "network_type": self.type}]
+        serialized_network['matches'] = matches
+        serialized_network['forecasts'] = forecasts
+        serialized_network['ratings'] = self._serialize_ratings(network_name)
+        return serialized_network
+
+    def _serialize_matches(self, network_name):
+        matches = []
+        forecasts = []
+        for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
+            new_match = {
+                "network_name": network_name,
+                "home_team": home_team,
+                "away_team": away_team,
+                "season": edge_attributes.get('season', 0),
+                "round": edge_attributes.get('round', -1),
+                "day": edge_attributes.get('day', -1),
+                "winner": edge_attributes.get('winner', 'none'),
+            }
+            new_match["match_id"] = f"" \
+                                   f"{new_match['home_team']}_vs_" \
+                                   f"{new_match['away_team']}_" \
+                                   f"{new_match['season']}_" \
+                                   f"{new_match['day']}" \
+                                   f""
+            for f_name, f in edge_attributes.get('forecasts', {}).items():
+                new_forecast = {
+                    "forecast_name": f_name,
+                    "network_name": network_name,
+                    "match_id": new_match['match_id']
+                }
+                for i in range(len(f.outcomes)):
+                    new_forecast[f"probability_{f.outcomes[i]}"] = f.probabilities[i]
+                forecasts.append(new_forecast)
+            matches.append(new_match)
+
+        return matches, forecasts
+
+    def _serialize_ratings(self, network_name):
+        all_ratings = []
+        for team in range(self.n_teams):
+            team_dict = None
+            try:
+                team_dict = self.data.nodes[team]
+            except Exception as e:
+                print(f"Team {team} not in nodes")
+
+            team_dict = team_dict or {}
+            for rating_name, r in team_dict.get('ratings', {}).items():
+                if rating_name != "hyper_parameters":
+                    for season, ratings in r.items():
+                        hyper_dict = team_dict.get('ratings', {}).get(
+                            'hyper_parameters', {}
+                        ).get(
+                            rating_name, {}
+                        ).get(
+                            season, {}
+                        )
+                        for i, r in enumerate(ratings):
+                            new_rating = {
+                                "rating_name": rating_name,
+                                "team_id": team,
+                                "team_name": team_dict.get('name', team),
+                                "network_name": network_name,
+                                "season": season,
+                                "rating_number": i,
+                                "value": r,
+                                "trend": hyper_dict.get('trends', [-1])[0],
+                                "starting_point": hyper_dict.get('starting_points', [-1])[0]
+                            }
+                            all_ratings.append(new_rating)
+        return all_ratings
+
+    def deserialize_network(self, matches, forecasts, ratings):
+        graph = nx.MultiDiGraph()
+        max_season = 0
+        max_round = 0
+        max_day = 1
+        for m in matches:
+            edge_dict = {key: value for key, value in m.items()}
+            max_day = edge_dict['day'] if edge_dict['round'] > max_round else max_day
+            max_round = edge_dict['round'] if edge_dict['round'] > max_round else max_round
+            max_season = edge_dict['season'] if edge_dict['season'] > max_round else max_round
+            match_forecasts = [f for f in forecasts if f['match_id'] == m['match_id']]
+            for f in match_forecasts:
+                edge_dict.setdefault('forecasts', {})[f['forecast_name']] = SimpleForecast(
+                        outcomes=['home', 'draw', 'away'],
+                        probs=[f['probability_home'], f['probability_draw'], f['probability_away']]
+                )
+            graph.add_edge(m['away_team'], m['home_team'], **edge_dict)
+        for r in ratings:
+            graph.nodes[int(r['team_id'])]['name'] = r['team_name']
+            ratings_object = graph.nodes[int(r['team_id'])].setdefault(
+                'ratings', {}
+            ).setdefault(r['rating_name'], {})
+            ratings_object.setdefault(
+                int(r['season']), []
+            ).append(r['value'])
+
+            graph.nodes[int(r['team_id'])].setdefault(
+                'ratings', {}
+            ).setdefault(
+                'hyper_parameters', {}
+            ).setdefault(
+                r['rating_name'], {}
+            ).setdefault(
+                int(r['season']), {"trends": [r['trend']], "starting_points": [r['starting_point']]}
+            )
+        self.data = graph
+        self.n_rounds = max_round + 1
+        self.seasons = max_season + 1
+        self.days_between_rounds = max_day / self.n_rounds
+        print(self.days_between_rounds)
+
+    def get_number_of_teams(self):
+        return len(self.data.nodes)
+
     @abstractmethod
     def add_rating(self, new_rating, rating_name):
         pass
@@ -166,6 +286,7 @@ class BaseNetwork(ABC):
     @abstractmethod
     def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker):
         pass
+
 
 
 class WhiteNetwork(BaseNetwork):

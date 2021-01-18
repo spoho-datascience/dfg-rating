@@ -28,14 +28,13 @@ def create_ratings_charts(
 
     """
     fig = go.Figure()
-    reduces_color_scale = np.random.choice(color_scale, network.n_teams)
+    reduced_color_scale = np.random.choice(color_scale, network.get_number_of_teams())
     for team in network.data.nodes:
         total_rating_array = np.array([])
         total_trend_x = np.array([])
         total_trend_y = np.array([])
         print(f"Team{team}: ", network.data.nodes[team])
         for season in range(network.seasons):
-            print(f"Season {season}")
             rating_array = network.data.nodes[team].get('ratings', {}).get(rating, {}).get(season, [])
             total_rating_array = np.concatenate((total_rating_array, np.array(rating_array)))
             rating_hp = network.data.nodes[team].get('ratings', {}).get("hyper_parameters", {}).get(rating, {}).get(
@@ -50,7 +49,7 @@ def create_ratings_charts(
             x=[i for i in range(len(total_rating_array))],
             y=total_rating_array,
             mode='lines+markers',
-            line=dict(color=reduces_color_scale[team]),
+            line=dict(color=reduced_color_scale[team]),
             name=f"Team {team}"
         ))
         fig.add_trace(go.Scatter(
@@ -59,7 +58,7 @@ def create_ratings_charts(
             mode='lines',
             line=dict(
                 width=0.5,
-                color=reduces_color_scale[team],
+                color=reduced_color_scale[team],
             ),
             name=f"Trend team {team}"
         ))

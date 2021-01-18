@@ -1,5 +1,6 @@
 from typing import Dict
 
+from dfg_rating.db.postgres import PostgreSQLDriver
 from dfg_rating.model import factory
 from dfg_rating.model.betting.betting import BaseBetting
 from dfg_rating.model.bookmaker.base_bookmaker import BookmakerError, BookmakerMargin, BaseBookmaker
@@ -176,6 +177,7 @@ class Controller:
         self.networks: Dict[str, BaseNetwork] = {}
         self.bookmakers: Dict[str, BaseBookmaker] = {}
         self.bettings: Dict[str, BaseBetting] = {}
+        self.db = PostgreSQLDriver()
 
     def print_network(self, name, **kwargs):
         if name in self.networks:
@@ -190,6 +192,39 @@ class Controller:
         n.create_data()
         self.networks[network_name] = n
         return 1
+
+    def load_network(self, network_name: str):
+        if network_name in self.networks:
+            return 0, f"Network <{network_name}> already exists"
+        self.db.connect()
+        db_networks = self.db.execute_query(query=f"SELECT * FROM public.networks m WHERE m.network_name = '{network_name}'")
+        if len(db_networks) == 0:
+            return 0, f"Database does not contain network <{network_name}>"
+        matches = self.db.execute_query(query=f"SELECT * FROM public.matches m WHERE m.network_name = '{network_name}'")
+        forecasts = self.db.execute_query(query=f"SELECT * FROM public.forecasts f WHERE f.network_name = '{network_name}'")
+        ratings = self.db.execute_query(query=f"SELECT * FROM public.ratings r WHERE r.network_name = '{network_name}'")
+        for network in db_networks:
+            self.networks.setdefault(
+                network['network_name'],
+                factory.new_network(network['network_type'])
+            ).deserialize_network(
+                matches=matches,
+                forecasts=forecasts,
+                ratings=ratings
+            )
+        return 1, "Network loaded correctly"
+
+    def save_network(self, network_name: str):
+        if network_name not in self.networks:
+            return 0, f"Network <{network_name}> does not exist"
+        self.db.connect()
+        serialized_network = self.networks[network_name].serialize_network(network_name)
+        for table, table_rows in serialized_network.items():
+            columns = table_rows[0].keys()
+            query_string = f"INSERT INTO {table}({','.join(columns)}) VALUES %s ON CONFLICT DO NOTHING"
+            values = [[value for value in r.values()] for r in table_rows]
+            self.db.insert_many(query_string, values)
+        return 1, f"Network <{network_name}> saved correctly"
 
     def play_network(self, network_name: str):
         n = self.networks[network_name]
@@ -242,3 +277,28 @@ class Controller:
             teams=26, days_between_rounds=10,
         )
         # """
+
+    def load_all_database(self):
+        self.db.connect()
+        db_networks = self.db.execute_query(
+            query=f"SELECT * FROM public.networks m")
+        if len(db_networks) == 0:
+            return 0, f"Database does not contain networks"
+        for n in db_networks:
+            network_name = n['network_name']
+            matches = self.db.execute_query(query=f"SELECT * FROM public.matches m WHERE m.network_name = '{network_name}'")
+            forecasts = self.db.execute_query(
+                query=f"SELECT * FROM public.forecasts f WHERE f.network_name = '{network_name}'")
+            ratings = self.db.execute_query(query=f"SELECT * FROM public.ratings r WHERE r.network_name = '{network_name}'")
+            self.networks.setdefault(
+                n['network_name'],
+                factory.new_network(n['network_type'])
+            ).deserialize_network(
+                matches=matches,
+                forecasts=forecasts,
+                ratings=ratings
+            )
+            self.networks[network_name].play()
+
+    def close(self):
+        self.db.close()
