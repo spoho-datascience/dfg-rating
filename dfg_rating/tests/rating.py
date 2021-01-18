@@ -1,19 +1,33 @@
 from dfg_rating.model.forecast.base_forecast import SimpleForecast
 from dfg_rating.model.network.simple_network import RoundRobinNetwork
+from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
 from dfg_rating.model.rating.function_rating import FunctionRating
-from dfg_rating.model.rating.winner_rating import WinnerRating
 
 rr_network = s = RoundRobinNetwork(
-    "type",
-    number_of_teams=5,
+    teams=6,
     days_between_rounds=3
 )
 rr_network.create_data()
-rr_network.add_forecast(SimpleForecast('simple', outcomes=['home', 'draw', 'away']), 'True')
+rr_network.add_forecast(SimpleForecast(outcomes=['home', 'draw', 'away']), 'true_forecast')
 rr_network.play()
+"""
 
-normal_rating = FunctionRating('function_rating', distribution='normal', loc=10, scale=1)
-print(normal_rating.get_all_ratings(rr_network))
+tested_rating = ControlledTrendRating(
+    starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=200),
+    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=3),
+    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=75),
+    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
+)
 
-winner_rating = WinnerRating('winner_rating')
-print(winner_rating.get_all_ratings(rr_network))
+def edge_fitler(e):
+    return e[3]['round'] == 0"""
+
+fr = FunctionRating(
+    distribution='normal',
+    loc=100,
+    scale=2
+)
+
+rr_network.add_rating(fr, 'test_rating')
+rr_network.print_data(attributes=True, ratings=True)
+

@@ -4,7 +4,12 @@ from dfg_rating.model import factory
 from dfg_rating.model.betting.betting import BaseBetting
 from dfg_rating.model.bookmaker.base_bookmaker import BookmakerError, BookmakerMargin, BaseBookmaker
 from dfg_rating.model.network.base_network import BaseNetwork
+from dfg_rating.model.rating.controlled_trend_rating import ControlledRandomFunction
 from dfg_rating.model.rating.function_rating import FunctionRating
+
+
+def get_new_class(class_name:str, **kwargs):
+    return factory.new_class(class_name, **kwargs)
 
 
 class Controller:
@@ -16,13 +21,35 @@ class Controller:
     """
     inputs = {
         "network": {
-            "single-soccer-simple": {
-                "number_of_teams": {
+            "round-robin": {
+                "teams": {
                     "label": "Number of teams",
                     "type": int
                 },
                 "days_between_rounds": {
                     "label": "Days between rounds",
+                    "type": int
+                }
+            },
+            "multiple-round-robin": {
+                "teams": {
+                    "label": "Number of teams",
+                    "type": int
+                },
+                "days_between_rounds": {
+                    "label": "Days between rounds",
+                    "type": int
+                },
+                "seasons": {
+                    "label": "Number of seasons",
+                    "type": int
+                },
+                "league_teams": {
+                    "label": "Number of teams in the league",
+                    "type": int
+                },
+                "league_promotion": {
+                    "label": "Number of delegation/promotion spots",
                     "type": int
                 }
             }
@@ -39,7 +66,30 @@ class Controller:
                     "cast": "float"
                 }
             },
-            "basic-winner": {}
+            "basic-winner": {},
+            "controlled-random": {
+                "starting_point": {
+                    "label": "Ranking starting point definition",
+                    "type": "custom_class",
+                    "cast": "controlled-random-function"
+                },
+                "delta": {
+                    "label": "Ranking daily delta definition",
+                    "type": "custom_class",
+                    "cast": "controlled-random-function"
+                },
+                "trend": {
+                    "label": "Ranking daily trend definition",
+                    "type": "custom_class",
+                    "cast": "controlled-random-function"
+                },
+                "season_delta": {
+                    "label": "Ranking season delta definition",
+                    "type": "custom_class",
+                    "cast": "controlled-random-function"
+                }
+
+            }
         },
         "forecast": {
             "simple": {
@@ -49,6 +99,17 @@ class Controller:
                 },
                 "probs": {
                     "label": "Predefined probabilities",
+                    "type": "custom_args_list",
+                    "cast": "float"
+                }
+            },
+            "logistic-function": {
+                "outcomes": {
+                    "label": "Outcomes list",
+                    "type": "custom_args_list"
+                },
+                "coefficients": {
+                    "label": "List of coefficients",
                     "type": "custom_args_list",
                     "cast": "float"
                 }
@@ -93,6 +154,19 @@ class Controller:
                 "bank_role": {
                     "label": "Bank role",
                     "type": float
+                }
+            }
+        },
+        "classes": {
+            "controlled-random-function": {
+                "distribution": {
+                    "label": "Distribution method",
+                    "type": str
+                },
+                "dist_args": {
+                    "label": "Distribution args (arg1_name=arg1_value, argN_name=argN_value)",
+                    "type": "custom_key_value",
+                    "cast": "float"
                 }
             }
         }
@@ -143,7 +217,7 @@ class Controller:
     def new_bookmaker_margin(self, margin_type, **error_kwargs):
         return factory.new_bookmaker_margin(margin_type, **error_kwargs)
 
-    def create_bookmaker(self, bookmaker_name:str, bookmaker_type:str, **kwargs):
+    def create_bookmaker(self, bookmaker_name: str, bookmaker_type: str, **kwargs):
         bm = factory.new_bookmaker(bookmaker_type, **kwargs)
         self.bookmakers[bookmaker_name] = bm
 
@@ -152,7 +226,19 @@ class Controller:
         bm = self.bookmakers[bookmaker_name]
         n.add_odds(bookmaker_name, bm)
 
-
-    def create_betting_strategy(self, betting_name:str, betting_type:str, **kwargs):
+    def create_betting_strategy(self, betting_name: str, betting_type: str, **kwargs):
         bs = factory.new_betting_strategy(betting_type, **kwargs)
         self.bettings[betting_name] = bs
+
+    def run_demo(self):
+        """
+        self.new_network(
+            "test_network", "multiple-round-robin",
+            teams=26, seasons=4, league_teams=18, league_promotion=3, days_between_rounds=3,
+        )
+        """
+        self.new_network(
+            "test_network", "round-robin",
+            teams=26, days_between_rounds=10,
+        )
+        # """

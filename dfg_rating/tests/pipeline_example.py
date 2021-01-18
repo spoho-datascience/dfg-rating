@@ -9,7 +9,6 @@ from dfg_rating.model.rating.winner_rating import WinnerRating
 print(">> Pipeline start")
 print(">> Testing Simple Network model")
 s = RoundRobinNetwork(
-    "type",
     number_of_teams=6, days_between_rounds=3
 )
 print(">> Creating network")
@@ -49,7 +48,7 @@ print("##########################################################")
 init = True
 current_round = None
 
-for away_team, home_team, edge_attributes in s.iterate_over_games():
+for away_team, home_team, edge_key, edge_attributes in s.iterate_over_games():
     if init:
         init = False
         current_round = edge_attributes['round']
