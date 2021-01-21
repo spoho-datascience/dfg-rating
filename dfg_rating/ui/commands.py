@@ -27,11 +27,12 @@ def automatic_params(mc, entity: str, entity_type):
             if prompt_value != "-":
                 params[key] = command_line.read_args_list(prompt_value, cast=value.get('cast', None))
         elif value['type'] == "custom_key_value":
-            custom_key_value = click.prompt(value['label'], type=str)
+            custom_key_value = click.prompt(value['label'], type=str).replace(" ", "").lower()
             for read_key, read_value in command_line.read_custom_key_value(custom_key_value, value.get('cast', None)):
                 params[read_key] = read_value
         elif value['type'] == "custom_class":
-            params[key] = mc.get_new_class(value['cast'], automatic_params(mc, "classes", value['cast']))
+            click.echo(value['label'])
+            params[key] = mc.get_new_class(value['cast'], **automatic_params(mc, "classes", value['cast']))
         else:
             params[key] = click.prompt(value['label'], type=value['type'])
     return params

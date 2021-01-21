@@ -8,11 +8,6 @@ from dfg_rating.model.network.base_network import BaseNetwork
 from dfg_rating.model.rating.controlled_trend_rating import ControlledRandomFunction
 from dfg_rating.model.rating.function_rating import FunctionRating
 
-
-def get_new_class(class_name:str, **kwargs):
-    return factory.new_class(class_name, **kwargs)
-
-
 class Controller:
     """Execution controller for the simulator
     It manages all the commands sent to the model and stores all the staging entities.
@@ -264,6 +259,9 @@ class Controller:
     def create_betting_strategy(self, betting_name: str, betting_type: str, **kwargs):
         bs = factory.new_betting_strategy(betting_type, **kwargs)
         self.bettings[betting_name] = bs
+
+    def get_new_class(self, class_name: str, **kwargs):
+        return factory.new_class(class_name, **kwargs)
 
     def run_demo(self):
         """
