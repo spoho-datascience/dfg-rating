@@ -28,9 +28,9 @@ class LogFunctionForecast(BaseForecast):
         diff = home_rating - away_rating
         for i in range(len(self.outcomes)):
             self.probabilities[i] = self.logit_link_function(
-                outcome_number=i, covar=diff
-            ) - self.logit_link_function(
                 outcome_number=i-1, covar=diff
+            ) - self.logit_link_function(
+                outcome_number=i, covar=diff
             )
         self.computed = True
         return self.probabilities
@@ -40,5 +40,5 @@ class LogFunctionForecast(BaseForecast):
             return 1
         if outcome_number >= len(self.coefficients):
             return 0
-        z = -(self.coefficients[outcome_number]) - (self.beta * covar)
-        return 1 / (1 + np.exp(-z))
+        z = -(self.coefficients[outcome_number]) + (self.beta * covar) 
+        return 1 / (1 + np.exp(z))
