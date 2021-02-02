@@ -71,8 +71,14 @@ def add_new_forecast(mc):
     n_name = click.prompt('Name of the network', type=str)
     f_name = click.prompt('Name of the forecast', type=str)
     f_type = click.prompt('Type of forecast', type=str)
+    ranking_options = mc.get_ranking_list(n_name)
+    click.echo(click.style(
+        " | ".join(ranking_options),
+        fg='white'
+    ))
+    r_name = click.prompt('Base ranking for the forecast', type=str)
     params = automatic_params(mc, "forecast", f_type)
-    mc.add_new_forecast(n_name, f_type, f_name, **params)
+    mc.add_new_forecast(n_name, f_type, f_name, r_name, **params)
     pass
 
 

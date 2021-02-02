@@ -10,18 +10,18 @@ class LogFunctionForecast(BaseForecast):
         self.coefficients = kwargs.get('coefficients')
         self.beta = kwargs.get('beta_parameter', 0.003)
 
-    def get_forecast(self, match_data=None, home_team=None, away_team=None):
+    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating'):
         home_rating = home_team.get(
             'ratings', {}
         ).get(
-            'true_rating', {}
+            base_ranking, {}
         ).get(
             match_data['season'], []
         )[match_data['round']]
         away_rating = away_team.get(
             'ratings', {}
         ).get(
-            'true_rating', {}
+            base_ranking, {}
         ).get(
             match_data['season'], []
         )[match_data['round']]

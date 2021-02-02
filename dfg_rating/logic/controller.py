@@ -62,7 +62,7 @@ class Controller:
                     "cast": "float"
                 }
             },
-            "basic-winner": {},
+            "league-rating": {},
             "controlled-random": {
                 "starting_point": {
                     "label": "Ranking starting point definition",
@@ -230,10 +230,14 @@ class Controller:
         new_rating = factory.new_rating(rating_type, **rating_kwargs)
         n.add_rating(new_rating, rating_name)
 
-    def add_new_forecast(self, network_name: str, forecast_type: str, forecast_name: str, **forecast_kwargs):
+    def get_ranking_list(self, network_name: str):
+        n = self.networks[network_name]
+        return n.get_rankings()
+
+    def add_new_forecast(self, network_name: str, forecast_type: str, forecast_name: str, base_ranking: str, **forecast_kwargs):
         n = self.networks[network_name]
         new_forecast = factory.new_forecast(forecast_type, **forecast_kwargs)
-        n.add_forecast(new_forecast, forecast_name)
+        n.add_forecast(new_forecast, forecast_name, base_ranking)
 
     def list(self, attribute):
         return [
