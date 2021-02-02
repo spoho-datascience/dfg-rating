@@ -15,7 +15,6 @@ class PostgreSQLDriver:
         self.connection_params = None
         if config is None:
             self.connection_params = self.read_config_params(config_file)
-            print(self.connection_params)
         self.connection = None
         #self.connect()
         pass

@@ -1,10 +1,11 @@
+import pandas as pd
 from typing import Dict
 
 from dfg_rating.db.postgres import PostgreSQLDriver
 from dfg_rating.model import factory
 from dfg_rating.model.betting.betting import BaseBetting
 from dfg_rating.model.bookmaker.base_bookmaker import BookmakerError, BookmakerMargin, BaseBookmaker
-from dfg_rating.model.network.base_network import BaseNetwork
+from dfg_rating.model.network.base_network import BaseNetwork, WhiteNetwork
 from dfg_rating.model.rating.controlled_trend_rating import ControlledRandomFunction
 from dfg_rating.model.rating.function_rating import FunctionRating
 
@@ -267,14 +268,27 @@ class Controller:
         """
         self.new_network(
             "test_network", "multiple-round-robin",
-            teams=26, seasons=4, league_teams=18, league_promotion=3, days_between_rounds=3,
+            teams=28, seasons=10, league_teams=10, league_promotion=2, days_between_rounds=3,
         )
         """
+        #
         self.new_network(
             "test_network", "round-robin",
-            teams=26, days_between_rounds=10,
+            teams=4, days_between_rounds=5,
         )
-        # """
+        self.play_network("test_network")
+        self.print_network("test_network", schedule=True, forecasts=True, winner=True)
+        self.add_new_rating(
+            network_name="test_network",
+            rating_name="function_rating",
+            rating_type="basic-winner"
+        )
+        """
+        df = pd.read_csv('/home/marc/Development/dshs/dfg-rating/data/real/ATP_Network_2010_2019.csv')
+        white_network = WhiteNetwork(data=df)
+        white_network.create_data()
+        self.networks["real_tennis"] = white_network
+        """
 
     def load_all_database(self):
         self.db.connect()

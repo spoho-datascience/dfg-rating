@@ -10,7 +10,10 @@ from dfg_rating.model.network.base_network import BaseNetwork
 
 
 def create_ratings_charts(
-        network: BaseNetwork, rating: str = 'true_rating', color_scale: List[str] = px.colors.qualitative.Light24
+        network: BaseNetwork,
+        ratings: [str] = ['true_rating'],
+        reduced_color_scale: List[str] = px.colors.qualitative.Light24,
+        show_trend = False
 ) -> go.Figure:
     """Rating chart evolution
 
@@ -28,38 +31,44 @@ def create_ratings_charts(
 
     """
     fig = go.Figure()
-    reduced_color_scale = np.random.choice(color_scale, network.get_number_of_teams())
     for team in network.data.nodes:
-        total_rating_array = np.array([])
-        total_trend_x = np.array([])
-        total_trend_y = np.array([])
-        print(f"Team{team}: ", network.data.nodes[team])
-        for season in range(network.seasons):
-            rating_array = network.data.nodes[team].get('ratings', {}).get(rating, {}).get(season, [])
-            total_rating_array = np.concatenate((total_rating_array, np.array(rating_array)))
-            rating_hp = network.data.nodes[team].get('ratings', {}).get("hyper_parameters", {}).get(rating, {}).get(
-                season, {})
-            trend_x = np.array(range(len(rating_array)), dtype=np.float) + (len(rating_array) * season)
-            total_trend_x = np.concatenate((total_trend_x, trend_x))
-            trend_y = trend_x * rating_hp.get('trends', [0])[0] * network.days_between_rounds + \
-                      rating_hp.get('starting_points', [0])[0]
-            total_trend_y = np.concatenate((total_trend_y, trend_y))
+        for rating in ratings:
+            total_rating_array = np.array([])
+            total_trend_x = np.array([])
+            total_trend_y = np.array([])
+            rating_name = "Logistic Rating" if rating == 'true_rating' else "Ranking"
+            for season in range(network.seasons):
+                rating_array = network.data.nodes[team].get('ratings', {}).get(rating, {}).get(season, [])
+                total_rating_array = np.concatenate((total_rating_array, np.array(rating_array)))
+                rating_hp = network.data.nodes[team].get('ratings', {}).get("hyper_parameters", {}).get(rating, {}).get(
+                    season, {})
+                trend_x = np.array(range(len(rating_array)), dtype=np.float) + (len(rating_array) * season)
+                total_trend_x = np.concatenate((total_trend_x, trend_x))
+                trend_y = trend_x * rating_hp.get('trends', [0])[0] * network.days_between_rounds + \
+                          rating_hp.get('starting_points', [0])[0]
+                total_trend_y = np.concatenate((total_trend_y, trend_y))
 
-        fig.add_trace(go.Scatter(
-            x=[i for i in range(len(total_rating_array))],
-            y=total_rating_array,
-            mode='lines+markers',
-            line=dict(color=reduced_color_scale[team]),
-            name=f"Team {team}"
-        ))
-        fig.add_trace(go.Scatter(
-            x=total_trend_x,
-            y=total_trend_y,
-            mode='lines',
-            line=dict(
-                width=0.5,
-                color=reduced_color_scale[team],
-            ),
-            name=f"Trend team {team}"
-        ))
+            fig.add_trace(go.Scatter(
+                x=[i for i in range(len(total_rating_array))],
+                y=total_rating_array,
+                mode='lines+markers',
+                line=dict(color=reduced_color_scale[team]),
+                name=f"{rating_name} Team {team}"
+            ))
+            if show_trend:
+                fig.add_trace(go.Scatter(
+                    x=total_trend_x,
+                    y=total_trend_y,
+                    mode='lines',
+                    line=dict(
+                        width=0.5,
+                        color=reduced_color_scale[team],
+                    ),
+                    name=f"Trend team {team}"
+                ))
+    fig.update_layout(
+        title="Team ratings",
+        xaxis_title="League rounds",
+        yaxis_title="Rating value",
+    )
     return fig

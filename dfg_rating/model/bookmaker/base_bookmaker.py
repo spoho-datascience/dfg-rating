@@ -45,7 +45,6 @@ class SimulatedBookmakerError(BookmakerError):
         self.error_arguments = args
 
     def apply(self, initial_probabilities):
-        print(initial_probabilities)
         logit_probs = np.log(initial_probabilities / (1 - initial_probabilities))
         self.error_arguments['size'] = len(logit_probs)
         error = self.error_method(**self.error_arguments)
@@ -104,5 +103,4 @@ class SimpleBookmaker(BaseBookmaker):
 
     def _compute_odds(self):
         odds = self.margin.apply(self.forecast)
-        print(f"Odds {odds}")
         return odds
