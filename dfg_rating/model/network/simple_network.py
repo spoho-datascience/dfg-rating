@@ -117,9 +117,9 @@ class RoundRobinNetwork(BaseNetwork):
             for team in self.data.nodes:
                 self._add_rating_to_team(int(team), ratings[int(team)], rating_hp, rating_name, season=season)
 
-    def add_forecast(self, forecast: BaseForecast, forecast_name):
-        for match in self.data.edges:
-            self._add_forecast_to_team(match, deepcopy(forecast), forecast_name)
+    def add_forecast(self, forecast: BaseForecast, forecast_name, base_ranking='true_rating'):
+        for match in self.data.edges(keys=True):
+            self._add_forecast_to_team(match, deepcopy(forecast), forecast_name, base_ranking)
 
     def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker):
         for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():

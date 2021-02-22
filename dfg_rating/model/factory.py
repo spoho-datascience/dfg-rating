@@ -9,6 +9,7 @@ from dfg_rating.model.network.simple_network import RoundRobinNetwork
 from dfg_rating.model.rating.base_rating import BaseRating
 from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
 from dfg_rating.model.rating.function_rating import FunctionRating
+from dfg_rating.model.rating.ranking_rating import LeagueRating
 from dfg_rating.model.rating.winner_rating import WinnerRating
 
 
@@ -35,8 +36,8 @@ def new_rating(rating_type: str, **kwargs) -> BaseRating:
     """
     if rating_type == 'random-function':
         return FunctionRating(**kwargs)
-    elif rating_type == 'basic-winner':
-        return WinnerRating(**kwargs)
+    elif rating_type == 'league-rating':
+        return LeagueRating(**kwargs)
     elif rating_type == 'controlled-random':
         return ControlledTrendRating(**kwargs)
     else:

@@ -117,9 +117,9 @@ class BaseNetwork(ABC):
             rating_name, {}
         )[season] = rating_hyperparameters[team_id] if team_id in rating_hyperparameters else rating_hyperparameters
 
-    def _add_forecast_to_team(self, match, forecast: BaseForecast, forecast_name):
+    def _add_forecast_to_team(self, match, forecast: BaseForecast, forecast_name, base_ranking):
         match_data = self.data.edges[match]
-        forecast.get_forecast(match_data, self.data.nodes[match[0]], self.data.nodes[match[1]])
+        forecast.get_forecast(match_data, self.data.nodes[match[0]], self.data.nodes[match[1]], base_ranking)
         self.data.edges[match].setdefault('forecasts', {})[forecast_name] = forecast
 
     def get_teams(
@@ -274,12 +274,21 @@ class BaseNetwork(ABC):
     def get_number_of_teams(self):
         return len(self.data.nodes)
 
+    def get_rankings(self):
+        rankings_list = []
+        for node in self.data.nodes:
+            for rating_id, rating_value in self.data.nodes[node]['ratings'].items():
+                if rating_id not in ['hyper_parameters'] + rankings_list:
+                    rankings_list.append(rating_id)
+        return rankings_list
+
+
     @abstractmethod
     def add_rating(self, new_rating, rating_name):
         pass
 
     @abstractmethod
-    def add_forecast(self, forecast: BaseForecast, forecast_name):
+    def add_forecast(self, forecast: BaseForecast, forecast_name, base_ranking):
         pass
 
     @abstractmethod
@@ -334,7 +343,7 @@ class WhiteNetwork(BaseNetwork):
     def add_rating(self, new_rating, rating_name):
         pass
 
-    def add_forecast(self, forecast: BaseForecast, forecast_name):
+    def add_forecast(self, forecast: BaseForecast, forecast_name, base_ranking):
         pass
 
     def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker):
