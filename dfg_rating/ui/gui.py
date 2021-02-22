@@ -148,6 +148,23 @@ def ratings_gui(app, mc):
             show_trend=True,
             selected_teams=teams
         )
+    @app.callback(
+        Callback.Output('ratings_chart_print', 'figure'),
+        [Callback.Input('print-button', 'n_clicks')],
+        [Callback.State('dropdown-teams', 'value'),
+         Callback.State('dropdown-ratings', 'value'),
+         Callback.State('from-season-input', 'value'),
+         Callback.State('to-season-input', 'value')]
+    )
+    def print_ratings_chart(clicks, teams, ratings, from_season, to_season):
+        if clicks is None:
+            raise PreventUpdate
+        return publication_chart(
+            mc.networks['test_network'],
+            ratings=ratings,
+            seasons=[s-1 for s in range(from_season, to_season + 1)],
+            selected_teams=teams,
+        )
     reduced_color_scale = px.colors.qualitative.Alphabet
     print("Ratings of team 0")
     print(mc.networks['test_network'].data.nodes[0]['ratings']['elo_rating'])
@@ -232,13 +249,17 @@ def ratings_gui(app, mc):
         dbc.Row(
             children=[
                 dbc.Col(
-                    children=dcc.Graph(id='ratings_chart_dos',
+                    children=dcc.Graph(id='ratings_chart_print',
                                        figure=publication_chart(mc.networks['test_network'],
                                                                 ratings=["function_rating"])),
                     width=6
+                ),
+                dbc.Col(
+                    dbc.Button(id='print-button', children="Print"),
+                    width=6
                 )
             ],
-            justify="center"
+            justify="justify"
         )
     ]
 

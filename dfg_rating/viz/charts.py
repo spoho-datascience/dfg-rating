@@ -90,16 +90,24 @@ def create_ratings_charts(
 def publication_chart(
         network: BaseNetwork,
         ratings: [str] = ['true_rating'],
+        seasons: [int] = None,
         show_trend=True,
-        teams: [int] = [2]
+        show_starting=False,
+        selected_teams: [int] = []
 ) -> go.Figure:
     fig = go.Figure()
-    for team in teams:
-        for rating in ratings:
+    seasons = seasons or []
+    if len(selected_teams) == 0:
+        selected_teams =[2]
+    ratings = ratings or ['true_rating']
+    if len(seasons) == 0:
+        seasons = range(network.seasons)
+    for team in selected_teams:
+        for i_rating, rating in enumerate(ratings):
             total_rating_array = np.array([])
             total_trend_x = np.array([])
             total_trend_y = np.array([])
-            for season in range(network.seasons):
+            for season in seasons:
                 rating_array = network.data.nodes[team].get('ratings', {}).get(rating, {}).get(season, [])
                 total_rating_array = np.concatenate((total_rating_array, np.array(rating_array)))
                 rating_hp = network.data.nodes[team].get('ratings', {}).get("hyper_parameters", {}).get(rating, {}).get(
@@ -114,18 +122,19 @@ def publication_chart(
                 x=[i for i in range(len(total_rating_array))],
                 y=total_rating_array,
                 mode='lines',
-                line=dict(color='black'),
-                name='Team rating'
+                line=dict(color=px.colors.sequential.Greys[len(px.colors.sequential.Greys) - 1 - i_rating * 2]),
+                name='True rating' if rating == 'true_rating' else "ELO Rating"
             ))
-            fig.add_trace(go.Scatter(
-                x=[0],
-                y=[network.data.nodes[team].get('ratings', {}).get("hyper_parameters", {}).get(rating, {}).get(
-                    0, {}).get('starting_points', [0])[0]],
-                mode='markers',
-                marker=dict(color='black', size=12),
-                name="Starting point"
-            ))
-            if show_trend:
+            if show_starting:
+                fig.add_trace(go.Scatter(
+                    x=[0],
+                    y=[network.data.nodes[team].get('ratings', {}).get("hyper_parameters", {}).get(rating, {}).get(
+                        0, {}).get('starting_points', [0])[0]],
+                    mode='markers',
+                    marker=dict(color=px.colors.sequential.Greys[i_rating], size=12),
+                    name="Starting point"
+                ))
+            if show_trend and (rating == 'true_rating'):
                 fig.add_trace(go.Scatter(
                     x=total_trend_x,
                     y=total_trend_y,
@@ -135,7 +144,7 @@ def publication_chart(
                         color="black",
                         dash='dash'
                     ),
-                    name='Trend'
+                    name='True rating trend'
                 ))
     fig.update_layout(
         xaxis_title="League rounds",
@@ -149,20 +158,28 @@ def publication_chart(
         font=font_dict,  # font formatting
         plot_bgcolor='white',  # background color
     )
-    fig.update_yaxes(title_text='Rating',  # axis label
-                     showgrid=False,
-                     showline=True,
-                     showticklabels=False, # add line at x=0
-                     linecolor='black',  # line color
-                     linewidth=2.4, # line size
-                     )
-    fig.update_xaxes(title_text='Time',
-                     showgrid=False,
-                     rangemode='tozero',
-                 showline=True,
-                 showticklabels=False,
-                 linecolor='black',
-                 linewidth=2.4,
-                     range=[0,38]
-                 )
+    fig.update_yaxes(
+        title_text='Rating',  # axis label
+        showgrid=False,
+        showline=True,
+        showticklabels=False, # add line at x=0
+        linecolor='black',  # line color
+        linewidth=2.4, # line size
+     )
+    fig.update_xaxes(
+        title_text='Time',
+        showgrid=False,
+        rangemode='tozero',
+        showline=True,
+        linecolor='black',
+        linewidth=2.4,
+        tickmode='array',
+        ticklen=10,
+        tickfont=dict(
+            size=14
+        ),
+        tickvals=[i for i in range(37, 37 * 20, 37)],
+        ticktext=[f"Season {int(i/37)}" for i in range(37, 37 * 20, 37)],
+        tickangle=45
+     )
     return fig
