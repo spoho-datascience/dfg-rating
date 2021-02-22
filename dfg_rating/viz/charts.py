@@ -34,6 +34,7 @@ def create_ratings_charts(
     fig = go.Figure()
     if len(selected_teams) == 0:
         selected_teams = network.data.nodes
+    ratings = ratings or ['true_rating']
     for team in selected_teams:
         for rating in ratings:
             total_rating_array = np.array([])
@@ -56,9 +57,9 @@ def create_ratings_charts(
                 y=total_rating_array,
                 mode='lines+markers',
                 line=dict(color=reduced_color_scale[team]),
-                name=f"{rating_name} Team {team}"
+                name=f"{rating_name}-Team {team}"
             ))
-            if show_trend:
+            if show_trend and (rating == 'true_rating'):
                 fig.add_trace(go.Scatter(
                     x=total_trend_x,
                     y=total_trend_y,
@@ -67,7 +68,7 @@ def create_ratings_charts(
                         width=0.5,
                         color=reduced_color_scale[team],
                     ),
-                    name=f"Trend team {team}"
+                    name=f"{rating_name}-Trend team {team}"
                 ))
     fig.update_layout(
         title="Team ratings",

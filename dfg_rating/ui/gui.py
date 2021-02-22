@@ -134,13 +134,13 @@ def ratings_gui(app, mc):
         mc.networks["test_network"].get_number_of_teams()
     )
     @app.callback(Callback.Output('ratings_chart', 'figure'),
-                  [Callback.Input('dropdown-teams', 'value')])
-    def update_cytoscape_layout(teams):
-        if teams is None:
-            raise PreventUpdate
+                  [Callback.Input('dropdown-teams', 'value'),
+                   Callback.Input('dropdown-ratings', 'value')])
+    def update_ratings_overview(teams, ratings):
+        teams = teams or []
         return create_ratings_charts(
             mc.networks['test_network'],
-            ratings=["true_rating"],
+            ratings=ratings,
             reduced_color_scale=reduced_color_scale,
             show_trend=True,
             selected_teams=teams
@@ -161,6 +161,7 @@ def ratings_gui(app, mc):
                                 "value": team_id
                             } for team_id in mc.networks["test_network"].data.nodes
                         ],
+                        value=None,
                         multi=True
                     ),
                 )
@@ -171,15 +172,21 @@ def ratings_gui(app, mc):
                 dbc.Col(
                     id="ratings-filter-col",
                     children=dcc.Dropdown(
-                        id="dropdown-teams",
+                        id="dropdown-ratings",
                         placeholder="Select ratings...",
-                        options=[],
+                        options=[
+                            {
+                                "label": r,
+                                "value": r
+                            } for r in mc.get_ranking_list("test_network")
+                        ],
                         multi=True
-                    ),
+                    ), width=6
                 )
             ]
         ),
         dbc.Row(
+            justify="center",
             children=[
                 dbc.Col(
                     children=dcc.Graph(id='ratings_chart',
