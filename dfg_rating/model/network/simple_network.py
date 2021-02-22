@@ -111,12 +111,8 @@ class RoundRobinNetwork(BaseNetwork):
             )
             self._add_rating_to_team(team_id, rating_values, rating_hp, rating_name, season=season)
         else:
-            print("Computing ratings")
             ratings, rating_hp = rating.get_all_ratings(self, edge_filter if season else base_edge_filter)
-            print(f"Ratings {ratings}")
             for team in self.data.nodes:
-                print(f"Team {team}")
-                print(f"Ratings {ratings}")
                 self._add_rating_to_team(int(team), ratings[int(team)], rating_hp, rating_name, season=season)
 
     def add_forecast(self, forecast: BaseForecast, forecast_name, base_ranking='true_rating'):

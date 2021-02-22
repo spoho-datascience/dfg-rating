@@ -51,10 +51,10 @@ class ControlledTrendRating(BaseRating):
             self.agg = {}
             self.init_season_ratings(current_season, n, ratings)
             for r in range(self.rounds_per_season):
-                def round_fitler(edge):
+                def round_filter(edge):
                     return edge[3]['round'] == r
 
-                for away_team, home_team, match_key, match_data in filter(round_fitler, filtered_games):
+                for away_team, home_team, match_key, match_data in filter(round_filter, filtered_games):
                     current_round = match_data['round']
                     current_position = (current_season * (self.rounds_per_season + 2)) + (current_round + 1)
                     print(f"Current {current_position}")
