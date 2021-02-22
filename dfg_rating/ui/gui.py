@@ -135,12 +135,15 @@ def ratings_gui(app, mc):
     )
     @app.callback(Callback.Output('ratings_chart', 'figure'),
                   [Callback.Input('dropdown-teams', 'value'),
-                   Callback.Input('dropdown-ratings', 'value')])
-    def update_ratings_overview(teams, ratings):
+                   Callback.Input('dropdown-ratings', 'value'),
+                   Callback.Input('from-season-input', 'value'),
+                   Callback.Input('to-season-input', 'value')])
+    def update_ratings_overview(teams, ratings, from_season, to_season):
         teams = teams or []
         return create_ratings_charts(
             mc.networks['test_network'],
             ratings=ratings,
+            seasons=[s-1 for s in range(from_season, to_season + 1)],
             reduced_color_scale=reduced_color_scale,
             show_trend=True,
             selected_teams=teams
@@ -182,6 +185,32 @@ def ratings_gui(app, mc):
                         ],
                         multi=True
                     ), width=6
+                ),
+                dbc.Col(
+                    id="seasons-filter-col",
+                    children=html.Div(
+                        [
+                            "From season ",
+                            dcc.Input(
+                                id="from-season-input",
+                                type="number",
+                                debounce=True,
+                                min=1,
+                                max=mc.networks['test_network'].seasons,
+                                value=1
+                            ),
+                            " to season ",
+                            dcc.Input(
+                                id="to-season-input",
+                                type="number",
+                                debounce=True,
+                                min=1,
+                                max=mc.networks['test_network'].seasons,
+                                value=mc.networks['test_network'].seasons
+                            )
+                        ]
+                    ),
+                    width=6
                 )
             ]
         ),

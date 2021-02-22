@@ -12,6 +12,7 @@ from dfg_rating.model.network.base_network import BaseNetwork
 def create_ratings_charts(
         network: BaseNetwork,
         ratings: [str] = ['true_rating'],
+        seasons: [int] = None,
         reduced_color_scale: List[str] = px.colors.qualitative.Light24,
         show_trend = False,
         selected_teams =  []
@@ -35,13 +36,16 @@ def create_ratings_charts(
     if len(selected_teams) == 0:
         selected_teams = network.data.nodes
     ratings = ratings or ['true_rating']
+    seasons = seasons or []
+    if len(seasons) == 0:
+        seasons = range(network.seasons)
     for team in selected_teams:
         for rating in ratings:
             total_rating_array = np.array([])
             total_trend_x = np.array([])
             total_trend_y = np.array([])
             rating_name = "Logistic Rating" if rating == 'true_rating' else rating
-            for season in range(network.seasons):
+            for season in seasons:
                 rating_array = network.data.nodes[team].get('ratings', {}).get(rating, {}).get(season, [])
                 total_rating_array = np.concatenate((total_rating_array, np.array(rating_array)))
                 rating_hp = network.data.nodes[team].get('ratings', {}).get("hyper_parameters", {}).get(rating, {}).get(
