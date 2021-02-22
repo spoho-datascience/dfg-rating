@@ -26,13 +26,13 @@ class WinnerRating(BaseRating):
                     ratings[t][current_round + 1] = ratings[t][current_round]
 
             ratings[away_team][data['round'] + 1] = ratings[away_team][data['round']] + (
-                1 if data['winner'] == 'away'
-                else 0.5 if data['winner'] == 'draw'
+                3 if data['winner'] == 'away'
+                else 1 if data['winner'] == 'draw'
                 else 0
             )
             ratings[home_team][data['round'] + 1] = ratings[home_team][data['round']] + (
-                1 if data['winner'] == 'home'
-                else 0.5 if data['winner'] == 'draw'
+                3 if data['winner'] == 'home'
+                else 1 if data['winner'] == 'draw'
                 else 0
             )
 

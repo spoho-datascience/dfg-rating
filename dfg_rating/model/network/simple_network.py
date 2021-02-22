@@ -1,4 +1,6 @@
 import math
+from copy import deepcopy
+
 import networkx as nx
 
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
@@ -117,7 +119,7 @@ class RoundRobinNetwork(BaseNetwork):
 
     def add_forecast(self, forecast: BaseForecast, forecast_name, base_ranking='true_rating'):
         for match in self.data.edges(keys=True):
-            self._add_forecast_to_team(match, forecast, forecast_name, base_ranking)
+            self._add_forecast_to_team(match, deepcopy(forecast), forecast_name, base_ranking)
 
     def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker):
         for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():

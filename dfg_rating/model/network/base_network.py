@@ -270,7 +270,6 @@ class BaseNetwork(ABC):
         self.n_rounds = max_round + 1
         self.seasons = max_season + 1
         self.days_between_rounds = max_day / self.n_rounds
-        print(self.days_between_rounds)
 
     def get_number_of_teams(self):
         return len(self.data.nodes)
@@ -304,11 +303,12 @@ class WhiteNetwork(BaseNetwork):
     def __init__(self, **kwargs):
         super().__init__("white", **kwargs)
         self.table_data: pd.DataFrame = kwargs['data']
+        self.mapping = kwargs.get("mapping", DEFAULT_MAPPING)
         self.table_data['Date'] = pd.to_datetime(self.table_data.Date)
         self.table_data.sort_values(by="Date", inplace=True)
 
     def create_data(self):
-        graph = nx.DiGraph()
+        graph = nx.MultiDiGraph()
         sp = show_progress_bar(text="Loading network", start=True)
         day = 0
         for row_id, row in self.table_data.iterrows():
@@ -320,9 +320,11 @@ class WhiteNetwork(BaseNetwork):
             # Add edge (create if needed the nodes and attributes)
             edge_dict = {key: value for key, value in row.items() if key not in ['WinnerID', 'LoserID']}
             edge_dict['day'] = day
-            graph.add_edge(row['WinnerID'], row['LoserID'], **edge_dict)
-            graph.nodes[row['WinnerID']]['name'] = row['Winner']
-            graph.nodes[row['LoserID']]['name'] = row['Loser']
+            edge_dict['round'] = edge_dict[self.mapping['round']]
+            edge_dict['season'] = 0
+            graph.add_edge(row[self.mapping['away']], row[self.mapping['home']], **edge_dict)
+            graph.nodes[row[self.mapping['home']]]['name'] = row[self.mapping['winner_name']]
+            graph.nodes[row[self.mapping['away']]]['name'] = row[self.mapping['loser_name']]
         show_progress_bar("Network Loaded", False, sp)
         self.data = graph
         return True
@@ -338,9 +340,6 @@ class WhiteNetwork(BaseNetwork):
             for node in self.data.nodes:
                 print(f"Node id: {node}, Name: {self.data.nodes[node]['name']}")
 
-    def iterate_over_games(self):
-        pass
-
     def add_rating(self, new_rating, rating_name):
         pass
 
@@ -349,3 +348,5 @@ class WhiteNetwork(BaseNetwork):
 
     def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker):
         pass
+
+DEFAULT_MAPPING = {}

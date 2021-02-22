@@ -57,18 +57,16 @@ class LeagueNetwork(RoundRobinNetwork):
             self.add_rating(self.ranking_rating, 'ranking', season=season)
             promoted_items = random.sample(range(self.out_teams), self.league_promotion)
             promoted_teams = [self.out_teams_labels[promoted_items[i]] for i in range(self.league_promotion)]
-            print(f"Promoted teams: {promoted_teams}")
             relegation_candidates = self.get_teams(ascending=True, maximum_number_of_teams=6, season=season)
-            print(f"Relegation candidates: {relegation_candidates}")
+            print(f"Relegation candidates {relegation_candidates}")
             relegation_teams = random.sample(list(relegation_candidates.keys()), self.league_promotion)
-            print(f"Relegation teams: {relegation_teams}")
+            print(f"Relegation teams {relegation_teams}")
             for i in range(len(promoted_teams)):
                 for k, v in self.league_teams_labels.items():
                     if v == relegation_teams[i]:
                         self.league_teams_labels[k] = promoted_teams[i]
                         self.out_teams_labels.remove(promoted_teams[i])
                         self.out_teams_labels.append(v)
-            print(self.league_teams_labels, self.out_teams_labels)
 
     def all_teams_have_rating(self, rating_key):
         return all(rating_key in self.data.nodes[n].get('ratings', {}) for n in self.data.nodes)

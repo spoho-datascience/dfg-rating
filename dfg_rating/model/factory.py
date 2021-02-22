@@ -50,7 +50,6 @@ def new_forecast(forecast_type: str, **kwargs) -> BaseForecast:
     Options:
      - simple: SimpleForecast
     """
-    print(kwargs)
     if forecast_type == 'simple':
         return SimpleForecast(**kwargs)
     if forecast_type == 'logistic-function':
