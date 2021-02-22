@@ -294,6 +294,7 @@ class WhiteNetwork(BaseNetwork):
     def __init__(self, **kwargs):
         super().__init__("white", **kwargs)
         self.table_data: pd.DataFrame = kwargs['data']
+        self.mapping = kwargs.get("mapping", DEFAULT_MAPPING)
         self.table_data['Date'] = pd.to_datetime(self.table_data.Date)
         self.table_data.sort_values(by="Date", inplace=True)
 
@@ -310,11 +311,11 @@ class WhiteNetwork(BaseNetwork):
             # Add edge (create if needed the nodes and attributes)
             edge_dict = {key: value for key, value in row.items() if key not in ['WinnerID', 'LoserID']}
             edge_dict['day'] = day
-            edge_dict['round'] = edge_dict['Round']
+            edge_dict['round'] = edge_dict[self.mapping['round']]
             edge_dict['season'] = 0
-            graph.add_edge(row['WinnerID'], row['LoserID'], **edge_dict)
-            graph.nodes[row['WinnerID']]['name'] = row['Winner']
-            graph.nodes[row['LoserID']]['name'] = row['Loser']
+            graph.add_edge(row[self.mapping['away']], row[self.mapping['home']], **edge_dict)
+            graph.nodes[row[self.mapping['home']]]['name'] = row[self.mapping['winner_name']]
+            graph.nodes[row[self.mapping['away']]]['name'] = row[self.mapping['loser_name']]
         show_progress_bar("Network Loaded", False, sp)
         self.data = graph
         return True
@@ -338,3 +339,5 @@ class WhiteNetwork(BaseNetwork):
 
     def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker):
         pass
+
+DEFAULT_MAPPING = {}
