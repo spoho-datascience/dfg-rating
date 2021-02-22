@@ -40,7 +40,7 @@ def create_ratings_charts(
             total_rating_array = np.array([])
             total_trend_x = np.array([])
             total_trend_y = np.array([])
-            rating_name = "Logistic Rating" if rating == 'true_rating' else "Ranking"
+            rating_name = "Logistic Rating" if rating == 'true_rating' else rating
             for season in range(network.seasons):
                 rating_array = network.data.nodes[team].get('ratings', {}).get(rating, {}).get(season, [])
                 total_rating_array = np.concatenate((total_rating_array, np.array(rating_array)))
@@ -55,8 +55,14 @@ def create_ratings_charts(
             fig.add_trace(go.Scatter(
                 x=[i for i in range(len(total_rating_array))],
                 y=total_rating_array,
-                mode='lines+markers',
-                line=dict(color=reduced_color_scale[team]),
+                mode='lines+markers' if rating != "true_rating" else "lines",
+                line=dict(
+                    color=reduced_color_scale[team],
+                    width=2.5
+                ) if rating != 'true_rating' else dict(
+                    color=reduced_color_scale[team],
+                    width=1.5
+                ),
                 name=f"{rating_name}-Team {team}"
             ))
             if show_trend and (rating == 'true_rating'):

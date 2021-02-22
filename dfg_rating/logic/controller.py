@@ -7,6 +7,7 @@ from dfg_rating.model.betting.betting import BaseBetting
 from dfg_rating.model.bookmaker.base_bookmaker import BookmakerError, BookmakerMargin, BaseBookmaker
 from dfg_rating.model.network.base_network import BaseNetwork, WhiteNetwork
 from dfg_rating.model.rating.controlled_trend_rating import ControlledRandomFunction
+from dfg_rating.model.rating.elo_rating import ELORating
 from dfg_rating.model.rating.function_rating import FunctionRating
 
 class Controller:
@@ -271,7 +272,11 @@ class Controller:
     def run_demo(self):
         self.new_network(
             "test_network", "multiple-round-robin",
-            teams=22, seasons=10, league_teams=18, league_promotion=2, days_between_rounds=5,
+            teams=18, seasons=10, league_teams=18, league_promotion=0, days_between_rounds=5,
+        )
+        self.networks['test_network'].add_rating(
+            ELORating(trained=True),
+            'elo-rating'
         )
         """
         self.new_network(

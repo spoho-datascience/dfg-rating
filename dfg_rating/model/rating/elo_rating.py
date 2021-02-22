@@ -15,17 +15,17 @@ class ELORating(BaseRating):
             self.settings = {
                 "c": kwargs.get("param.c", 10),
                 "d": kwargs.get("param.d", 400),
-                "k": kwargs.get("param.k", 14)
+                "k": kwargs.get("param.k", 20)
             }
 
     def init_ratings(self, team, season, n, ratings):
         if self.seasons[season] == 0:
             """First season on the simulation, new starting point"""
-            starting_point = 0
+            starting_point = 1000
         elif season == 0:
             """First season in the ratings computation but not in the network. Reading previous season"""
             starting_point = n.data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(
-                self.seasons[season] - 1, 0
+                self.seasons[season] - 1, 1000
             )[-1]
         else:
             """New season for the ratings. Getting previous rating"""
