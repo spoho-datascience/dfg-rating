@@ -59,10 +59,10 @@ def create_ratings_charts(
             fig.add_trace(go.Scatter(
                 x=[i for i in range(len(total_rating_array))],
                 y=total_rating_array,
-                mode='lines+markers' if rating != "true_rating" else "lines",
+                mode='lines',
                 line=dict(
                     color=reduced_color_scale[team],
-                    width=2.5
+                    width=3.5
                 ) if rating != 'true_rating' else dict(
                     color=reduced_color_scale[team],
                     width=1.5

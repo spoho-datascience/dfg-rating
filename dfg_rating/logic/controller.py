@@ -272,12 +272,9 @@ class Controller:
     def run_demo(self):
         self.new_network(
             "test_network", "multiple-round-robin",
-            teams=18, seasons=10, league_teams=18, league_promotion=0, days_between_rounds=5,
+            teams=20, seasons=10, league_teams=20, league_promotion=0, days_between_rounds=3,
         )
-        self.networks['test_network'].add_rating(
-            ELORating(trained=True),
-            'elo-rating'
-        )
+        self.add_new_rating("test_network", "elo-rating", "elo_rating", trained=True)
         """
         self.new_network(
             "test_network", "round-robin",

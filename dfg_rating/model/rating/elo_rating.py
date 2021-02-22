@@ -64,6 +64,7 @@ class ELORating(BaseRating):
         self.rounds_per_season = len(get_rounds_per_season(filtered_games))
         print(f"Rounds per season {self.rounds_per_season}")
         ratings = np.zeros([n_teams, (n_rounds + 2) * n_seasons])
+        print(f"Looping through seasons {n_seasons}")
         for current_season in range(n_seasons):
             # Init of values for all the ratings, with previous season or with nothing.
             self.init_season_ratings(current_season, n, ratings)

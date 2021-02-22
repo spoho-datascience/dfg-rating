@@ -149,6 +149,8 @@ def ratings_gui(app, mc):
             selected_teams=teams
         )
     reduced_color_scale = px.colors.qualitative.Alphabet
+    print("Ratings of team 0")
+    print(mc.networks['test_network'].data.nodes[0]['ratings']['elo_rating'])
     layout = [
         dbc.Row(
             id="rating-filters",

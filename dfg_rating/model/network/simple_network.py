@@ -17,6 +17,7 @@ class RoundRobinNetwork(BaseNetwork):
     A competition in which each contestant meets all other contestants in turn)
 
     """
+
     def __init__(self, **kwargs):
         super().__init__(f"{kwargs.get('extra_type', '')}round-robin", **kwargs)
 
@@ -62,7 +63,8 @@ class RoundRobinNetwork(BaseNetwork):
                         graph.add_edge(
                             team_labels.get(slice_b[game], slice_b[game]),
                             team_labels.get(slice_a[game], slice_a[game]),
-                            season=season, round=season_round + number_of_rounds, day=day + (number_of_rounds * self.days_between_rounds)
+                            season=season, round=season_round + number_of_rounds,
+                            day=day + (number_of_rounds * self.days_between_rounds)
                         )
                     else:
                         graph.add_edge(
@@ -73,7 +75,8 @@ class RoundRobinNetwork(BaseNetwork):
                         graph.add_edge(
                             team_labels.get(slice_a[game], slice_a[game]),
                             team_labels.get(slice_b[game], slice_b[game]),
-                            season=season, round=season_round + number_of_rounds, day=day + (number_of_rounds * self.days_between_rounds)
+                            season=season, round=season_round + number_of_rounds,
+                            day=day + (number_of_rounds * self.days_between_rounds)
                         )
 
             day += self.days_between_rounds
@@ -102,18 +105,26 @@ class RoundRobinNetwork(BaseNetwork):
         return True
 
     def add_rating(self, rating: BaseRating, rating_name, team_id=None, season=None):
+        if season is not None:
+            self.add_season_rating(rating, rating_name, team_id, season)
+        else:
+            for s in range(self.seasons):
+                self.add_season_rating(rating, rating_name, team_id, s)
+
+    def add_season_rating(self, rating, rating_name, team_id, season):
         def edge_filter(e):
             new_filter = (
                 (e[3]['season'] == season)
             )
             return new_filter
+
         if team_id:
             rating_values, rating_hp = rating.get_ratings(
-                self, [team_id], edge_filter if season else base_edge_filter
+                self, [team_id], edge_filter
             )
             self._add_rating_to_team(team_id, rating_values, rating_hp, rating_name, season=season)
         else:
-            ratings, rating_hp = rating.get_all_ratings(self, edge_filter if season else base_edge_filter)
+            ratings, rating_hp = rating.get_all_ratings(self, edge_filter)
             for team in self.data.nodes:
                 self._add_rating_to_team(int(team), ratings[int(team)], rating_hp, rating_name, season=season)
 
