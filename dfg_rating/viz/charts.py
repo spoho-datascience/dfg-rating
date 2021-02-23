@@ -40,6 +40,8 @@ def create_ratings_charts(
     if len(seasons) == 0:
         seasons = range(network.seasons)
     for team in selected_teams:
+        if team in [0]:
+            print(network.data.nodes[team].get('ratings', {}))
         for rating in ratings:
             total_rating_array = np.array([])
             total_trend_x = np.array([])
@@ -47,6 +49,7 @@ def create_ratings_charts(
             rating_name = "Logistic Rating" if rating == 'true_rating' else rating
             for season in seasons:
                 rating_array = network.data.nodes[team].get('ratings', {}).get(rating, {}).get(season, [])
+                print(rating_array)
                 total_rating_array = np.concatenate((total_rating_array, np.array(rating_array)))
                 rating_hp = network.data.nodes[team].get('ratings', {}).get("hyper_parameters", {}).get(rating, {}).get(
                     season, {})

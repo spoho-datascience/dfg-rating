@@ -13,9 +13,9 @@ class ELORating(BaseRating):
         self.rating_name = kwargs.get('rating_name', 'elo_rating')
         if elo_trained:
             self.settings = {
-                "c": kwargs.get("param.c", 10),
-                "d": kwargs.get("param.d", 400),
-                "k": kwargs.get("param.k", 14)
+                "c": kwargs.get("param.c", 10.0),
+                "d": kwargs.get("param.d", 400.0),
+                "k": kwargs.get("param.k", 14.0)
             }
 
     def init_ratings(self, team, season, n, ratings):
@@ -38,11 +38,12 @@ class ELORating(BaseRating):
             ratings[team, init_position] = self.init_ratings(team, season, n, ratings)
 
     def compute_expected_values(self, home_value, away_value):
-        expected_home = 1 / (1 + (self.settings['c'] ** ((away_value - home_value) / self.settings['d'])))
+        expected_home = 1.0 / (1.0 + (self.settings['c'] ** ((away_value - home_value) / self.settings['d'])))
         return expected_home, 1 - expected_home
 
     def compute_scores(self, result):
-        home_score = 1 if result == 'home' else 0.5 if result == 'draw' else 0
+        print(result)
+        home_score = 1.0 if result == 'home' else 0.5 if result == 'draw' else 0.0
         return home_score, 1 - home_score
 
     def update_elo(self, current, score, expected):

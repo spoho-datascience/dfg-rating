@@ -11,6 +11,7 @@ rr_network = s = LeagueNetwork(
     days_between_rounds=3,
     seasons=1,
     league_teams=4,
+    league_promotion=0,
     create=True
 )
 tested_rating = ControlledTrendRating(
@@ -22,9 +23,9 @@ tested_rating = ControlledTrendRating(
 
 rr_network.add_rating(tested_rating, 'example_rating')
 rr_network.add_forecast(f_log, "test_f")
-rr_network.add_rating(LeagueRating(), 'league')
+"""rr_network.add_rating(LeagueRating(), 'league')
 rr_network.add_forecast(f_log, "league-based", base_ranking='league')
-
+"""
 """for away_team, home_team, match_key, match_data in rr_network.iterate_over_games():
     f_log.get_forecast(match_data, rr_network.data.nodes[home_team], rr_network.data.nodes[away_team], base_ranking='league')
-    print(f_log.print())"""
+    print(f_log.print(), f"Sum: {sum(f_log.probabilities)}")"""
