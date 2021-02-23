@@ -43,7 +43,7 @@ def init():
     return True
 
 
-def network_gui(app):
+def network_gui(app, network_name, mc):
     @app.callback(Callback.Output('network_cyto', 'layout'),
                   [Callback.Input('dropdown-layout', 'value')])
     def update_cytoscape_layout(layout):
@@ -70,8 +70,8 @@ def network_gui(app):
             'action': action
         }
 
-    # elements = network_to_cyto(main_controller.networks['real_soccer'])
-    elements = custom_cyto_network()
+    elements = network_to_cyto(mc.networks[network_name])
+    # elements = custom_cyto_network()
     print(len(elements))
     layout = [
         dbc.Row(
@@ -166,8 +166,6 @@ def ratings_gui(app, mc):
             selected_teams=teams,
         )
     reduced_color_scale = px.colors.qualitative.Alphabet
-    print("Ratings of team 0")
-    print(mc.networks['test_network'].data.nodes[0]['ratings']['elo_rating'])
     layout = [
         dbc.Row(
             id="rating-filters",

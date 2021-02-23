@@ -52,7 +52,8 @@ def create_ratings_charts(
                     season, {})
                 trend_x = np.array(range(len(rating_array)), dtype=np.float) + (len(rating_array) * season)
                 total_trend_x = np.concatenate((total_trend_x, trend_x))
-                trend_y = trend_x * rating_hp.get('trends', [0])[0] * network.days_between_rounds + \
+                to_zero_trend_x = np.array([i for i in range(len(trend_x))])
+                trend_y = to_zero_trend_x * rating_hp.get('trends', [0])[0] * network.days_between_rounds + \
                           rating_hp.get('starting_points', [0])[0]
                 total_trend_y = np.concatenate((total_trend_y, trend_y))
 
@@ -114,7 +115,8 @@ def publication_chart(
                     season, {})
                 trend_x = np.array(range(len(rating_array)), dtype=np.float) + (len(rating_array) * season)
                 total_trend_x = np.concatenate((total_trend_x, trend_x))
-                trend_y = trend_x * rating_hp.get('trends', [0])[0] * network.days_between_rounds + \
+                to_zero_trend_x = np.array([i for i in range(len(trend_x))])
+                trend_y = to_zero_trend_x * rating_hp.get('trends', [0])[0] * network.days_between_rounds + \
                           rating_hp.get('starting_points', [0])[0]
                 total_trend_y = np.concatenate((total_trend_y, trend_y))
 
@@ -122,7 +124,7 @@ def publication_chart(
                 x=[i for i in range(len(total_rating_array))],
                 y=total_rating_array,
                 mode='lines',
-                line=dict(color=px.colors.sequential.Greys[len(px.colors.sequential.Greys) - 1 - i_rating * 2]),
+                line=dict(color=px.colors.sequential.Greys[len(px.colors.sequential.Greys) - 1 - (i_rating + i_rating + i_rating)]),
                 name='True rating' if rating == 'true_rating' else "ELO Rating"
             ))
             if show_starting:
@@ -131,7 +133,7 @@ def publication_chart(
                     y=[network.data.nodes[team].get('ratings', {}).get("hyper_parameters", {}).get(rating, {}).get(
                         0, {}).get('starting_points', [0])[0]],
                     mode='markers',
-                    marker=dict(color=px.colors.sequential.Greys[i_rating], size=12),
+                    marker=dict(color=px.colors.sequential.Greys[i_rating + i_rating], size=12),
                     name="Starting point"
                 ))
             if show_trend and (rating == 'true_rating'):

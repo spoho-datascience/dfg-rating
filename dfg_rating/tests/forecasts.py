@@ -5,12 +5,12 @@ from dfg_rating.model.network.simple_network import RoundRobinNetwork
 from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
 from dfg_rating.model.rating.ranking_rating import LeagueRating
 
-f_log = LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-0.9, 0.3])
+f_log = LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-0.302, 0.870])
 rr_network = s = LeagueNetwork(
-    teams=30,
+    teams=4,
     days_between_rounds=3,
-    seasons=4,
-    league_teams=18,
+    seasons=1,
+    league_teams=4,
     create=True
 )
 tested_rating = ControlledTrendRating(

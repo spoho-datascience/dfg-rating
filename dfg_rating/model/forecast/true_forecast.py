@@ -25,6 +25,7 @@ class LogFunctionForecast(BaseForecast):
         ).get(
             match_data['season'], []
         )[match_data['round']]
+        print(f"Home {home_rating}, away {away_rating}")
         diff = home_rating - away_rating
         for i in range(len(self.outcomes)):
             self.probabilities[i] = self.logit_link_function(
@@ -33,6 +34,7 @@ class LogFunctionForecast(BaseForecast):
                 outcome_number=i, covar=diff
             )
         self.computed = True
+        print(f"Forecast: {self.probabilities}")
         return self.probabilities
 
     def logit_link_function(self, outcome_number, covar):

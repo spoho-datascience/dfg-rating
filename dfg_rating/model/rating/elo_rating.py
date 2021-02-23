@@ -15,7 +15,7 @@ class ELORating(BaseRating):
             self.settings = {
                 "c": kwargs.get("param.c", 10),
                 "d": kwargs.get("param.d", 400),
-                "k": kwargs.get("param.k", 20)
+                "k": kwargs.get("param.k", 14)
             }
 
     def init_ratings(self, team, season, n, ratings):
