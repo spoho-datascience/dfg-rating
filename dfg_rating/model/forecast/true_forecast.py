@@ -8,7 +8,8 @@ class LogFunctionForecast(BaseForecast):
     def __init__(self, **kwargs):
         super().__init__('logistic-function', **kwargs)
         self.coefficients = kwargs.get('coefficients')
-        self.beta = kwargs.get('beta_parameter', -0.003)
+        self.beta = kwargs.get('beta_parameter', -0.006)
+        self.HA = kwargs.get('home_advantage', 50)
 
     def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating'):
         # TODO: Add home advantage before diff
@@ -26,8 +27,8 @@ class LogFunctionForecast(BaseForecast):
         ).get(
             match_data['season'], []
         )[match_data['round']]
-        diff = home_rating - away_rating
-        # print(f"Home {home_rating}, away {away_rating}")
+        diff = home_rating - away_rating + self.HA
+        print(f"Home {home_rating}, away {away_rating}")
         for i in range(len(self.outcomes)):
             j = i + 1
             self.probabilities[i] = self.logit_link_function(
