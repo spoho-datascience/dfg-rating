@@ -45,7 +45,7 @@ class LogFunctionForecast(BaseForecast):
             return 0
         if outcome_number == len(self.coefficients) + 1:
             return 1
-        z = -(self.coefficients[outcome_number - 1]) + (self.beta * covar)
-        f = 1 / (1 + np.exp(z))
+        z = -(self.coefficients[outcome_number - 1]) - (self.beta * covar)
+        f = 1 / (1 + np.exp(-z))
         return f
 
