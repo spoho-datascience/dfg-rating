@@ -1,7 +1,6 @@
 import numpy as np
 
 from abc import ABC, abstractmethod
-from typing import List
 
 
 class BaseForecast(ABC):
@@ -13,6 +12,7 @@ class BaseForecast(ABC):
     """
 
     def __init__(self, forecast_type: str, **kwargs):
+        self.computed = False
         self.type = forecast_type
         self.outcomes = kwargs.get('outcomes', [])
         number_of_outcomes = len(self.outcomes)
@@ -24,10 +24,12 @@ class BaseForecast(ABC):
 
 
     @abstractmethod
-    def get_forecast(self):
+    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating'):
         pass
 
     def print(self):
+        if not self.computed:
+            self.get_forecast()
         forecast_string = ""
         for i in range(len(self.outcomes)):
             forecast_string += f" {self.outcomes[i]}: {self.probabilities[i]} -"
@@ -37,5 +39,9 @@ class BaseForecast(ABC):
 
 class SimpleForecast(BaseForecast):
 
-    def get_forecast(self):
+    def __init__(self, **kwargs):
+        super().__init__('simple', **kwargs)
+        self.computed = True
+
+    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_forecast'):
         return self.probabilities

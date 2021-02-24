@@ -3,13 +3,12 @@ from dfg_rating.model.bookmaker.base_bookmaker import SimpleBookmaker, Simulated
 from dfg_rating.model.forecast.base_forecast import SimpleForecast
 
 true_forecast_probabilities = [0.4523, 0.2975, 0.2501]
-true_forecast = SimpleForecast('simple', ['home', 'draw', 'away'], true_forecast_probabilities)
+true_forecast = SimpleForecast(outcomes=['home', 'draw', 'away'], probs=true_forecast_probabilities)
 true_forecast.print()
 model_forecast = true_forecast
 
 bm = SimpleBookmaker(
-    'simple',
-    SimulatedBookmakerError('uniform', 0, 1),
+    SimulatedBookmakerError(error='uniform', low=0, high=1),
     BookmakerMargin(0.1)
 )
 

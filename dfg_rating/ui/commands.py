@@ -7,6 +7,7 @@ actions = [
     'Show <networks | ratings | actions>',
     'Create Network',
     'Load Network',
+    'Save Network',
     'Simulate results',
     'Print Network',
     'Add new rating',
@@ -26,9 +27,12 @@ def automatic_params(mc, entity: str, entity_type):
             if prompt_value != "-":
                 params[key] = command_line.read_args_list(prompt_value, cast=value.get('cast', None))
         elif value['type'] == "custom_key_value":
-            custom_key_value = click.prompt(value['label'], type=str)
+            custom_key_value = click.prompt(value['label'], type=str).replace(" ", "").lower()
             for read_key, read_value in command_line.read_custom_key_value(custom_key_value, value.get('cast', None)):
                 params[read_key] = read_value
+        elif value['type'] == "custom_class":
+            click.echo(value['label'])
+            params[key] = mc.get_new_class(value['cast'], **automatic_params(mc, "classes", value['cast']))
         else:
             params[key] = click.prompt(value['label'], type=value['type'])
     return params
@@ -40,6 +44,18 @@ def create_network(mc):
     params = automatic_params(mc, "network", n_type)
     mc.new_network(n_name, n_type, **params)
     pass
+
+def load_network(mc):
+    n_name = click.prompt('Name of the network', type=str)
+    result, message = mc.load_network(n_name)
+    if result:
+        click.echo(click.style(f"{message}"))
+    else:
+        click.echo(click.style(f"{message}", fg='red'))
+
+def save_network(mc):
+    n_name = click.prompt('Name of the network', type=str)
+    result, message = mc.save_network(n_name)
 
 
 def add_new_rating(mc):
@@ -55,8 +71,14 @@ def add_new_forecast(mc):
     n_name = click.prompt('Name of the network', type=str)
     f_name = click.prompt('Name of the forecast', type=str)
     f_type = click.prompt('Type of forecast', type=str)
+    ranking_options = mc.get_ranking_list(n_name)
+    click.echo(click.style(
+        " | ".join(ranking_options),
+        fg='white'
+    ))
+    r_name = click.prompt('Base ranking for the forecast', type=str)
     params = automatic_params(mc, "forecast", f_type)
-    mc.add_new_forecast(n_name, f_type, f_name, **params)
+    mc.add_new_forecast(n_name, f_type, f_name, r_name, **params)
     pass
 
 
@@ -109,12 +131,18 @@ def run(action, mc: Controller):
     # Create Network
     elif action == 2:
         create_network(mc)
-    # Simulate results
+    # Load Network
+    elif action == 3:
+        load_network(mc)
+    # Save Network
     elif action == 4:
+        save_network(mc)
+    # Simulate results
+    elif action == 5:
         network_name = click.prompt('Name of the network', type=str)
         mc.play_network(network_name)
     # Print Network
-    elif action == 5:
+    elif action == 6:
         network_name = click.prompt("Name of the network", type=str)
         params = {}
         args_list = click.prompt("Elements to print: ", type=str)
@@ -124,24 +152,24 @@ def run(action, mc: Controller):
         if not success:
             click.echo(click.style(message, fg='red'))
     # Add new Rating
-    elif action == 6:
+    elif action == 7:
         add_new_rating(mc)
     # Add new Forecast
-    elif action == 7:
+    elif action == 8:
         add_new_forecast(mc)
     # Create Bookmaker
-    elif action == 8:
+    elif action == 9:
         create_bookmaker(mc)
     # Add odds
-    elif action == 9:
+    elif action == 10:
         network_name = click.prompt('Name of the network', type=str)
         bookmaker_name = click.prompt('Name of the bookmaker', type=str)
         mc.add_odds(network_name, bookmaker_name)
     # Create Betting strategy
-    elif action == 10:
+    elif action == 11:
         create_betting_strategy(mc)
     # Bet
-    elif action == 11:
+    elif action == 12:
         new_betting(mc)
     # Default
     else:
