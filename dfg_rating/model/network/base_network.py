@@ -5,6 +5,7 @@ import pandas as pd
 from abc import ABC, abstractmethod
 from typing import NewType
 
+from dfg_rating.model.betting.betting import BaseBetting
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
 from dfg_rating.utils.command_line import show_progress_bar
 from dfg_rating.model.forecast.base_forecast import BaseForecast, SimpleForecast
@@ -295,6 +296,9 @@ class BaseNetwork(ABC):
     def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker):
         pass
 
+    @abstractmethod
+    def add_bets(self, bettor_name: str, bookmaker: str, betting: BaseBetting, base_forecast: str):
+        pass
 
 
 class WhiteNetwork(BaseNetwork):
