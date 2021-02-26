@@ -42,7 +42,6 @@ class ELORating(BaseRating):
         return expected_home, 1 - expected_home
 
     def compute_scores(self, result):
-        print(result)
         home_score = 1.0 if result == 'home' else 0.5 if result == 'draw' else 0.0
         return home_score, 1 - home_score
 

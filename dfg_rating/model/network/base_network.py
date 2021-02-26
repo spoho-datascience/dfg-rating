@@ -282,6 +282,35 @@ class BaseNetwork(ABC):
                     rankings_list.append(rating_id)
         return rankings_list
 
+    def export(self, **kwargs):
+        print("Export network")
+        network_flat = []
+        printing_forecasts = kwargs.get("forecasts", ['true_forecast'])
+        printing_ratings = kwargs.get("ratings", ['true_rating'])
+        for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
+            match_dict = {
+                "Home": home_team,
+                "Away": away_team,
+                "Season": edge_attributes.get('season', 0),
+                "Round": edge_attributes.get('round', -1),
+                "Day": edge_attributes.get('day', -1),
+                "Result": edge_attributes.get('winner', 'none'),
+            }
+            for f in printing_forecasts:
+                forecast_object: BaseForecast = edge_attributes.get('forecasts', {}).get(f, None)
+                if forecast_object is not None:
+                    for i, outcome in enumerate(forecast_object.outcomes):
+                        match_dict[f"{f}#{outcome}"] = forecast_object.probabilities[i]
+
+            for r in printing_ratings:
+                    for team, name in [(home_team, 'Home'), (away_team, 'Away')]:
+                        rating_dict = self.data.nodes[team].get('ratings', {}).get(r)
+                        match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0))[edge_attributes.get('round', 0)]
+            network_flat.append(match_dict)
+        file_name = kwargs.get('filename', 'network.csv')
+        df = pd.DataFrame(network_flat)
+        df.to_csv(file_name, index=False)
+
 
     @abstractmethod
     def add_rating(self, new_rating, rating_name):

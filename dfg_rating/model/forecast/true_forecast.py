@@ -28,7 +28,6 @@ class LogFunctionForecast(BaseForecast):
             match_data['season'], []
         )[match_data['round']]
         diff = home_rating - away_rating + self.HA
-        print(f"Home {home_rating}, away {away_rating}")
         for i in range(len(self.outcomes)):
             j = i + 1
             self.probabilities[i] = self.logit_link_function(

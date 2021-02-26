@@ -223,6 +223,13 @@ class Controller:
             self.db.insert_many(query_string, values)
         return 1, f"Network <{network_name}> saved correctly"
 
+    def export_network(self, network_name: str, **kwargs):
+        if network_name not in self.networks:
+            return 0, f"Network <{network_name}> does not exist"
+        return self.networks[network_name].export(**kwargs)
+
+
+
     def play_network(self, network_name: str):
         n = self.networks[network_name]
         n.play()

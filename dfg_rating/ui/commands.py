@@ -54,8 +54,15 @@ def load_network(mc):
         click.echo(click.style(f"{message}", fg='red'))
 
 def save_network(mc):
+    save_type = click.prompt('Save mode (sql | csv)', type=str)
     n_name = click.prompt('Name of the network', type=str)
-    result, message = mc.save_network(n_name)
+    if save_type == 'sql':
+        result, message = mc.save_network(n_name)
+        click.echo(click.style(message, fg='white' if result == 1 else 'red'))
+    elif save_type == 'csv':
+        result, message = mc.export_network(
+            n_name
+        )
 
 
 def add_new_rating(mc):

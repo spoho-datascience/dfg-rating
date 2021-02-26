@@ -9,13 +9,14 @@ test_network.create_data()
 test_network.play()
 #test_network.print_data(attributes=True, ratings=True)
 
-serialized_network = test_network.serialize_network('test_network')
+"""serialized_network = test_network.serialize_network('test_network')
 p = PostgreSQLDriver()
 for table, table_rows in serialized_network.items():
     columns = table_rows[0].keys()
     query_string = f"INSERT INTO {table}({','.join(columns)}) VALUES %s ON CONFLICT DO NOTHING"
     values = [[value for value in r.values()] for r in table_rows]
     p.insert_many(query_string, values)
-p.close()
+p.close()"""
+test_network.export(ratings=['true_rating', 'ranking'])
 
 
