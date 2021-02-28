@@ -3,10 +3,10 @@ from dfg_rating.model.network.base_network import BaseNetwork
 
 network: BaseNetwork = factory.new_network(
     'multiple-round-robin',
-    teams=6,
+    teams=3,
     days_between_rounds=3,
     seasons=4,
-    league_teams=6,
+    league_teams=2,
     league_promotion=0,
     create=True
 )
