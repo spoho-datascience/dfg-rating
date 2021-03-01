@@ -38,6 +38,7 @@ class ELORating(BaseRating):
             ratings[team, init_position] = self.init_ratings(team, season, n, ratings)
 
     def compute_expected_values(self, home_value, away_value):
+        print(home_value, away_value)
         expected_home = 1.0 / (1.0 + (self.settings['c'] ** ((away_value - home_value) / self.settings['d'])))
         return expected_home, 1 - expected_home
 
@@ -77,8 +78,8 @@ class ELORating(BaseRating):
                     current_round = match_data['round']
                     current_position = (current_season * (self.rounds_per_season + 2)) + (current_round + 1)
                     home_expected, away_expected = self.compute_expected_values(
-                        ratings[home_team, current_position],
-                        ratings[away_team, current_position]
+                        ratings[home_team, current_position - 1],
+                        ratings[away_team, current_position - 1]
                     )
                     home_score, away_score = self.compute_scores(match_data['winner'])
                     ratings[away_team, current_position] = self.update_elo(
