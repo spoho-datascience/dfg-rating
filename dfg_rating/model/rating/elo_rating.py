@@ -15,7 +15,8 @@ class ELORating(BaseRating):
             self.settings = {
                 "c": kwargs.get("param.c", 10.0),
                 "d": kwargs.get("param.d", 400.0),
-                "k": kwargs.get("param.k", 14.0)
+                "k": kwargs.get("param.k", 14.0),
+                "w": kwargs.get("param.w", 80)
             }
 
     def init_ratings(self, team, season, n, ratings):
@@ -39,7 +40,7 @@ class ELORating(BaseRating):
 
     def compute_expected_values(self, home_value, away_value):
         print(home_value, away_value)
-        expected_home = 1.0 / (1.0 + (self.settings['c'] ** ((away_value - home_value) / self.settings['d'])))
+        expected_home = 1.0 / (1.0 + (self.settings['c'] ** ((away_value - home_value - self.settings['w']) / self.settings['d'])))
         return expected_home, 1 - expected_home
 
     def compute_scores(self, result):
