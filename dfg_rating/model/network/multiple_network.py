@@ -47,8 +47,8 @@ class LeagueNetwork(RoundRobinNetwork):
                 'true_rating', season=season
             )
             self.add_forecast(
-                LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-1.1, 0.1, 0.006]),
-                'true_forecast'
+                LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-1.1, 0.1], beta_parameter=0.006),
+                'true_forecast', season=season
             )
             season_games = list(filter(lambda match: match[3].get('season', -1) == season, self.iterate_over_games()))
             # Simulate the execution of those matches

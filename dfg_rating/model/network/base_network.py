@@ -119,7 +119,7 @@ class BaseNetwork(ABC):
 
     def _add_forecast_to_team(self, match, forecast: BaseForecast, forecast_name, base_ranking):
         match_data = self.data.edges[match]
-        forecast.get_forecast(match_data, self.data.nodes[match[0]], self.data.nodes[match[1]], base_ranking)
+        forecast.get_forecast(match_data, self.data.nodes[match[1]], self.data.nodes[match[0]], base_ranking)
         self.data.edges[match].setdefault('forecasts', {})[forecast_name] = forecast
 
     def get_teams(
@@ -301,11 +301,10 @@ class BaseNetwork(ABC):
                 if forecast_object is not None:
                     for i, outcome in enumerate(forecast_object.outcomes):
                         match_dict[f"{f}#{outcome}"] = forecast_object.probabilities[i]
-
             for r in printing_ratings:
-                    for team, name in [(home_team, 'Home'), (away_team, 'Away')]:
-                        rating_dict = self.data.nodes[team].get('ratings', {}).get(r)
-                        match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0))[edge_attributes.get('round', 0)]
+                for team, name in [(home_team, 'Home'), (away_team, 'Away')]:
+                    rating_dict = self.data.nodes[team].get('ratings', {}).get(r)
+                    match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0))[edge_attributes.get('round', 0)]
             network_flat.append(match_dict)
         file_name = kwargs.get('filename', 'network.csv')
         df = pd.DataFrame(network_flat)

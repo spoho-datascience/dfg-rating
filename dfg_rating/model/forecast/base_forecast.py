@@ -28,9 +28,6 @@ class BaseForecast(ABC):
         pass
 
     def print(self):
-        if not self.computed:
-            self.get_forecast()
-        print(self.probabilities)
         forecast_string = ""
         for i in range(len(self.outcomes)):
             forecast_string += f" {self.outcomes[i][0]}: {self.probabilities[i]:.2f} -"
