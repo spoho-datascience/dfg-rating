@@ -39,16 +39,16 @@ class LeagueNetwork(RoundRobinNetwork):
             self.fill_graph(self.league_teams_labels, season=season)
             self.add_rating(
                 ControlledTrendRating(
-                    starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=200),
-                    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10),
-                    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
-                    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
+                    starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=100),
+                    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
+                    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
+                    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=0)
                 ),
                 'true_rating', season=season
             )
             self.add_forecast(
-                LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-0.302, 0.870]),
-                'true_forecast'
+                LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-1.1, 0.1], beta_parameter=0.006),
+                'true_forecast', season=season
             )
             season_games = list(filter(lambda match: match[3].get('season', -1) == season, self.iterate_over_games()))
             # Simulate the execution of those matches
@@ -57,18 +57,16 @@ class LeagueNetwork(RoundRobinNetwork):
             self.add_rating(self.ranking_rating, 'ranking', season=season)
             promoted_items = random.sample(range(self.out_teams), self.league_promotion)
             promoted_teams = [self.out_teams_labels[promoted_items[i]] for i in range(self.league_promotion)]
-            print(f"Promoted teams: {promoted_teams}")
             relegation_candidates = self.get_teams(ascending=True, maximum_number_of_teams=6, season=season)
-            print(f"Relegation candidates: {relegation_candidates}")
+            print(f"Relegation candidates {relegation_candidates}")
             relegation_teams = random.sample(list(relegation_candidates.keys()), self.league_promotion)
-            print(f"Relegation teams: {relegation_teams}")
+            print(f"Relegation teams {relegation_teams}")
             for i in range(len(promoted_teams)):
                 for k, v in self.league_teams_labels.items():
                     if v == relegation_teams[i]:
                         self.league_teams_labels[k] = promoted_teams[i]
                         self.out_teams_labels.remove(promoted_teams[i])
                         self.out_teams_labels.append(v)
-            print(self.league_teams_labels, self.out_teams_labels)
 
     def all_teams_have_rating(self, rating_key):
         return all(rating_key in self.data.nodes[n].get('ratings', {}) for n in self.data.nodes)

@@ -46,18 +46,17 @@ class ControlledTrendRating(BaseRating):
         # The ratings object is initialized with as many positions as number of rounds in the network
         # and 2 extra positions (begin, end) of the season.
         ratings = np.zeros([n_teams, (n_rounds + 2) * n_seasons])
-        print(f"{n_rounds} rounds for {n_seasons}: {ratings.shape}")
+        print(f"Controlled: Looping through seasons {n_seasons}")
         for current_season in range(n_seasons):
             self.agg = {}
             self.init_season_ratings(current_season, n, ratings)
             for r in range(self.rounds_per_season):
-                def round_fitler(edge):
+                def round_filter(edge):
                     return edge[3]['round'] == r
 
-                for away_team, home_team, match_key, match_data in filter(round_fitler, filtered_games):
+                for away_team, home_team, match_key, match_data in filter(round_filter, filtered_games):
                     current_round = match_data['round']
                     current_position = (current_season * (self.rounds_per_season + 2)) + (current_round + 1)
-                    print(f"Current {current_position}")
                     ratings[away_team, current_position] = ratings[
                                                                away_team, current_position - 1
                                                            ] + self.new_rating_value(away_team, match_data)
