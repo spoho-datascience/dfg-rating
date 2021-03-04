@@ -16,7 +16,6 @@ class FixedBetting(BaseBetting):
         self.bank_role = bank_role
 
     def bet(self, forecast, odds):
-        print(forecast, odds)
         betting_inputs = [f*o for f, o in zip(forecast, odds)]
         print(betting_inputs)
 

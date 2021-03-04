@@ -4,6 +4,8 @@ from typing import List
 from dfg_rating.model import factory
 from dfg_rating.model.betting.betting import FixedBetting
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
+from dfg_rating.model.evaluators.accuracy import RankProbabilityScore
+from dfg_rating.model.evaluators.profitability import BettingReturnsEvaluator
 from dfg_rating.model.forecast.base_forecast import SimpleForecast, BaseForecast
 from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
 from dfg_rating.model.network.base_network import BaseNetwork
@@ -24,7 +26,7 @@ network: BaseNetwork = factory.new_network(
     league_promotion=0,
     create=True
 )
-
+# %%
 network.add_forecast(
     forecast=LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[0.870, -0.302],
                                  beta_parameter=-0.002),
@@ -42,83 +44,41 @@ network.add_forecast(
 bookmaker: BaseBookmaker = factory.new_bookmaker(
     'simple',
     error=factory.new_bookmaker_error(error_type='factor', error=0.0, scope='positive'),
-    margin=factory.new_bookmaker_margin('simple', margin=0.1)
+    margin=factory.new_bookmaker_margin('simple', margin=-0.1)
 )
 network.add_odds("simple", bookmaker)
 betting = FixedBetting(1000)
 network.add_bets(
-    "param_forecast_bettor",
+    "true_bettor",
     "simple",
     betting,
-    "param_forecast"
+    "true_forecast"
 )
-
-# %%
-class ForecastEvaluator(ABC):
-
-    def __init__(self, **kwargs):
-        self.outcomes = kwargs.get("outcomes")
-
-    @abstractmethod
-    def eval(self, probabilities: List[float], observed_result: str) -> (float, str):
-        """Evaluate specific probabilities from a forecast model
-        """
-        pass
-
-
-class AccuracyForecastEvaluator(ForecastEvaluator):
-
-    def eval(self, probabilities: List[float], observed_result: str) -> (float, str):
-        if len(probabilities) != len(self.outcomes):
-            return 0, "Probabilities do not fit in potential outcomes array"
-        observed_probabilities = [1.0 if observed_result == outcome else 0.0 for outcome in self.outcomes]
-        print(observed_probabilities)
-        evaluation_score = self._compute(observed=observed_probabilities, model=probabilities)
-        return 1, evaluation_score
-
-    @abstractmethod
-    def _compute(self, observed, model) -> float:
-        """Numerical evaluation of a forecast given the probabilities set
-        """
-        pass
-
-
-class RankProbabilityScore(AccuracyForecastEvaluator):
-
-    def _compute(self, observed, model) -> float:
-        r = len(self.outcomes)
-        score = sum([
-            sum([(model[j - 1] - observed[j - 1]) for j in range(1, i + 1)]) ** 2
-            for i in range(1, r)
-        ])
-        score /= (r - 1)
-        return score
-
-#%%
-
-class ProfitabilityForecastEvaluator(ForecastEvaluator, ABC):
-    pass
-
-
-class BettingReturnsEvaluator(ProfitabilityForecastEvaluator):
-
-    def eval(self, probabilities: List[float], observed_result: str) -> (float, str):
-        pass
-
 
 # %%
 
 rps = RankProbabilityScore(outcomes=['home', 'draw', 'away'])
 rps.eval([1.0, 0.0, 0.0], observed_result='home')
-rps.eval([0.80, 0.10, 0.10], observed_result='home')
+print(rps.eval([0.80, 0.10, 0.10], observed_result='home'))
+
+# %%
+betting_returns = BettingReturnsEvaluator(outcomes=['home', 'draw', 'away'])
+expected, actual = betting_returns.eval(
+    bets=[10, 10, 10],
+    bettor_predictions=[0.305766501196908, 0.288109830070559, 0.406123668732533],
+    bookmaker_odds=[3.59751639141012,3.81798843771005,2.70853457872322],
+    observed_result='away'
+)
+print(expected, actual)
 
 # %%
 analysis_dict = []
-forecasts = ['true_forecast', 'param_forecast']
+#forecasts = ['true_forecast', 'param_forecast']
+forecasts = []
+odds = ["simple"]
+bets = ["true_bettor"]
 for away, home, match_id, match_attributes in network.iterate_over_games():
     for f in forecasts:
-        print(match_attributes['odds']['simple'])
-        print(match_attributes['bets']['param_forecast_bettor'])
         new_row = {
             "HomeTeam": home,
             "AwayTeam": away,
@@ -134,7 +94,39 @@ for away, home, match_id, match_attributes in network.iterate_over_games():
         new_row["ForecastName"] = f
         new_row['RPS'] = rps_score if correct else None
         analysis_dict.append(new_row)
+    for o_number, o in enumerate(odds):
+        print(match_attributes)
+        new_row = {
+            "HomeTeam": home,
+            "AwayTeam": away,
+            "Season": match_attributes.get('season', None),
+            "Round": match_attributes.get('season', None),
+            "Result": match_attributes.get('winner', None),
+        }
+        forecast_object: BaseForecast = match_attributes.get('forecasts', {}).get('true_forecast', None)
+        if forecast_object is not None:
+            for i, outcome in enumerate(forecast_object.outcomes):
+                new_row[outcome] = forecast_object.probabilities[i]
+        match_odds = match_attributes.get('odds', {}).get(o, [])
+        match_bets = match_attributes.get('bets', {}).get(bets[o_number], [])
+        print(match_odds, match_bets)
+        for i_odd, odd in enumerate(match_odds):
+            new_row[f"odds#{forecast_object.outcomes[i_odd]}"] = odd
+        for i_bet, bet in enumerate(match_bets):
+            new_row[f"bet#{forecast_object.outcomes[i_bet]}"] = bet
+        new_row['Bettor'] = bets[o_number]
+        new_row['Bookmaker'] = o
+        expected_results, actual_results = betting_returns.eval(
+            bets=match_bets,
+            bettor_predictions=forecast_object.probabilities,
+            bookmaker_odds=match_odds,
+            observed_result=new_row['Result']
+        )
+        for i_bet, bet in enumerate(match_bets):
+            new_row[f"expected#bet#{forecast_object.outcomes[i_bet]}"] = expected_results[i_bet]
+            new_row[f"return#bet#{forecast_object.outcomes[i_bet]}"] = actual_results[i_bet]
+        analysis_dict.append(new_row)
 # %%
 df = pd.DataFrame(analysis_dict)
 df.set_index(['HomeTeam', 'AwayTeam', 'Season', 'Round'], inplace=True)
-df.head(30).to_csv('table.csv')
+df.to_csv('table.csv')

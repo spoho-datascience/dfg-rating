@@ -40,9 +40,9 @@ class LeagueNetwork(RoundRobinNetwork):
             self.add_rating(
                 ControlledTrendRating(
                     starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=100),
-                    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
-                    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
-                    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=0)
+                    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=2),
+                    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
+                    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=100)
                 ),
                 'true_rating', season=season
             )
