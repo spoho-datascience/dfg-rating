@@ -23,7 +23,7 @@ class BettingReturnsEvaluator(ProfitabilityEvaluator):
         expected_returns = []
         actual_returns = []
         for bet_index, bet in enumerate(bets):
-            expected_returns.append((bettor_predictions[bet_index] * bookmaker_odds[bet_index]) - 1)
-            bet_result = 1 if self.outcomes[bet_index] == observed_result else 0
-            actual_returns.append((bet_result * bookmaker_odds[bet_index]) - 1)
+            expected_returns.append(bet * ((bettor_predictions[bet_index] * bookmaker_odds[bet_index]) - 1))
+            bet_result = 1.0 if self.outcomes[bet_index] == observed_result else 0.0
+            actual_returns.append(bet * ((bet_result * bookmaker_odds[bet_index]) - 1))
         return expected_returns, actual_returns

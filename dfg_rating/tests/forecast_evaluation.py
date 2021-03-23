@@ -66,7 +66,7 @@ betting_returns = BettingReturnsEvaluator(outcomes=['home', 'draw', 'away'])
 expected, actual = betting_returns.eval(
     bets=[10, 10, 10],
     bettor_predictions=[0.305766501196908, 0.288109830070559, 0.406123668732533],
-    bookmaker_odds=[3.59751639141012,3.81798843771005,2.70853457872322],
+    bookmaker_odds=[3.59751639141012, 3.81798843771005, 2.70853457872322],
     observed_result='away'
 )
 print(expected, actual)

@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from typing import Dict
 
 from dfg_rating.db.postgres import PostgreSQLDriver
@@ -243,7 +244,14 @@ class Controller:
         n = self.networks[network_name]
         return n.get_rankings()
 
-    def add_new_forecast(self, network_name: str, forecast_type: str, forecast_name: str, base_ranking: str, **forecast_kwargs):
+    def add_new_forecast(
+            self,
+            network_name: str,
+            forecast_type: str,
+            forecast_name: str,
+            base_ranking: str,
+            **forecast_kwargs
+    ):
         n = self.networks[network_name]
         new_forecast = factory.new_forecast(forecast_type, **forecast_kwargs)
         n.add_forecast(new_forecast, forecast_name, base_ranking)
@@ -273,15 +281,93 @@ class Controller:
         bs = factory.new_betting_strategy(betting_type, **kwargs)
         self.bettings[betting_name] = bs
 
+    def add_bets(self, network_name: str, bookmaker_name: str, betting_name: str, base_forecast: str):
+        n = self.networks[network_name]
+        betting_strategy = self.bettings[betting_name]
+        n.add_bets(
+            bettor_name=betting_name,
+            bookmaker=bookmaker_name,
+            betting=betting_strategy,
+            base_forecast=base_forecast
+        )
+
+    def profitability_study(self, network, evaluator, odds, bets):
+        n = self.networks[network]
+        analysis_dict = []
+        for away, home, match_id, match_attributes in n.iterate_over_games():
+            for o_number, o in enumerate(odds):
+                print(match_attributes)
+                new_row = {
+                    "HomeTeam": home,
+                    "AwayTeam": away,
+                    "Season": match_attributes.get('season', None),
+                    "Round": match_attributes.get('season', None),
+                    "Result": match_attributes.get('winner', None),
+                }
+                for forecast in ['true_forecast', 'elo_forecast']:
+                    forecast_object = match_attributes.get('forecasts', {}).get(forecast, None)
+                    if forecast_object is not None:
+                        for i, outcome in enumerate(forecast_object.outcomes):
+                            new_row[f"{forecast}#{outcome}"] = float(f"{forecast_object.probabilities[i]:.2f}")
+                match_odds = match_attributes.get('odds', {}).get(o, [])
+                match_bets = match_attributes.get('bets', {}).get(bets[o_number], [])
+                print(match_odds, match_bets)
+                for i_odd, odd in enumerate(match_odds):
+                    new_row[f"odds#{forecast_object.outcomes[i_odd]}"] = float(f"{odd:.2f}")
+                for i_bet, bet in enumerate(match_bets):
+                    new_row[f"bet#{forecast_object.outcomes[i_bet]}"] = float(f"{bet:.2f}")
+                new_row['Bettor'] = bets[o_number]
+                new_row['Bookmaker'] = o
+                obj_forecast = match_attributes.get('forecasts', {}).get('true_forecast', None)
+                expected_results, actual_results = evaluator.eval(
+                    bets=match_bets,
+                    bettor_predictions=obj_forecast.probabilities,
+                    bookmaker_odds=match_odds,
+                    observed_result=new_row['Result']
+                )
+                for i_bet, bet in enumerate(match_bets):
+                    new_row[f"expected#bet#{forecast_object.outcomes[i_bet]}"] = float(f"{expected_results[i_bet]:.2f}")
+                    new_row[f"return#bet#{forecast_object.outcomes[i_bet]}"] = float(f"{actual_results[i_bet]:.2f}")
+                analysis_dict.append(new_row)
+        return analysis_dict
+
     def get_new_class(self, class_name: str, **kwargs):
         return factory.new_class(class_name, **kwargs)
 
     def run_demo(self):
         self.new_network(
             "test_network", "multiple-round-robin",
-            teams=18, seasons=20, league_teams=18, league_promotion=0, days_between_rounds=3,
+            teams=18, seasons=7, league_teams=18, league_promotion=0, days_between_rounds=3,
         )
         self.add_new_rating("test_network", "elo-rating", "elo_rating", trained=True)
+        self.add_new_forecast(
+            network_name="test_network",
+            forecast_type='logistic-function',
+            forecast_name='elo_forecast',
+            base_ranking='elo_rating',
+            outcomes=['home', 'draw', 'away'], coefficients=[-1.1, 0.1], beta_parameter=0.006
+        )
+        self.create_bookmaker(
+            bookmaker_name='simple_bookmaker',
+            bookmaker_type='simple',
+            error=factory.new_bookmaker_error(error_type='simulated', error="uniform", low=0, high=1),
+            margin=factory.new_bookmaker_margin('simple', margin=0.05)
+        )
+        self.add_odds(
+            network_name="test_network",
+            bookmaker_name="simple_bookmaker",
+        )
+        self.create_betting_strategy(
+            betting_name='elo_bettor',
+            betting_type='fixed',
+            bank_role=100
+        )
+        self.add_bets(
+            network_name="test_network",
+            bookmaker_name="simple_bookmaker",
+            betting_name='elo_bettor',
+            base_forecast='elo_forecast'
+        )
         """
         self.new_network(
             "test_network", "round-robin",

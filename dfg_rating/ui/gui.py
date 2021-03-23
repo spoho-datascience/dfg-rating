@@ -11,9 +11,11 @@ import plotly.io as pio
 from dash.exceptions import PreventUpdate
 
 from dfg_rating.logic import controller
-from dfg_rating.viz.charts import create_ratings_charts, publication_chart
+from dfg_rating.model.evaluators.profitability import BettingReturnsEvaluator
+from dfg_rating.viz.charts import create_ratings_charts, publication_chart, accumulated_betting_chart
 from dfg_rating.viz.network import create_network_figure, network_to_cyto, cyto_stylesheet, network_to_cyto_serialized, \
     custom_cyto_network
+from dfg_rating.viz import tables
 
 
 def init():
@@ -24,7 +26,7 @@ def init():
     main_controller.run_demo()
     pio.templates.default = "plotly_white"
 
-    layout = ratings_gui(app, main_controller)
+    layout = forecasts_gui(app, main_controller)
 
     app.layout = html.Div(
         children=dbc.Container(
@@ -261,4 +263,41 @@ def ratings_gui(app, mc):
         )
     ]
 
+    return layout
+
+
+def forecasts_gui(app, mc):
+    bettings_data = mc.profitability_study(
+        "test_network",
+        BettingReturnsEvaluator(outcomes=['home', 'draw', 'away']),
+        ["simple_bookmaker"],
+        ["elo_bettor"],
+    )
+    print("bettings_data", bettings_data)
+    df = pd.DataFrame(bettings_data)
+    layout = [
+        dbc.Row(
+            justify="center",
+            children=[
+                dbc.Col(
+                    id="betting_chart_col",
+                    children=html.Div(
+                        dcc.Graph(
+                            id="betting_chart",
+                            figure=accumulated_betting_chart(bettings_data)
+                        )
+                    ),
+                    width=6
+                )
+            ]
+        ),
+        dbc.Row(
+            children=[
+                dbc.Col(
+                    id='bettings-explore',
+                    children=html.Div(tables.bettings_tables(df)),
+                ),
+            ]
+        )
+    ]
     return layout
