@@ -3,6 +3,7 @@ from copy import deepcopy
 
 import networkx as nx
 
+from dfg_rating.model.betting.betting import BaseBetting
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
 from dfg_rating.model.forecast.base_forecast import BaseForecast
 from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
@@ -137,7 +138,7 @@ class RoundRobinNetwork(BaseNetwork):
     def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker):
         for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
             if 'true_forecast' not in edge_attributes['forecasts']:
-                print("Playing season: Missing True forecast")
+                print("Missing True forecast")
             match_true_forecast = edge_attributes['forecasts']['true_forecast']
             self.data.edges[
                 away_team, home_team, edge_key
@@ -146,3 +147,16 @@ class RoundRobinNetwork(BaseNetwork):
             )[bookmaker_name] = bookmaker.get_odds(
                 match_true_forecast, edge_attributes, self.data.nodes[home_team], self.data.nodes[away_team]
             )
+
+    def add_bets(self, bettor_name: str, bookmaker: str, betting: BaseBetting, base_forecast: str):
+        for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
+            if base_forecast not in edge_attributes['forecasts']:
+                print(f"Missing <{base_forecast}< forecast.")
+            bettor_forecast = edge_attributes['forecasts'][base_forecast]
+            match_odds = edge_attributes.get('odds', {})[bookmaker]
+            self.data.edges[
+                away_team, home_team, edge_key
+            ].setdefault(
+                'bets', {}
+            )[bettor_name] = betting.bet(bettor_forecast.probabilities, match_odds)
+

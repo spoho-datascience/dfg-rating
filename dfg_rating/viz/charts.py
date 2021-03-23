@@ -154,11 +154,26 @@ def publication_chart(
     fig.update_layout(
         xaxis_title="League rounds",
         yaxis_title="Rating value",
+        legend=dict(
+            font=dict(
+                family='Helvetica',
+                size=12,
+                color="Black"
+            ),
+            orientation='h',
+            bordercolor="Black",
+            borderwidth=2,
+            yanchor="bottom",
+            xanchor='right',
+            x=1,
+            y=1
+        )
     )
-    font_dict = dict(family='Helvetica',
-                   size=26,
-                   color='black'
-                   )
+    font_dict = dict(
+        family='Helvetica',
+        size=26,
+        color='black'
+    )
     fig.update_layout(
         font=font_dict,  # font formatting
         plot_bgcolor='white',  # background color
@@ -167,12 +182,18 @@ def publication_chart(
         title_text='Rating',  # axis label
         showgrid=False,
         showline=True,
-        showticklabels=False, # add line at x=0
         linecolor='black',  # line color
         linewidth=2.4, # line size
+        tickmode='auto',
+        ticklen=10,
+        tickfont=dict(
+            size=12
+        ),
+        tickvals=[i for i in range(100, 1501, 100)],
+        ticks='inside'
      )
     fig.update_xaxes(
-        title_text='Time',
+        title_text='Seasons',
         showgrid=False,
         rangemode='tozero',
         showline=True,
@@ -185,6 +206,100 @@ def publication_chart(
         ),
         tickvals=[i for i in range(37, 37 * 20, 37)],
         ticktext=[f"Season {int(i/37)}" for i in range(37, 37 * 20, 37)],
-        tickangle=45
+        tickangle=45,
+        ticks="inside"
      )
+    return fig
+
+def accumulated_betting_chart(
+        data_dict
+):
+    bets = []
+    acc_bets = 0
+    bet_returns = []
+    acc_returns = 0
+    bet_expected = []
+    acc_expected = 0
+    for v in data_dict:
+        if v['Season'] > 4:
+            for value in ["home", "draw", "away"]:
+                bet_value = v[f"bet#{value}"]
+                bet_return = v[f"return#bet#{value}"]
+                bet_expected_return = v[f"expected#bet#{value}"]
+                if bet_value > 0:
+                        acc_bets += bet_value
+                        acc_returns += bet_return
+                        acc_expected += bet_expected_return
+                        bets.append(acc_bets)
+                        bet_returns.append(acc_returns)
+                        bet_expected.append(acc_expected)
+    fig = go.Figure()
+    for index, (name, trace, line_dash) in enumerate([
+        ("Actual returns", bet_returns, 'solid'),
+        ("Expected returns", bet_expected, 'dot')
+    ]):
+        fig.add_trace(
+            go.Scatter(
+                x=[i for i in range(len(trace))],
+                y=trace,
+                mode='lines',
+                line=dict(
+                    color='black',
+                    dash=line_dash
+                ),
+                name=name
+            )
+        )
+
+    fig.update_layout(
+        legend=dict(
+            font=dict(
+                family='Helvetica',
+                size=12,
+                color="Black"
+            ),
+            orientation='h',
+            bordercolor="Black",
+            borderwidth=2,
+            yanchor="bottom",
+            xanchor='right',
+            x=1,
+            y=1
+        )
+    )
+    font_dict = dict(
+        family='Helvetica',
+        size=22,
+        color='black'
+    )
+    fig.update_layout(
+        font=font_dict,  # font formatting
+        plot_bgcolor='white',  # background color
+    )
+    fig.update_yaxes(
+        title_text='Accumulated profit',  # axis label
+        showgrid=False,
+        showline=True,
+        zerolinecolor='lightgray',
+        linecolor='black',  # line color
+        linewidth=2.4, # line size
+        tickmode='auto',
+        ticklen=10,
+        tickfont=dict(
+            size=12
+        )
+    )
+    fig.update_xaxes(
+        title_text='Bets in time',
+        showgrid=False,
+        rangemode='tozero',
+        showline=True,
+        linecolor='black',
+        linewidth=2.4,
+        tickmode='auto',
+        tickfont=dict(
+            size=12
+        )
+    )
+
     return fig
