@@ -45,13 +45,23 @@ def create_network(mc):
     mc.new_network(n_name, n_type, **params)
     pass
 
+
 def load_network(mc):
+    load_type = click.prompt('Loading from (sql | tabular-file)', type=str)
     n_name = click.prompt('Name of the network', type=str)
-    result, message = mc.load_network(n_name)
+    result = 0
+    if load_type == 'sql':
+        result, message = mc.load_network_from_sql(n_name)
+    elif load_type == 'tabular-file':
+        file_path = click.prompt('File path', type=click.Path(exists=True))
+        new_mapping = click.prompt('Load mapping', type=str)
+        click.echo(click.style("Loading network"))
+        result, message = mc.load_network_from_tabular(n_name, file_path, new_mapping)
     if result:
         click.echo(click.style(f"{message}"))
     else:
         click.echo(click.style(f"{message}", fg='red'))
+
 
 def save_network(mc):
     save_type = click.prompt('Save mode (sql | csv)', type=str)

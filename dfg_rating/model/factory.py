@@ -13,6 +13,56 @@ from dfg_rating.model.rating.function_rating import FunctionRating
 from dfg_rating.model.rating.ranking_rating import LeagueRating
 from dfg_rating.model.rating.winner_rating import WinnerRating
 
+pre_mappings = {
+    "atp": {
+        "node1": {
+            "id": "WinnerID",
+            "name": "Winner",
+            "rankings": {
+                "rank": "WRank",
+                "Pts": "WPts"
+            }
+        },
+        "node2": {
+            "id": "LoserID",
+            "name": "Loser",
+            "rankings": {
+                "rank": "LRank",
+                "Pts": "LPts"
+            }
+        },
+        "day": "Date",
+        "dayIsTimestamp": True,
+        "round": "Round",
+        "season": "Year",
+        "forecasts": {},
+        "odds": {
+            "b365": {
+                "node1": "B365W",
+                "node2": "B365L"
+            }
+        },
+        "bets": {}
+    },
+    "soccer": {
+        "node1": {
+            "id": "Team away",
+            "name": "Team away"
+        },
+        "node2": {
+            "id": "Team home",
+            "name": "Team home"
+        },
+        "day": "Date",
+        "dayIsTimestamp": True,
+        "round": "Round",
+        "season": "Season",
+        "forecasts": {},
+        "odds": {},
+        "bets": {}
+    }
+}
+
 
 def new_network(network_type: str, **kwargs) -> BaseNetwork:
     """Create a network function
@@ -114,3 +164,4 @@ def new_betting_strategy(betting_type: str, **kwargs):
 def new_class(class_name: str, **kwargs):
     if class_name == "controlled-random-function":
         return ControlledRandomFunction(**kwargs)
+

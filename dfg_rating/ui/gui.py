@@ -167,7 +167,6 @@ def ratings_gui(app, mc):
             seasons=[s-1 for s in range(from_season, to_season + 1)],
             selected_teams=teams,
         )
-    reduced_color_scale = px.colors.qualitative.Alphabet
     layout = [
         dbc.Row(
             id="rating-filters",

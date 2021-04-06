@@ -191,7 +191,25 @@ class Controller:
         self.networks[network_name] = n
         return 1
 
-    def load_network(self, network_name: str):
+    def load_network_from_tabular(self, network_name: str, file_path: str, new_mapping: str):
+        if network_name in self.networks:
+            return 0, f"Network <{network_name}> already exists"
+        extension = file_path.split('.')[1]
+        if extension == 'csv':
+            network_df = pd.read_csv(file_path)
+        elif extension == 'xlsx':
+            network_df = pd.read_excel(file_path, engine="openpyxl")
+        else:
+            return 0, f"Unknown file extension {extension}"
+        if network_df.empty:
+            return 0, f"Network <{network_name}> empty at {file_path}"
+        self.networks[network_name] = WhiteNetwork(
+            data=network_df,
+            mapping=factory.pre_mappings.get(new_mapping, {})
+        )
+        return 1, "Network loaded correctly"
+
+    def load_network_from_sql(self, network_name: str):
         if network_name in self.networks:
             return 0, f"Network <{network_name}> already exists"
         self.db.connect()
