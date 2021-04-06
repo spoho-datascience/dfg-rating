@@ -54,11 +54,12 @@ class BaseNetwork(ABC):
         pass
 
     def print_data(self, **print_kwargs):
+        edge_filter = print_kwargs.get('edge_filter', base_edge_filter)
         if print_kwargs.get('schedule', False):
             print("Network schedule")
             season_counter = 0
-            for away_team, home_team, edge_attributes in sorted(self.data.edges.data(),
-                                                                key=lambda t: (t[2].get('season', 0), t[2]['round'])):
+            for away_team, home_team, edge_attributes in sorted(filter(edge_filter, self.data.edges.data()),
+                                                                key=lambda t: (t[2].get('season', 0), t[2]['round'], t[2]['day'])):
                 print(
                     f"({home_team} vs. {away_team} at season {edge_attributes['season']} round {edge_attributes['round']}, day {edge_attributes['day']})")
                 if (print_kwargs.get('winner', False)) & ('winner' in edge_attributes):
@@ -77,7 +78,7 @@ class BaseNetwork(ABC):
                         print(f"Bookmaker {bm} odds: {edge_attributes['odds'][bm]}")
             print("---------------")
         if print_kwargs.get('attributes', False):
-            if (print_kwargs.get('ratings', False)) & ('ratings' in self.data.nodes[0]):
+            if (print_kwargs.get('ratings', False)) & ('ratings' in self.data.nodes[np.random.choice(self.data.nodes())]):
                 print("Teams ratings")
                 for team in self.data.nodes:
                     print(f"Team {team} attributes:")
@@ -331,46 +332,136 @@ class BaseNetwork(ABC):
 
 class WhiteNetwork(BaseNetwork):
     """Fully flexible network to be created out of a table structure"""
+    DEFAULT_MAPPING = {
+        "node1": dict,
+        "node2": dict,
+        "day": str,
+        "dayIsTimestamp": bool,
+        "round": str
+    }
+
+    DEFAULT_NODE = {
+        "id": str,
+    }
 
     def __init__(self, **kwargs):
         super().__init__("white", **kwargs)
         self.table_data: pd.DataFrame = kwargs['data']
-        self.mapping = kwargs.get("mapping", DEFAULT_MAPPING)
-        self.table_data['Date'] = pd.to_datetime(self.table_data.Date)
-        self.table_data.sort_values(by="Date", inplace=True)
+        self.mapping = kwargs.get("mapping", self.DEFAULT_MAPPING)
+        correct, report = self.validate()
+        if correct:
+            if self.mapping['dayIsTimestamp']:
+                self.table_data[self.mapping['day']] = pd.to_datetime(self.table_data[self.mapping['day']])
+                self.table_data['Year'] = pd.DatetimeIndex(self.table_data[self.mapping['day']]).year
+                self.table_data.sort_values(by=self.mapping['day'], inplace=True)
+            else:
+                self.table_data.sort_values(by=self.mapping['day'], inplace=True)
+            self.create_data()
+            print("Network loaded correctly")
+        else:
+            print("Errors in mapping:")
+            for r in report:
+                print(r)
+
+    def validate(self):
+        correct = True
+        messages = []
+        for first_level_key, first_level_type in self.DEFAULT_MAPPING.items():
+            if first_level_key not in self.mapping:
+                correct = False
+                messages.append(f"Attribute {first_level_key} not present in mapping")
+            elif type(self.mapping[first_level_key]) != first_level_type:
+                correct = False
+                messages.append(f"Attribute {first_level_key} in mapping should specify a {first_level_type}")
+        if correct:
+            for node_key, node_type in self.DEFAULT_NODE.items():
+                for n in ["node1", "node2"]:
+                    if node_key not in self.mapping[n]:
+                        correct = False
+                        messages.append(f"Attribute {node_key} not present in node definition")
+                    elif type(self.mapping[n][node_key]) != node_type:
+                        correct = False
+                        messages.append(f"Attribute {node_key} in mapping should specify a {node_type}")
+        if correct:
+            for entity in ["forecasts", "odds", "bets"]:
+                if type(self.mapping.get(entity, {})) == dict:
+                    for entity_key, entity_value in self.mapping.get(entity, {}).items():
+                        if type(entity_value) != dict:
+                            correct = False
+                            messages.append(f"<{entity}> must be specified as a dictionary")
+                        else:
+                            values = list(entity_value.values())
+                            if any(type(v) != str for v in values):
+                                correct = False
+                                messages.append(f"<{entity}>: keys are outcomes and values columns")
+                else:
+                    correct = False
+                    messages.append(f"<{entity}> syntax error at mapping")
+        return correct, messages
+
 
     def create_data(self):
         graph = nx.MultiDiGraph()
-        sp = show_progress_bar(text="Loading network", start=True)
         day = 0
+        daily_rankings = {}
         for row_id, row in self.table_data.iterrows():
-            if day == 0:
-                day = 1
-                first_date = row['Date']
-            delta = row['Date'] - first_date
-            day += delta.days
+            if self.mapping['dayIsTimestamp']:
+                if day == 0:
+                    day = 1
+                    first_date = row[self.mapping['day']]
+                else:
+                    delta = row[self.mapping['day']] - first_date
+                    day = delta.days
+            else:
+                day = int(row[self.mapping['day']])
             # Add edge (create if needed the nodes and attributes)
-            edge_dict = {key: value for key, value in row.items() if key not in ['WinnerID', 'LoserID']}
+            edge_dict = {key: value for key, value in row.items()}
             edge_dict['day'] = day
-            edge_dict['round'] = edge_dict[self.mapping['round']]
-            edge_dict['season'] = 0
-            graph.add_edge(row[self.mapping['away']], row[self.mapping['home']], **edge_dict)
-            graph.nodes[row[self.mapping['home']]]['name'] = row[self.mapping['winner_name']]
-            graph.nodes[row[self.mapping['away']]]['name'] = row[self.mapping['loser_name']]
-        show_progress_bar("Network Loaded", False, sp)
+            edge_dict['round'] = edge_dict.get(self.mapping['round'], 0) if 'round' in self.mapping else 0
+            edge_dict['season'] = edge_dict.get(self.mapping['season'], 0) if 'season' in self.mapping else 0
+            for entity in ['forecasts', 'bets', 'odds']:
+                for entity_name, entity_options in self.mapping.get(entity, {}).items():
+                    values = [row[v] for v in entity_options.values()]
+                    if entity == 'forecasts':
+                        outcomes = list(entity_options.keys())
+                        edge_dict.setdefault(entity, {})[entity_name] = SimpleForecast(
+                            outcomes=outcomes,
+                            probs=values
+                        )
+                    else:
+                        edge_dict.setdefault(entity, {})[entity_name] = values
+            graph.add_edge(row[self.mapping['node1']['id']], row[self.mapping['node2']['id']], **edge_dict)
+            for n in ['node1', 'node2']:
+                for node_property_key, row_column in self.mapping[n].items():
+                    if node_property_key not in ['id', 'rankings']:
+                        graph.nodes[row[self.mapping[n]['id']]][node_property_key] = row[row_column]
+                    elif node_property_key == 'rankings':
+                        for ranking_name, ranking_column in row_column.items():
+                            daily_rankings.setdefault(
+                                ranking_name, {}
+                            ).setdefault(
+                                edge_dict['season'], {}
+                            ).setdefault(
+                                day, {}
+                            )[row[self.mapping[n]['id']]] = row[ranking_column]
+
+        for ranking_name, ranking_info in daily_rankings.items():
+            for season_id, season_info in ranking_info.items():
+                for day_number, day_info in season_info.items():
+                    for t in graph.nodes():
+                        if t in day_info:
+                            node_value = day_info[t]
+                        else:
+                            node_value = graph.nodes[t].get('ratings', {}).get(ranking_name, {}).get(season_id, [0])[-1]
+                        graph.nodes[t].setdefault(
+                            "ratings", {}
+                        ).setdefault(
+                            ranking_name, {}
+                        ).setdefault(
+                            season_id, []
+                        ).append(node_value)
         self.data = graph
         return True
-
-    def print_data(self, **print_kwargs):
-        if print_kwargs.get('schedule', False):
-            print("Network schedule")
-            for away_team, home_team, edge_attributes in sorted(self.data.edges.data(), key=lambda t: t[2]['day']):
-                print(f"({home_team} vs. {away_team} at Date {edge_attributes['Date']}, day {edge_attributes['day']})")
-
-            print("---------------")
-        if print_kwargs.get('attributes', False):
-            for node in self.data.nodes:
-                print(f"Node id: {node}, Name: {self.data.nodes[node]['name']}")
 
     def add_rating(self, new_rating, rating_name):
         pass
@@ -381,4 +472,6 @@ class WhiteNetwork(BaseNetwork):
     def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker):
         pass
 
-DEFAULT_MAPPING = {}
+    def add_bets(self, bettor_name: str, bookmaker: str, betting: BaseBetting, base_forecast: str):
+        pass
+
