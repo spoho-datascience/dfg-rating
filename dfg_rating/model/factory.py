@@ -1,7 +1,7 @@
 from dfg_rating.model.betting.betting import FixedBetting
-from dfg_rating.model.bookmaker.base_bookmaker import FactorBookmakerError, BookmakerMargin, SimpleBookmaker, \
-    SimulatedBookmakerError
+from dfg_rating.model.bookmaker.base_bookmaker import BookmakerMargin, SimpleBookmaker
 from dfg_rating.model.forecast.base_forecast import SimpleForecast, BaseForecast
+from dfg_rating.model.forecast.forecast_error import ForecastFactorError, ForecastSimulatedError
 from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
 from dfg_rating.model.network.base_network import BaseNetwork
 from dfg_rating.model.network.multiple_network import LeagueNetwork
@@ -111,16 +111,16 @@ def new_forecast(forecast_type: str, **kwargs) -> BaseForecast:
         raise ValueError
 
 
-def new_bookmaker_error(error_type: str, **kwargs):
+def new_forecast_error(error_type: str, **kwargs):
     """Create a forecast function
 
         Options:
          - simple: SimpleForecast
         """
     if error_type == 'factor':
-        return FactorBookmakerError(**kwargs)
+        return ForecastFactorError(**kwargs)
     elif error_type == 'simulated':
-        return SimulatedBookmakerError(**kwargs)
+        return ForecastSimulatedError(**kwargs)
     else:
         raise ValueError
 

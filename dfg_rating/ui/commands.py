@@ -4,7 +4,7 @@ from dfg_rating.utils import command_line
 from dfg_rating.logic.controller import Controller
 
 actions = [
-    'Show <networks | ratings | actions>',
+    'Show entities',
     'Create Network',
     'Load Network',
     'Save Network',
@@ -88,21 +88,24 @@ def add_new_forecast(mc):
     n_name = click.prompt('Name of the network', type=str)
     f_name = click.prompt('Name of the forecast', type=str)
     f_type = click.prompt('Type of forecast', type=str)
-    ranking_options = mc.get_ranking_list(n_name)
+    rating_options = mc.get_ranking_list(n_name)
     click.echo(click.style(
-        " | ".join(ranking_options),
+        " | ".join(rating_options),
         fg='white'
     ))
-    r_name = click.prompt('Base ranking for the forecast', type=str)
+    r_name = click.prompt('Base rating for the forecast', type=str)
     params = automatic_params(mc, "forecast", f_type)
     mc.add_new_forecast(n_name, f_type, f_name, r_name, **params)
     pass
 
 
-def new_bookmaker_error(mc):
-    bme_type = click.prompt('Type of the bookmaker error', type=str)
-    params = automatic_params(mc, "bookmaker_error", bme_type)
-    return mc.new_bookmaker_error(bme_type, **params)
+def new_forecast_error(mc):
+    add_forecast_error = click.confirm("Add error to base forecast?", default=False)
+    if add_forecast_error:
+        bme_type = click.prompt('Type of the bookmaker error', type=str)
+        params = automatic_params(mc, "bookmaker_error", bme_type)
+        return mc.new_forecast_error(bme_type, **params)
+    return None
 
 
 def new_bookmaker_margin(mc):
@@ -115,27 +118,49 @@ def create_bookmaker(mc):
     bm_name = click.prompt('Name of the bookmaker', type=str)
     bm_type = click.prompt('Type of the bookmaker', type=str)
     params = automatic_params(mc, 'bookmaker', bm_type)
-    bm_error = new_bookmaker_error(mc)
+    f_error = new_forecast_error(mc)
     bm_margin = new_bookmaker_margin(mc)
-    mc.create_bookmaker(bm_name, bm_type, error=bm_error, margin=bm_margin, **params)
+    mc.create_bookmaker(bm_name, bm_type, error=f_error, margin=bm_margin, **params)
 
 
 def create_betting_strategy(mc):
     bs_name = click.prompt('Name of the Betting strategy', type=str)
     bs_type = click.prompt('Type of the Betting strategy', type=str)
+    f_error = new_forecast_error(mc)
     params = automatic_params(mc, 'betting', bs_type)
+    params['error'] = f_error
     mc.create_betting_strategy(bs_name, bs_type, **params)
 
 
-def new_betting(mc):
-    pass
+def add_odds(mc):
+    network_name = click.prompt('Name of the network', type=str)
+    bookmaker_name = click.prompt('Name of the bookmaker', type=str)
+    forecast_options = mc.get_forecasts_list()
+    click.echo(click.style(
+        " | ".join(forecast_options), fg='white')
+    )
+    base_forecast = click.prompt('Base forecast for the bookmaker', type=str)
+    mc.add_odds(network_name, bookmaker_name, base_forecast)
+
+
+def add_bets(mc):
+    network_name = click.prompt('Name of the network', type=str)
+    betting_name = click.prompt('Name of the bettings strategy', type=str)
+    bookmaker_name = click.prompt('Name of the bookmaker', type=str)
+    forecast_options = mc.get_forecasts_list()
+    click.echo(click.style(
+        " | ".join(forecast_options),
+        fg='white'
+    ))
+    base_forecast = click.prompt('Base forecast for the betting', type=str)
+    mc.add_bets(network_name, bookmaker_name, betting_name, base_forecast)
 
 
 def run(action, mc: Controller):
     # Show actions
     if action == 1:
         click.echo(click.style(
-            "actions | networks | ratings",
+            "actions | networks | bookmakers | betting_strategies",
             fg='white'
         ))
         attribute = click.prompt("-> ", type=str)
@@ -179,15 +204,13 @@ def run(action, mc: Controller):
         create_bookmaker(mc)
     # Add odds
     elif action == 10:
-        network_name = click.prompt('Name of the network', type=str)
-        bookmaker_name = click.prompt('Name of the bookmaker', type=str)
-        mc.add_odds(network_name, bookmaker_name)
+        add_odds(mc)
     # Create Betting strategy
     elif action == 11:
         create_betting_strategy(mc)
     # Bet
     elif action == 12:
-        new_betting(mc)
+        add_bets(mc)
     # Default
     else:
         click.echo(click.style('Command not implemented yet', fg='white'))

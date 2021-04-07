@@ -5,11 +5,9 @@ from typing import Dict
 from dfg_rating.db.postgres import PostgreSQLDriver
 from dfg_rating.model import factory
 from dfg_rating.model.betting.betting import BaseBetting
-from dfg_rating.model.bookmaker.base_bookmaker import BookmakerError, BookmakerMargin, BaseBookmaker
+from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
 from dfg_rating.model.network.base_network import BaseNetwork, WhiteNetwork
-from dfg_rating.model.rating.controlled_trend_rating import ControlledRandomFunction
-from dfg_rating.model.rating.elo_rating import ELORating
-from dfg_rating.model.rating.function_rating import FunctionRating
+
 
 class Controller:
     """Execution controller for the simulator
@@ -114,10 +112,7 @@ class Controller:
                 }
             }
         },
-        "bookmaker": {
-            "simple": {}
-        },
-        "bookmaker_error": {
+        "forecast_error": {
             "factor": {
                 "error": {
                     "label": "Deviation error",
@@ -139,6 +134,9 @@ class Controller:
                     "cast": "float"
                 }
             }
+        },
+        "bookmaker": {
+            "simple": {}
         },
         "bookmaker_margin": {
             "simple": {
@@ -174,7 +172,7 @@ class Controller:
     def __init__(self):
         self.networks: Dict[str, BaseNetwork] = {}
         self.bookmakers: Dict[str, BaseBookmaker] = {}
-        self.bettings: Dict[str, BaseBetting] = {}
+        self.betting_strategies: Dict[str, BaseBetting] = {}
         self.db = PostgreSQLDriver()
 
     def print_network(self, name, **kwargs):
@@ -213,11 +211,13 @@ class Controller:
         if network_name in self.networks:
             return 0, f"Network <{network_name}> already exists"
         self.db.connect()
-        db_networks = self.db.execute_query(query=f"SELECT * FROM public.networks m WHERE m.network_name = '{network_name}'")
+        db_networks = self.db.execute_query(
+            query=f"SELECT * FROM public.networks m WHERE m.network_name = '{network_name}'")
         if len(db_networks) == 0:
             return 0, f"Database does not contain network <{network_name}>"
         matches = self.db.execute_query(query=f"SELECT * FROM public.matches m WHERE m.network_name = '{network_name}'")
-        forecasts = self.db.execute_query(query=f"SELECT * FROM public.forecasts f WHERE f.network_name = '{network_name}'")
+        forecasts = self.db.execute_query(
+            query=f"SELECT * FROM public.forecasts f WHERE f.network_name = '{network_name}'")
         ratings = self.db.execute_query(query=f"SELECT * FROM public.ratings r WHERE r.network_name = '{network_name}'")
         for network in db_networks:
             self.networks.setdefault(
@@ -247,8 +247,6 @@ class Controller:
             return 0, f"Network <{network_name}> does not exist"
         return self.networks[network_name].export(**kwargs)
 
-
-
     def play_network(self, network_name: str):
         n = self.networks[network_name]
         n.play()
@@ -261,6 +259,12 @@ class Controller:
     def get_ranking_list(self, network_name: str):
         n = self.networks[network_name]
         return n.get_rankings()
+
+    def get_forecasts_list(self):
+        forecasts_list = []
+        for network_name, network in self.networks.items():
+            forecasts_list += [f for f in network.get_forecasts() if f not in forecasts_list]
+        return forecasts_list
 
     def add_new_forecast(
             self,
@@ -281,7 +285,7 @@ class Controller:
         ]
 
     def new_bookmaker_error(self, error_type, **error_kwargs):
-        return factory.new_bookmaker_error(error_type, **error_kwargs)
+        return factory.new_forecast_error(error_type, **error_kwargs)
 
     def new_bookmaker_margin(self, margin_type, **error_kwargs):
         return factory.new_bookmaker_margin(margin_type, **error_kwargs)
@@ -290,14 +294,14 @@ class Controller:
         bm = factory.new_bookmaker(bookmaker_type, **kwargs)
         self.bookmakers[bookmaker_name] = bm
 
-    def add_odds(self, network_name: str, bookmaker_name: str):
+    def add_odds(self, network_name: str, bookmaker_name: str, base_forecast: str):
         n = self.networks[network_name]
         bm = self.bookmakers[bookmaker_name]
-        n.add_odds(bookmaker_name, bm)
+        n.add_odds(bookmaker_name, bm, base_forecast)
 
     def create_betting_strategy(self, betting_name: str, betting_type: str, **kwargs):
         bs = factory.new_betting_strategy(betting_type, **kwargs)
-        self.bettings[betting_name] = bs
+        self.betting_strategies[betting_name] = bs
 
     def add_bets(self, network_name: str, bookmaker_name: str, betting_name: str, base_forecast: str):
         n = self.networks[network_name]
@@ -368,7 +372,7 @@ class Controller:
         self.create_bookmaker(
             bookmaker_name='simple_bookmaker',
             bookmaker_type='simple',
-            error=factory.new_bookmaker_error(error_type='simulated', error="uniform", low=0, high=1),
+            error=factory.new_forecast_error(error_type='simulated', error="uniform", low=0, high=1),
             margin=factory.new_bookmaker_margin('simple', margin=0.05)
         )
         self.add_odds(
@@ -503,10 +507,12 @@ class Controller:
             return 0, f"Database does not contain networks"
         for n in db_networks:
             network_name = n['network_name']
-            matches = self.db.execute_query(query=f"SELECT * FROM public.matches m WHERE m.network_name = '{network_name}'")
+            matches = self.db.execute_query(
+                query=f"SELECT * FROM public.matches m WHERE m.network_name = '{network_name}'")
             forecasts = self.db.execute_query(
                 query=f"SELECT * FROM public.forecasts f WHERE f.network_name = '{network_name}'")
-            ratings = self.db.execute_query(query=f"SELECT * FROM public.ratings r WHERE r.network_name = '{network_name}'")
+            ratings = self.db.execute_query(
+                query=f"SELECT * FROM public.ratings r WHERE r.network_name = '{network_name}'")
             self.networks.setdefault(
                 n['network_name'],
                 factory.new_network(n['network_type'])

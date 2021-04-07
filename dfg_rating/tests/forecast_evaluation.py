@@ -43,7 +43,7 @@ network.add_forecast(
 #%%
 bookmaker: BaseBookmaker = factory.new_bookmaker(
     'simple',
-    error=factory.new_bookmaker_error(error_type='factor', error=0.0, scope='positive'),
+    error=factory.new_forecast_error(error_type='factor', error=0.0, scope='positive'),
     margin=factory.new_bookmaker_margin('simple', margin=-0.1)
 )
 network.add_odds("simple", bookmaker)

@@ -46,7 +46,6 @@ class ControlledTrendRating(BaseRating):
         # The ratings object is initialized with as many positions as number of rounds in the network
         # and 2 extra positions (begin, end) of the season.
         ratings = np.zeros([n_teams, (n_rounds + 2) * n_seasons])
-        print(f"Controlled: Looping through seasons {n_seasons}")
         for current_season in range(n_seasons):
             self.agg = {}
             self.init_season_ratings(current_season, n, ratings)

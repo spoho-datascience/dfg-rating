@@ -284,6 +284,12 @@ class BaseNetwork(ABC):
                     rankings_list.append(rating_id)
         return rankings_list
 
+    def get_forecasts(self):
+        forecasts_list = []
+        for edge in self.data.edges:
+            forecasts_list += [f for f in self.data.edges[edge].get('forecasts', {}).keys() if f not in forecasts_list]
+        return forecasts_list
+
     def export(self, **kwargs):
         print("Export network")
         network_flat = []
@@ -322,7 +328,7 @@ class BaseNetwork(ABC):
         pass
 
     @abstractmethod
-    def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker):
+    def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker, base_forecast: str):
         pass
 
     @abstractmethod
