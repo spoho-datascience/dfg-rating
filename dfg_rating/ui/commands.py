@@ -1,4 +1,6 @@
 import click
+
+from dfg_rating.model import factory
 from dfg_rating.utils import command_line
 
 from dfg_rating.logic.controller import Controller
@@ -54,6 +56,11 @@ def load_network(mc):
         result, message = mc.load_network_from_sql(n_name)
     elif load_type == 'tabular-file':
         file_path = click.prompt('File path', type=click.Path(exists=True))
+        mapping_options = list(factory.pre_mappings.keys())
+        click.echo(click.style(
+            " | ".join(mapping_options),
+            fg='white'
+        ))
         new_mapping = click.prompt('Load mapping', type=str)
         click.echo(click.style("Loading network"))
         result, message = mc.load_network_from_tabular(n_name, file_path, new_mapping)
