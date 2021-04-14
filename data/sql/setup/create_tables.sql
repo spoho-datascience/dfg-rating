@@ -6,10 +6,10 @@ CREATE TABLE networks (
 CREATE TABLE matches (
     match_id VARCHAR(255) PRIMARY KEY,
     network_name VARCHAR(255) NOT NULL,
-    home_team INTEGER NOT NULL,
-    away_team INTEGER NOT NULL,
-    season INTEGER NOT NULL,
-    round INTEGER NOT NULL,
+    node1 VARCHAR(255) NOT NULL,
+    node2 VARCHAR(255) NOT NULL,
+    season VARCHAR(255) NOT NULL,
+    round VARCHAR(255) NOT NULL,
     day INTEGER NOT NULL,
     winner VARCHAR(255),
     FOREIGN KEY (network_name)
@@ -36,14 +36,14 @@ CREATE TABLE forecasts (
 CREATE TABLE ratings (
     rating_name VARCHAR(255) NOT NULL,
     network_name VARCHAR(255) NOT NULL,
-    team_id VARCHAR(255) NOT NULL,
-    team_name VARCHAR(255) NOT NULL,
+    node_id VARCHAR(255) NOT NULL,
+    node_name VARCHAR(255) NOT NULL,
     season INTEGER NOT NULL,
     rating_number INTEGER NOT NULL,
     value REAL NOT NULL,
     trend REAL NOT NULL,
     starting_point REAL NOT NULL,
-    PRIMARY KEY(rating_name, network_name, team_id, rating_number),
+    PRIMARY KEY(rating_name, network_name, node_id, rating_number),
     FOREIGN KEY (network_name)
     REFERENCES networks (network_name)
     ON UPDATE CASCADE ON DELETE CASCADE

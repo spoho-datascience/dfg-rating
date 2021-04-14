@@ -18,7 +18,7 @@ pre_mappings = {
         "node1": {
             "id": "WinnerID",
             "name": "Winner",
-            "rankings": {
+            "ratings": {
                 "rank": "WRank",
                 "Pts": "WPts"
             }
@@ -26,7 +26,7 @@ pre_mappings = {
         "node2": {
             "id": "LoserID",
             "name": "Loser",
-            "rankings": {
+            "ratings": {
                 "rank": "LRank",
                 "Pts": "LPts"
             }
@@ -35,6 +35,9 @@ pre_mappings = {
         "dayIsTimestamp": True,
         "round": "Round",
         "season": "Year",
+        'winner': {
+            "id": "WinnerID"
+        },
         "forecasts": {},
         "odds": {
             "b365": {

@@ -192,7 +192,7 @@ class Controller:
     def load_network_from_tabular(self, network_name: str, file_path: str, new_mapping: str):
         if network_name in self.networks:
             return 0, f"Network <{network_name}> already exists"
-        extension = file_path.split('.')[1]
+        extension = file_path.split('.')[-1]
         if extension == 'csv':
             network_df = pd.read_csv(file_path)
         elif extension == 'xlsx':
@@ -236,10 +236,13 @@ class Controller:
         self.db.connect()
         serialized_network = self.networks[network_name].serialize_network(network_name)
         for table, table_rows in serialized_network.items():
-            columns = table_rows[0].keys()
-            query_string = f"INSERT INTO {table}({','.join(columns)}) VALUES %s ON CONFLICT DO NOTHING"
-            values = [[value for value in r.values()] for r in table_rows]
-            self.db.insert_many(query_string, values)
+            if len(table_rows) > 0:
+                columns = table_rows[0].keys()
+                query_string = f"INSERT INTO {table}({','.join(columns)}) VALUES %s ON CONFLICT DO NOTHING"
+                values = [[value for value in r.values()] for r in table_rows]
+                self.db.insert_many(query_string, values)
+            else:
+                print(f"No {table} to insert in the database")
         return 1, f"Network <{network_name}> saved correctly"
 
     def export_network(self, network_name: str, **kwargs):

@@ -58,8 +58,10 @@ class BaseNetwork(ABC):
         if print_kwargs.get('schedule', False):
             print("Network schedule")
             season_counter = 0
-            for away_team, home_team, edge_attributes in sorted(filter(edge_filter, self.data.edges.data()),
-                                                                key=lambda t: (t[2].get('season', 0), t[2]['round'], t[2]['day'])):
+            for away_team, home_team, edge_attributes in sorted(
+                    filter(edge_filter, self.data.edges.data()),
+                    key=lambda t: (t[2].get('season', 0), t[2]['round'], t[2]['day'])
+            ):
                 print(
                     f"({home_team} vs. {away_team} at season {edge_attributes['season']} round {edge_attributes['round']}, day {edge_attributes['day']})")
                 if (print_kwargs.get('winner', False)) & ('winner' in edge_attributes):
@@ -89,7 +91,7 @@ class BaseNetwork(ABC):
                         print(f"Rating <{rating}> for team {team}: > {self.data.nodes[team].get('ratings', {}).get(rating, {})}")
 
     def iterate_over_games(self):
-        return sorted(self.data.edges(keys=True, data=True), key=lambda t: (t[3].get('season', 0), t[3]['round']))
+        return sorted(self.data.edges(keys=True, data=True), key=lambda t: (t[3].get('day', 0)))
 
     def play_sub_network(self, games):
         for away_team, home_team, edge_key, edge_attributes in games:
@@ -169,19 +171,19 @@ class BaseNetwork(ABC):
     def _serialize_matches(self, network_name):
         matches = []
         forecasts = []
-        for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
+        for node1, node2, edge_key, edge_attributes in self.iterate_over_games():
             new_match = {
                 "network_name": network_name,
-                "home_team": home_team,
-                "away_team": away_team,
+                "node1": node1,
+                "node2": node2,
                 "season": edge_attributes.get('season', 0),
                 "round": edge_attributes.get('round', -1),
                 "day": edge_attributes.get('day', -1),
                 "winner": edge_attributes.get('winner', 'none'),
             }
             new_match["match_id"] = f"" \
-                                   f"{new_match['home_team']}_vs_" \
-                                   f"{new_match['away_team']}_" \
+                                   f"{new_match['node1']}_vs_" \
+                                   f"{new_match['node2']}_" \
                                    f"{new_match['season']}_" \
                                    f"{new_match['day']}" \
                                    f""
@@ -200,18 +202,11 @@ class BaseNetwork(ABC):
 
     def _serialize_ratings(self, network_name):
         all_ratings = []
-        for team in range(self.n_teams):
-            team_dict = None
-            try:
-                team_dict = self.data.nodes[team]
-            except Exception as e:
-                print(f"Team {team} not in nodes")
-
-            team_dict = team_dict or {}
-            for rating_name, r in team_dict.get('ratings', {}).items():
+        for node_id, node_info in self.data.nodes().items():
+            for rating_name, r in node_info.get('ratings', {}).items():
                 if rating_name != "hyper_parameters":
                     for season, ratings in r.items():
-                        hyper_dict = team_dict.get('ratings', {}).get(
+                        hyper_dict = node_info.get('ratings', {}).get(
                             'hyper_parameters', {}
                         ).get(
                             rating_name, {}
@@ -221,8 +216,8 @@ class BaseNetwork(ABC):
                         for i, r in enumerate(ratings):
                             new_rating = {
                                 "rating_name": rating_name,
-                                "team_id": team,
-                                "team_name": team_dict.get('name', team),
+                                "node_id": node_id,
+                                "node_name": node_info.get('name', node_id),
                                 "network_name": network_name,
                                 "season": season,
                                 "rating_number": i,
@@ -405,11 +400,10 @@ class WhiteNetwork(BaseNetwork):
                     messages.append(f"<{entity}> syntax error at mapping")
         return correct, messages
 
-
     def create_data(self):
         graph = nx.MultiDiGraph()
         day = 0
-        daily_rankings = {}
+        daily_ratings = {}
         for row_id, row in self.table_data.iterrows():
             if self.mapping['dayIsTimestamp']:
                 if day == 0:
@@ -423,8 +417,16 @@ class WhiteNetwork(BaseNetwork):
             # Add edge (create if needed the nodes and attributes)
             edge_dict = {key: value for key, value in row.items()}
             edge_dict['day'] = day
-            edge_dict['round'] = edge_dict.get(self.mapping['round'], 0) if 'round' in self.mapping else 0
-            edge_dict['season'] = edge_dict.get(self.mapping['season'], 0) if 'season' in self.mapping else 0
+            edge_dict['round'] = edge_dict.get(self.mapping['round'], '0') if 'round' in self.mapping else '0'
+            edge_dict['season'] = edge_dict.get(self.mapping['season'], '0') if 'season' in self.mapping else '0'
+            if 'winner' in self.mapping:
+                winner_mapping = self.mapping.get('winner', {})
+                if 'id' in winner_mapping:
+                    winner_id = winner_mapping.get('id')
+                    for n in ['node1', 'node2']:
+                        node_id = self.mapping[n]['id']
+                        if winner_id == node_id:
+                            edge_dict['winner'] = n
             for entity in ['forecasts', 'bets', 'odds']:
                 for entity_name, entity_options in self.mapping.get(entity, {}).items():
                     values = [row[v] for v in entity_options.values()]
@@ -439,30 +441,30 @@ class WhiteNetwork(BaseNetwork):
             graph.add_edge(row[self.mapping['node1']['id']], row[self.mapping['node2']['id']], **edge_dict)
             for n in ['node1', 'node2']:
                 for node_property_key, row_column in self.mapping[n].items():
-                    if node_property_key not in ['id', 'rankings']:
+                    if node_property_key not in ['id', 'ratings']:
                         graph.nodes[row[self.mapping[n]['id']]][node_property_key] = row[row_column]
-                    elif node_property_key == 'rankings':
-                        for ranking_name, ranking_column in row_column.items():
-                            daily_rankings.setdefault(
-                                ranking_name, {}
+                    elif node_property_key == 'ratings':
+                        for rating_name, rating_column in row_column.items():
+                            daily_ratings.setdefault(
+                                rating_name, {}
                             ).setdefault(
                                 edge_dict['season'], {}
                             ).setdefault(
                                 day, {}
-                            )[row[self.mapping[n]['id']]] = row[ranking_column]
+                            )[row[self.mapping[n]['id']]] = row[rating_column]
 
-        for ranking_name, ranking_info in daily_rankings.items():
-            for season_id, season_info in ranking_info.items():
+        for rating_name, rating_info in daily_ratings.items():
+            for season_id, season_info in rating_info.items():
                 for day_number, day_info in season_info.items():
                     for t in graph.nodes():
                         if t in day_info:
                             node_value = day_info[t]
                         else:
-                            node_value = graph.nodes[t].get('ratings', {}).get(ranking_name, {}).get(season_id, [0])[-1]
+                            node_value = graph.nodes[t].get('ratings', {}).get(rating_name, {}).get(season_id, [0])[-1]
                         graph.nodes[t].setdefault(
                             "ratings", {}
                         ).setdefault(
-                            ranking_name, {}
+                            rating_name, {}
                         ).setdefault(
                             season_id, []
                         ).append(node_value)
