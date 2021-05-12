@@ -40,16 +40,12 @@ def create_ratings_charts(
     if len(seasons) == 0:
         seasons = range(network.seasons)
     for team in selected_teams:
-        if team in [0]:
-            print(network.data.nodes[team].get('ratings', {}))
         for rating in ratings:
             total_rating_array = np.array([])
             total_trend_x = np.array([])
             total_trend_y = np.array([])
-            rating_name = "Logistic Rating" if rating == 'true_rating' else rating
             for season in seasons:
                 rating_array = network.data.nodes[team].get('ratings', {}).get(rating, {}).get(season, [])
-                print(rating_array)
                 total_rating_array = np.concatenate((total_rating_array, np.array(rating_array)))
                 rating_hp = network.data.nodes[team].get('ratings', {}).get("hyper_parameters", {}).get(rating, {}).get(
                     season, {})
@@ -71,7 +67,7 @@ def create_ratings_charts(
                     color=reduced_color_scale[team],
                     width=1.5
                 ),
-                name=f"{rating_name}-Team {team}"
+                name=f"{rating}-Team {team}"
             ))
             if show_trend and (rating == 'true_rating'):
                 fig.add_trace(go.Scatter(
@@ -97,12 +93,13 @@ def publication_chart(
         seasons: [int] = None,
         show_trend=True,
         show_starting=False,
-        selected_teams: [int] = []
+        selected_teams: [int] = None
 ) -> go.Figure:
     fig = go.Figure()
+    selected_teams = selected_teams or []
     seasons = seasons or []
     if len(selected_teams) == 0:
-        selected_teams =[2]
+        selected_teams = [2]
     ratings = ratings or ['true_rating']
     if len(seasons) == 0:
         seasons = range(network.seasons)
@@ -128,7 +125,7 @@ def publication_chart(
                 y=total_rating_array,
                 mode='lines',
                 line=dict(color=px.colors.sequential.Greys[len(px.colors.sequential.Greys) - 1 - (i_rating + i_rating + i_rating)]),
-                name='True rating' if rating == 'true_rating' else "ELO Rating"
+                name=rating
             ))
             if show_starting:
                 fig.add_trace(go.Scatter(

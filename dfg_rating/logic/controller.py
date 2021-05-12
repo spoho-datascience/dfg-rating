@@ -326,7 +326,7 @@ class Controller:
                     "HomeTeam": home,
                     "AwayTeam": away,
                     "Season": match_attributes.get('season', None),
-                    "Round": match_attributes.get('season', None),
+                    "Round": match_attributes.get('round', None),
                     "Result": match_attributes.get('winner', None),
                 }
                 for forecast in ['true_forecast', 'elo_forecast']:

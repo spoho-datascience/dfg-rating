@@ -45,3 +45,31 @@ def bettings_tables(df):
         page_action='native',
         filter_action='native'
     )
+
+def calendar_table(df):
+    return dash_table.DataTable(
+        id="kalender-table",
+        columns=[
+            {"name": ["Match", "HomeTeam"], "id": "HomeTeam"},
+            {"name": ["Match", "AwayTeam"], "id": "AwayTeam"},
+            {"name": ["Match", "Season"], "id": "Season"},
+            {"name": ["Match", "Round"], "id": "Round"},
+            {"name": ["Match", "Result"], "id": "Result"},
+        ],
+        merge_duplicate_headers=True,
+        data=df.to_dict('records'),
+        style_header={
+            'backgroundColor': 'white',
+            'fontWeight': 'bold',
+        },
+        style_cell={
+            'textAlign': 'left',
+            'whiteSpace': 'pre-line',
+            'height': 'auto',
+        },
+        sort_action='native',
+        page_size=20,
+        page_action='native',
+        filter_action='native'
+    )
+
