@@ -172,6 +172,9 @@ class BaseNetwork(ABC):
     def _serialize_matches(self, network_name):
         matches = []
         forecasts = []
+        odds = []
+        bets = []
+        metrics = []
         for node1, node2, edge_key, edge_attributes in self.iterate_over_games():
             new_match = {
                 "network_name": network_name,
@@ -197,6 +200,20 @@ class BaseNetwork(ABC):
                 for i in range(len(f.outcomes)):
                     new_forecast[f"probability_{f.outcomes[i]}"] = f.probabilities[i]
                 forecasts.append(new_forecast)
+            for odd, values in edge_attributes.get('odds', {}).items():
+                new_odd = {
+                    "name": odd
+                }
+                for i, value in enumerate(values):
+                    new_odd[f"value_{i}"] = value
+                odds.append(new_odd)
+            for bet, values in edge_attributes.get('bets', {}).items():
+                new_bet = {
+                    "name": bet
+                }
+                for i, value in enumerate(values):
+                    new_bet[f"value_{i}"] = value
+                bets.append(new_bet)
             matches.append(new_match)
 
         return matches, forecasts

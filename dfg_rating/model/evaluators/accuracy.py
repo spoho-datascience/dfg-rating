@@ -40,7 +40,6 @@ class RankProbabilityScore(AccuracyEvaluator):
 class Likelihood(AccuracyEvaluator):
 
     def _compute(self, observed, model) -> float:
-        print(model, observed)
         score = sum([
             np.log(m * o)
             for m, o in zip(model, observed) if o > 0
