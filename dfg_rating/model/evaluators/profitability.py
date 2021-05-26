@@ -31,4 +31,4 @@ class BettingReturnsEvaluator(ProfitabilityEvaluator):
             expected_returns.append(bet * ((bettor_predictions[bet_index] * bookmaker_odds[bet_index]) - 1))
             bet_result = 1.0 if self.outcomes[bet_index] == observed_result else 0.0
             actual_returns.append(bet * ((bet_result * bookmaker_odds[bet_index]) - 1))
-        return 1, zip(actual_returns, expected_returns)
+        return 1, [(a, e) for a, e in zip(actual_returns, expected_returns)]
