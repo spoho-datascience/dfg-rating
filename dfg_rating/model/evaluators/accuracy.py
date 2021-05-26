@@ -9,8 +9,11 @@ class AccuracyEvaluator(Evaluator):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.forecast_name = kwargs.get('forecast_name')
 
-    def eval(self, probabilities: List[float], observed_result: str) -> (float, str):
+    def eval(self, match_attributes):
+        probabilities: List[float] = match_attributes['forecasts'][self.forecast_name].probabilities
+        observed_result = match_attributes['winner']
         if len(probabilities) != len(self.outcomes):
             return 0, "Probabilities do not fit in potential outcomes array"
         observed_probabilities = [1.0 if observed_result == outcome else 0.0 for outcome in self.outcomes]

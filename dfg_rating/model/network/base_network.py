@@ -7,6 +7,7 @@ from typing import NewType
 
 from dfg_rating.model.betting.betting import BaseBetting
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
+from dfg_rating.model.evaluators.base_evaluators import Evaluator
 from dfg_rating.utils.command_line import show_progress_bar
 from dfg_rating.model.forecast.base_forecast import BaseForecast, SimpleForecast
 
@@ -285,11 +286,24 @@ class BaseNetwork(ABC):
             forecasts_list += [f for f in self.data.edges[edge].get('forecasts', {}).keys() if f not in forecasts_list]
         return forecasts_list
 
+    def add_evaluation(self, evaluator: Evaluator, evaluator_name: str):
+        for away_team, home_team, match_id, match_attributes in self.iterate_over_games():
+            correct, metric_value = evaluator.eval(match_attributes)
+            if correct:
+                self.data.edges[(away_team, home_team, match_id)].setdefault(
+                    'metrics', {}
+                )[evaluator_name] = metric_value
+            else:
+                print("Incorrect output for metric")
+
     def export(self, **kwargs):
         print("Export network")
         network_flat = []
         printing_forecasts = kwargs.get("forecasts", ['true_forecast'])
         printing_ratings = kwargs.get("ratings", ['true_rating'])
+        printing_odds = kwargs.get("odds", [])
+        printing_bets = kwargs.get("bets", [])
+        printing_metrics = kwargs.get("metrics", [])
         for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
             match_dict = {
                 "Home": home_team,
@@ -308,6 +322,14 @@ class BaseNetwork(ABC):
                 for team, name in [(home_team, 'Home'), (away_team, 'Away')]:
                     rating_dict = self.data.nodes[team].get('ratings', {}).get(r)
                     match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0))[edge_attributes.get('round', 0)]
+            for o in printing_odds:
+                for i, value in enumerate(edge_attributes.get('odds', {}).get(o, [])):
+                    match_dict[f"{o}#odds#{i}"] = value
+            for b in printing_bets:
+                for i, value in enumerate(edge_attributes.get('bets', {}).get(b, [])):
+                    match_dict[f"{b}#bets#{i}"] = value
+            for m in printing_metrics:
+                match_dict[f"{m}#metric#{i}"] = edge_attributes.get('metrics', {}).get(m, -1)
             network_flat.append(match_dict)
         file_name = kwargs.get('filename', 'network.csv')
         df = pd.DataFrame(network_flat)

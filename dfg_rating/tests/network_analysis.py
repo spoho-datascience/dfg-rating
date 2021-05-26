@@ -72,19 +72,29 @@ network.add_bets(
     base_forecast='home_forecast'
 )
 #%% LIKELIHOOD
-l = Likelihood(outcomes=['home', 'draw', 'away'])
-l.eval(probabilities=[0.0, 0.1, 0.9], observed_result='away')
+l = Likelihood(
+    outcomes=['home', 'draw', 'away'],
+    forecast_name='bookmaker_forecast'
+)
 
 # %% ACCURACY AND PROFITABILITY EVALUATORS
-rps = RankProbabilityScore(outcomes=['home', 'draw', 'away'])
-betting_returns = BettingReturnsEvaluator(outcomes=['home', 'draw', 'away'])
+rps = RankProbabilityScore(
+    outcomes=['home', 'draw', 'away'],
+    forecast_name="bookmaker_forecast"
+)
+betting_returns = BettingReturnsEvaluator(
+    outcomes=['home', 'draw', 'away'],
+    player_name="b",
+    player_forecast="home_forecast",
+    bookmaker_name="bm"
+)
 
 # %% TEST PARAMETERS
 p = {
     "network": network,
     "player": ["b"],
     "bookmaker": ["bm"],
-    "forecast": []
+    "forecast": ["bookmaker_forecast"]
 }
 # %% TEST EXECUTION
 analysis_dict = []
@@ -101,7 +111,7 @@ for away, home, match_id, match_attributes in p['network'].iterate_over_games():
         if forecast_object is not None:
             for i, outcome in enumerate(forecast_object.outcomes):
                 new_row[outcome] = forecast_object.probabilities[i]
-        correct, rps_score = rps.eval(forecast_object.probabilities, observed_result=match_attributes.get('winner'))
+        correct, rps_score = rps.eval(match_attributes)
         new_row["ForecastName"] = f
         new_row['RPS'] = rps_score if correct else None
         analysis_dict.append(new_row)
@@ -125,12 +135,7 @@ for away, home, match_id, match_attributes in p['network'].iterate_over_games():
             new_row[f"bet#{forecast_object.outcomes[i_bet]}"] = bet
         new_row['Bettor'] = p['player'][o_number]
         new_row['Bookmaker'] = o
-        expected_results, actual_results = betting_returns.eval(
-            bets=match_bets,
-            bettor_predictions=forecast_object.probabilities,
-            bookmaker_odds=match_odds,
-            observed_result=new_row['Result']
-        )
+        expected_results, actual_results = betting_returns.eval(match_attributes)
         for i_bet, bet in enumerate(match_bets):
             new_row[f"expected#bet#{forecast_object.outcomes[i_bet]}"] = expected_results[i_bet]
             new_row[f"return#bet#{forecast_object.outcomes[i_bet]}"] = actual_results[i_bet]
@@ -138,3 +143,15 @@ for away, home, match_id, match_attributes in p['network'].iterate_over_games():
 # %% TEST RESULTS
 print(analysis_dict)
 
+# %%
+network.add_evaluation(rps, 'rps')
+network.add_evaluation(betting_returns, 'betting_returns')
+network.add_evaluation(l, 'logLikelihood')
+
+# %%
+
+network.export(
+    forecats=['bookmaker_forecast'],
+    metrics=['rps', 'betting_returns', 'logLikelihood'],
+    odds=['bm']
+)
