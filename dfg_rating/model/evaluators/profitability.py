@@ -9,8 +9,8 @@ class ProfitabilityEvaluator(Evaluator):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.outcomes = kwargs.get("outcomes")
+        self.player_name = kwargs.get("player_name")
         self.true_model = kwargs.get("true_model")
-        self.player_forecast = kwargs.get("player_forecast")
         self.bookmaker_name = kwargs.get("bookmaker_name")
 
     @abstractmethod
