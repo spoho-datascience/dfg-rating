@@ -346,7 +346,7 @@ class BaseNetwork(ABC):
                 for i, value in enumerate(edge_attributes.get('bets', {}).get(b, [])):
                     match_dict[f"{b}#bets#{i}"] = value
             for m in printing_metrics:
-                match_dict[f"{m}#metric#{i}"] = edge_attributes.get('metrics', {}).get(m, -1)
+                match_dict[f"{m}#metric"] = edge_attributes.get('metrics', {}).get(m, -1)
             network_flat.append(match_dict)
         file_name = kwargs.get('filename', 'network.csv')
         df = pd.DataFrame(network_flat)
