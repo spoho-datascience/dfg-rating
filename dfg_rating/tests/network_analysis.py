@@ -1,7 +1,7 @@
 from dfg_rating.model import factory
 from dfg_rating.model.betting.betting import FixedBetting, BaseBetting
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
-from dfg_rating.model.evaluators.accuracy import RankProbabilityScore
+from dfg_rating.model.evaluators.accuracy import RankProbabilityScore, Likelihood
 from dfg_rating.model.evaluators.profitability import BettingReturnsEvaluator
 from dfg_rating.model.forecast.base_forecast import SimpleForecast, BaseForecast
 from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
@@ -71,6 +71,9 @@ network.add_bets(
     betting=betting,
     base_forecast='home_forecast'
 )
+#%% LIKELIHOOD
+l = Likelihood(outcomes=['home', 'draw', 'away'])
+l.eval(probabilities=[0.0, 0.1, 0.9], observed_result='away')
 
 # %% ACCURACY AND PROFITABILITY EVALUATORS
 rps = RankProbabilityScore(outcomes=['home', 'draw', 'away'])

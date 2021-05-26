@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from typing import List
+import numpy as np
 
 from dfg_rating.model.evaluators.base_evaluators import Evaluator
 
@@ -13,7 +14,6 @@ class AccuracyEvaluator(Evaluator):
         if len(probabilities) != len(self.outcomes):
             return 0, "Probabilities do not fit in potential outcomes array"
         observed_probabilities = [1.0 if observed_result == outcome else 0.0 for outcome in self.outcomes]
-        print(observed_probabilities)
         evaluation_score = self._compute(observed=observed_probabilities, model=probabilities)
         return 1, evaluation_score
 
@@ -32,4 +32,14 @@ class RankProbabilityScore(AccuracyEvaluator):
             for i in range(1, r)
         ])
         score /= (r - 1)
+        return score
+
+class Likelihood(AccuracyEvaluator):
+
+    def _compute(self, observed, model) -> float:
+        print(model, observed)
+        score = sum([
+            np.log(m * o)
+            for m, o in zip(model, observed) if o > 0
+        ])
         return score
