@@ -25,7 +25,7 @@ dash-table==4.11.0
 dataclasses==0.8
 decorator==4.4.2
 defusedxml==0.7.1
--e git+git@github.com:marcgarnica13/dfg-rating.git@d26334b13f6ed480fd764b7f849f59e16d0e5080#egg=dfg_rating
+-e git+git@github.com:marcgarnica13/dfg-rating.git@4357aff3719b4275a565cf8db1ef8538fe2f050c#egg=dfg_rating
 entrypoints==0.3
 et-xmlfile==1.0.1
 Flask==1.1.2
