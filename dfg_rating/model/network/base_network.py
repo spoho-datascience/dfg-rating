@@ -8,7 +8,6 @@ from typing import NewType
 from dfg_rating.model.betting.betting import BaseBetting
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
 from dfg_rating.model.evaluators.base_evaluators import Evaluator
-from dfg_rating.utils.command_line import show_progress_bar
 from dfg_rating.model.forecast.base_forecast import BaseForecast, SimpleForecast
 
 TeamId = NewType('TeamId', int)
@@ -47,6 +46,23 @@ class BaseNetwork(ABC):
         self.n_rounds = self.params.get('rounds', self.n_teams - 1 + self.n_teams % 2)
         self.seasons = kwargs.get('seasons', 1)
         self.days_between_rounds = self.params.get('days_between_rounds', 1)
+
+        from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
+        from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
+
+        self.true_rating = kwargs.get(
+            'true_rating',
+            ControlledTrendRating(
+                starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=150),
+                delta=ControlledRandomFunction(distribution='normal', loc=0, scale=2),
+                trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
+                season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=20)
+            )
+        )
+        self.true_forecast = kwargs.get(
+            'true_forecast',
+            LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-0.9, 0.3], beta_parameter=0.006)
+        )
 
     @abstractmethod
     def create_data(self):

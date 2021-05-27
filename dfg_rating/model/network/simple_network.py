@@ -6,12 +6,8 @@ import networkx as nx
 from dfg_rating.model.betting.betting import BaseBetting
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
 from dfg_rating.model.forecast.base_forecast import BaseForecast
-from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
-from dfg_rating.model.network.base_network import BaseNetwork, base_edge_filter
+from dfg_rating.model.network.base_network import BaseNetwork
 from dfg_rating.model.rating.base_rating import BaseRating
-from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
-from dfg_rating.model.rating.function_rating import FunctionRating
-
 
 class RoundRobinNetwork(BaseNetwork):
     """Class that defines a Network modeling a Round-Robin tournamnet (all-play-all tournament).
@@ -90,19 +86,8 @@ class RoundRobinNetwork(BaseNetwork):
 
     def create_data(self):
         self.fill_graph()
-        self.add_rating(
-            ControlledTrendRating(
-                starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=200),
-                delta=ControlledRandomFunction(distribution='normal', loc=0, scale=3),
-                trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
-                season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
-            ),
-            'true_rating', season=0
-        )
-        self.add_forecast(
-            LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-0.302, 0.870]),
-            'true_forecast'
-        )
+        self.add_rating(self.true_rating, 'true_rating', season=0)
+        self.add_forecast(self.true_forecast, 'true_forecast')
         return True
 
     def add_rating(self, rating: BaseRating, rating_name, team_id=None, season=None):

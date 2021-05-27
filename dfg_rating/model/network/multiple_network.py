@@ -1,10 +1,7 @@
-import networkx as nx
 import random
 
-from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
 from dfg_rating.model.network.simple_network import RoundRobinNetwork
 from dfg_rating.model.rating.base_rating import BaseRating
-from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
 from dfg_rating.model.rating.ranking_rating import LeagueRating
 
 
@@ -37,19 +34,8 @@ class LeagueNetwork(RoundRobinNetwork):
             print(f"Season {season}")
             # Create the new season matches
             self.fill_graph(self.league_teams_labels, season=season)
-            self.add_rating(
-                ControlledTrendRating(
-                    starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=150),
-                    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=2),
-                    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
-                    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=20)
-                ),
-                'true_rating', season=season
-            )
-            self.add_forecast(
-                LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-0.9, 0.3], beta_parameter=0.006),
-                'true_forecast', season=season
-            )
+            self.add_rating(self.true_rating, 'true_rating', season=season)
+            self.add_forecast(self.true_forecast, 'true_forecast', season=season)
             season_games = list(filter(lambda match: match[3].get('season', -1) == season, self.iterate_over_games()))
             # Simulate the execution of those matches
             self.play_sub_network(season_games)
