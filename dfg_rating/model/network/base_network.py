@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import date
 import numpy as np
 import networkx as nx
@@ -526,15 +527,58 @@ class WhiteNetwork(BaseNetwork):
         self.data = graph
         return True
 
-    def add_rating(self, new_rating, rating_name):
-        pass
+    def add_rating(self, rating, rating_name, team_id=None, season=None):
+        if season is not None:
+            self.add_season_rating(rating, rating_name, team_id, season)
+        else:
+            for s in range(self.seasons):
+                self.add_season_rating(rating, rating_name, team_id, s)
 
-    def add_forecast(self, forecast: BaseForecast, forecast_name, base_ranking):
-        pass
+    def add_season_rating(self, rating, rating_name, team_id, season):
+        def edge_filter(e):
+            new_filter = (
+                (e[3]['season'] == season)
+            )
+            return new_filter
 
-    def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker):
-        pass
+        if team_id:
+            rating_values, rating_hp = rating.get_ratings(
+                self, [team_id], edge_filter
+            )
+            self._add_rating_to_team(team_id, rating_values, rating_hp, rating_name, season=season)
+        else:
+            ratings, rating_hp = rating.get_all_ratings(self, edge_filter)
+            for team in self.data.nodes:
+                self._add_rating_to_team(int(team), ratings[int(team)], rating_hp, rating_name, season=season)
+
+    def add_forecast(self, forecast: BaseForecast, forecast_name, base_ranking='true_rating', season=None):
+        for match in self.data.edges(keys=True):
+            if (season is None) or (self.data.edges[match].get('season', 0) == season):
+                self._add_forecast_to_team(match, deepcopy(forecast), forecast_name, base_ranking)
+
+    def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker, base_forecast: str):
+        for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
+            if base_forecast not in edge_attributes['forecasts']:
+                print(f"Missing <{base_forecast}> forecast in network")
+            match_base_forecast = edge_attributes['forecasts'][base_forecast]
+            base_probabilities = match_base_forecast.get_forecast(
+                edge_attributes, self.data.nodes[home_team], self.data.nodes[away_team]
+            )
+            self.data.edges[
+                away_team, home_team, edge_key
+            ].setdefault(
+                'odds', {}
+            )[bookmaker_name] = bookmaker.get_odds(base_probabilities)
 
     def add_bets(self, bettor_name: str, bookmaker: str, betting: BaseBetting, base_forecast: str):
-        pass
+        for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
+            if base_forecast not in edge_attributes['forecasts']:
+                print(f"Missing <{base_forecast}< forecast.")
+            bettor_forecast = edge_attributes['forecasts'][base_forecast]
+            match_odds = edge_attributes.get('odds', {})[bookmaker]
+            self.data.edges[
+                away_team, home_team, edge_key
+            ].setdefault(
+                'bets', {}
+            )[bettor_name] = betting.bet(bettor_forecast.probabilities, match_odds)
 

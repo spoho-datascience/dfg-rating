@@ -1,3 +1,4 @@
+import numpy as np
 from abc import ABC, abstractmethod
 
 from dfg_rating.model.network.base_network import BaseNetwork, TeamId
@@ -65,3 +66,24 @@ class BaseRating(ABC):
         """
         print("Method not implemented for this class")
         pass
+
+
+class RatingError(ABC):
+
+    @abstractmethod
+    def apply(self, r: float) -> float:
+        pass
+
+
+class NullError(RatingError):
+
+    def __init__(self, error, **kwargs):
+        try:
+            self.error_method = getattr(np.random.default_rng(), error)
+        except AttributeError:
+            print("Error method not available")
+            return
+        self.error_arguments = kwargs
+
+    def apply(self, r: float) -> float:
+        return r + self.error_method(**self.error_arguments)

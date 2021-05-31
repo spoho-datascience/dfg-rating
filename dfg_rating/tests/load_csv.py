@@ -3,6 +3,7 @@ import pandas as pd
 import networkx as nx
 from datetime import date
 
+from dfg_rating.model.forecast.base_forecast import SimpleForecast
 from dfg_rating.model.network.base_network import WhiteNetwork
 
 df = pd.read_csv('/home/marc/Development/dshs/dfg-rating/data/real/ATP_Network_2010_2019.csv')
@@ -42,5 +43,5 @@ white_network = WhiteNetwork(
     }
 )
 # %%
-
-white_network.print_data(attributes=True)
+white_network.add_forecast(SimpleForecast(outcomes=['home', 'draw', 'away'], probs=[0.45, 0.29, 0.26]), 'simple_forecast')
+white_network.print_data(schedule=True, forecasts=True, forecasts_list=['simple_forecast'])
