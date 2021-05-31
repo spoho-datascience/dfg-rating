@@ -33,3 +33,10 @@ for away_team, home_team, match_key, match_data in rr_network.iterate_over_games
         rr_network.data.nodes[home_team], rr_network.data.nodes[away_team]
     )
     print(f_log.print(), f"Sum: {sum(f_log.probabilities)}")
+
+true_rating=ControlledTrendRating(
+    starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=200),
+    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=3),
+    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=75),
+    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
+)

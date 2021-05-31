@@ -85,7 +85,7 @@ rps = RankProbabilityScore(
 betting_returns = BettingReturnsEvaluator(
     outcomes=['home', 'draw', 'away'],
     player_name="b",
-    player_forecast="home_forecast",
+    true_forecast="home_forecast",
     bookmaker_name="bm"
 )
 
@@ -151,7 +151,7 @@ network.add_evaluation(l, 'logLikelihood')
 # %%
 
 network.export(
-    forecats=['bookmaker_forecast'],
+    forecasts=['bookmaker_forecast'],
     metrics=['rps', 'betting_returns', 'logLikelihood'],
     odds=['bm']
 )
