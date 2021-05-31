@@ -1,13 +1,13 @@
 import numpy as np
 from abc import ABC, abstractmethod
 
-from dfg_rating.model.forecast.forecast_error import ForecastError, NullError
+from dfg_rating.model.forecast.forecast_error import ForecastError, ForecastNullError
 
 
 class BaseBetting(ABC):
 
     def __init__(self, error: ForecastError = None):
-        self.error = error if error is not None else NullError()
+        self.error = error if error is not None else ForecastNullError()
 
     @abstractmethod
     def bet(self, forecast, odds):

@@ -3,7 +3,7 @@ from sklearn.preprocessing import normalize
 from abc import ABC, abstractmethod
 
 from dfg_rating.model.forecast.base_forecast import BaseForecast, SimpleForecast
-from dfg_rating.model.forecast.forecast_error import ForecastError, NullError
+from dfg_rating.model.forecast.forecast_error import ForecastError, ForecastNullError
 
 
 class BookmakerMargin:
@@ -28,7 +28,7 @@ class BaseBookmaker(ABC):
 
     def __init__(self, bookmaker_type: str, error: ForecastError, margin: BookmakerMargin, **kwargs):
         self.type = bookmaker_type
-        self.error = error if error is not None else NullError()
+        self.error = error if error is not None else ForecastNullError()
         self.margin = margin
 
     @abstractmethod

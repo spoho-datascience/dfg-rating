@@ -1,6 +1,7 @@
 import numpy as np
 
 from dfg_rating.model.forecast.base_forecast import BaseForecast
+from dfg_rating.model.rating.base_rating import RatingNullError
 
 
 class LogFunctionForecast(BaseForecast):
@@ -9,6 +10,8 @@ class LogFunctionForecast(BaseForecast):
         super().__init__('logistic-function', **kwargs)
         self.coefficients = kwargs.get('coefficients')
         self.beta = kwargs.get('beta_parameter', 0.006)
+        self.home_error = kwargs.get('home_team_error', RatingNullError())
+        self.away_error = kwargs.get('away_team_error', RatingNullError())
 
     def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating'):
         home_rating = home_team.get(
@@ -25,7 +28,7 @@ class LogFunctionForecast(BaseForecast):
         ).get(
             match_data['season'], []
         )[match_data['round']]
-        diff = home_rating - away_rating
+        diff = self.home_error.apply(home_rating) - self.away_error.apply(away_rating)
         for i in range(len(self.outcomes)):
             n = len(self.outcomes)
             j = i + 1

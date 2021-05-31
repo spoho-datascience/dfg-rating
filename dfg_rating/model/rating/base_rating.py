@@ -75,7 +75,13 @@ class RatingError(ABC):
         pass
 
 
-class NullError(RatingError):
+class RatingNullError(RatingError):
+
+    def apply(self, r: float) -> float:
+        return r
+
+
+class RatingFunctionError(RatingError):
 
     def __init__(self, error, **kwargs):
         try:
@@ -87,3 +93,4 @@ class NullError(RatingError):
 
     def apply(self, r: float) -> float:
         return r + self.error_method(**self.error_arguments)
+

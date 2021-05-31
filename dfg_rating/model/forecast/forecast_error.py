@@ -8,7 +8,7 @@ class ForecastError:
         pass
 
 
-class NullError(ForecastError):
+class ForecastNullError(ForecastError):
 
     def apply(self, initial_probabilities):
         return initial_probabilities
