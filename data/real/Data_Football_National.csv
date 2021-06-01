@@ -1,0 +1,5 @@
+matchID,leagueID,Season,HomeTeam,AwayTeam,Date,goalsFTHome,goalsFTAway,goalsHTHome,goalsHTAway,ResultFT,HomeID,AwayID,resultHT,OddsHomeMax,OddsDrawMax,OddsAwayMax,OddsHomeAvg,OddsDrawAvg,OddsAwayAvg
+10107001,101,2007/2008,Stuttgart,Schalke 04,10.08.2007,2,2,0,1,draw,278,259,Away,2.0,3.0,4.0,2.0,3.0,4.0
+10107002,101,2008/2009,Bayern Munich,Hansa Rostock,11.08.2007,3,0,1,0,home,34,135,Home,1.3,3.4,6.9,1.4,3.5,7.0
+10107003,101,2009/2010,Bochum,Werder Bremen,11.08.2007,2,2,0,2,away,46,309,Away,4.0,3.0,2.0,4.2,3.1,2.0
+
