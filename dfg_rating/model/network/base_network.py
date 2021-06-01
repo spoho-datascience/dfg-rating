@@ -14,6 +14,11 @@ from dfg_rating.model.forecast.base_forecast import BaseForecast, SimpleForecast
 TeamId = NewType('TeamId', int)
 
 
+def get_seasons(games):
+    seasons = set([data['season'] for a, h, k, data in games])
+    return seasons
+
+
 def weighted_winner(forecast: BaseForecast, match_data, home_team, away_team):
     f = abs(forecast.get_forecast(match_data, home_team, away_team))
     weights = f.cumsum()
@@ -98,7 +103,8 @@ class BaseNetwork(ABC):
                         print(f"Bookmaker {bm} odds: {edge_attributes['odds'][bm]}")
             print("---------------")
         if print_kwargs.get('attributes', False):
-            if (print_kwargs.get('ratings', False)) & ('ratings' in self.data.nodes[np.random.choice(self.data.nodes())]):
+            if (print_kwargs.get('ratings', False)) & (
+                    'ratings' in self.data.nodes[np.random.choice(self.data.nodes())]):
                 print("Teams ratings")
                 for team in self.data.nodes:
                     print(f"Team {team} attributes:")
@@ -106,7 +112,8 @@ class BaseNetwork(ABC):
                     if len(ratings_list) == 0:
                         ratings_list = list(self.data.nodes[team]['ratings'].keys())
                     for rating in ratings_list:
-                        print(f"Rating <{rating}> for team {team}: > {self.data.nodes[team].get('ratings', {}).get(rating, {})}")
+                        print(
+                            f"Rating <{rating}> for team {team}: > {self.data.nodes[team].get('ratings', {}).get(rating, {})}")
 
     def iterate_over_games(self):
         return sorted(self.data.edges(keys=True, data=True), key=lambda t: (t[3].get('day', 0)))
@@ -120,7 +127,8 @@ class BaseNetwork(ABC):
             if 'true_forecast' not in edge_attributes.get('forecasts', {}):
                 print('Error: Network needs true forecast')
                 pass
-            winner = weighted_winner(edge_attributes['forecasts']['true_forecast'], edge_attributes, self.data.nodes[home_team], self.data.nodes[away_team])
+            winner = weighted_winner(edge_attributes['forecasts']['true_forecast'], edge_attributes,
+                                     self.data.nodes[home_team], self.data.nodes[away_team])
             self.data.edges[away_team, home_team, edge_key]['winner'] = winner
 
     def play(self):
@@ -203,11 +211,11 @@ class BaseNetwork(ABC):
                 "winner": edge_attributes.get('winner', 'none'),
             }
             new_match["match_id"] = f"" \
-                                   f"{new_match['node1']}_vs_" \
-                                   f"{new_match['node2']}_" \
-                                   f"{new_match['season']}_" \
-                                   f"{new_match['day']}" \
-                                   f""
+                                    f"{new_match['node1']}_vs_" \
+                                    f"{new_match['node2']}_" \
+                                    f"{new_match['season']}_" \
+                                    f"{new_match['day']}" \
+                                    f""
             for f_name, f in edge_attributes.get('forecasts', {}).items():
                 new_forecast = {
                     "forecast_name": f_name,
@@ -276,8 +284,8 @@ class BaseNetwork(ABC):
             match_forecasts = [f for f in forecasts if f['match_id'] == m['match_id']]
             for f in match_forecasts:
                 edge_dict.setdefault('forecasts', {})[f['forecast_name']] = SimpleForecast(
-                        outcomes=['home', 'draw', 'away'],
-                        probs=[f['probability_home'], f['probability_draw'], f['probability_away']]
+                    outcomes=['home', 'draw', 'away'],
+                    probs=[f['probability_home'], f['probability_draw'], f['probability_away']]
                 )
             graph.add_edge(m['away_team'], m['home_team'], **edge_dict)
         for r in ratings:
@@ -355,7 +363,8 @@ class BaseNetwork(ABC):
             for r in printing_ratings:
                 for team, name in [(home_team, 'Home'), (away_team, 'Away')]:
                     rating_dict = self.data.nodes[team].get('ratings', {}).get(r)
-                    match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0))[edge_attributes.get('round', 0)]
+                    match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0))[
+                        edge_attributes.get('round', 0)]
             for o in printing_odds:
                 for i, value in enumerate(edge_attributes.get('odds', {}).get(o, [])):
                     match_dict[f"{o}#odds#{i}"] = value
@@ -368,7 +377,6 @@ class BaseNetwork(ABC):
         file_name = kwargs.get('filename', 'network.csv')
         df = pd.DataFrame(network_flat)
         df.to_csv(file_name, index=False)
-
 
     @abstractmethod
     def add_rating(self, new_rating, rating_name):
@@ -408,7 +416,8 @@ class WhiteNetwork(BaseNetwork):
         correct, report = self.validate()
         if correct:
             if self.mapping['dayIsTimestamp']:
-                self.table_data[self.mapping['day']] = pd.to_datetime(self.table_data[self.mapping['day']])
+                self.table_data[self.mapping['day']] = pd.to_datetime(self.table_data[self.mapping['day']],
+                                                                      format=self.mapping['ts_format'])
                 self.table_data['Year'] = pd.DatetimeIndex(self.table_data[self.mapping['day']]).year
                 self.table_data.sort_values(by=self.mapping['day'], inplace=True)
             else:
@@ -458,16 +467,14 @@ class WhiteNetwork(BaseNetwork):
 
     def create_data(self):
         graph = nx.MultiDiGraph()
-        day = 0
+        day = -1
         daily_ratings = {}
         for row_id, row in self.table_data.iterrows():
             if self.mapping['dayIsTimestamp']:
-                if day == 0:
-                    day = 1
+                if day == -1:
                     first_date = row[self.mapping['day']]
-                else:
-                    delta = row[self.mapping['day']] - first_date
-                    day = delta.days
+                delta = row[self.mapping['day']] - first_date
+                day = delta.days
             else:
                 day = int(row[self.mapping['day']])
             # Add edge (create if needed the nodes and attributes)
@@ -531,7 +538,7 @@ class WhiteNetwork(BaseNetwork):
         if season is not None:
             self.add_season_rating(rating, rating_name, team_id, season)
         else:
-            for s in range(self.seasons):
+            for s in list(get_seasons(self.iterate_over_games())):
                 self.add_season_rating(rating, rating_name, team_id, s)
 
     def add_season_rating(self, rating, rating_name, team_id, season):
@@ -548,8 +555,8 @@ class WhiteNetwork(BaseNetwork):
             self._add_rating_to_team(team_id, rating_values, rating_hp, rating_name, season=season)
         else:
             ratings, rating_hp = rating.get_all_ratings(self, edge_filter)
-            for team in self.data.nodes:
-                self._add_rating_to_team(int(team), ratings[int(team)], rating_hp, rating_name, season=season)
+            for team_i, team in enumerate(self.data.nodes):
+                self._add_rating_to_team(int(team), ratings[team_i], rating_hp, rating_name, season=season)
 
     def add_forecast(self, forecast: BaseForecast, forecast_name, base_ranking='true_rating', season=None):
         for match in self.data.edges(keys=True):
@@ -581,4 +588,3 @@ class WhiteNetwork(BaseNetwork):
             ].setdefault(
                 'bets', {}
             )[bettor_name] = betting.bet(bettor_forecast.probabilities, match_odds)
-

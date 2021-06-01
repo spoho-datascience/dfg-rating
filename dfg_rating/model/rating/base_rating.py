@@ -11,10 +11,6 @@ def get_rounds(games):
     return rounds
 
 
-def get_seasons(games):
-    seasons = set([data['season'] for a, h, k, data in games])
-    return seasons
-
 
 def get_rounds_per_season(games):
     away, home, key, data = [g for g in games][0]

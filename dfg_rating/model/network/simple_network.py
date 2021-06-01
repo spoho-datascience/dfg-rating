@@ -6,7 +6,7 @@ import networkx as nx
 from dfg_rating.model.betting.betting import BaseBetting
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
 from dfg_rating.model.forecast.base_forecast import BaseForecast
-from dfg_rating.model.network.base_network import BaseNetwork
+from dfg_rating.model.network.base_network import BaseNetwork, get_seasons
 from dfg_rating.model.rating.base_rating import BaseRating
 
 class RoundRobinNetwork(BaseNetwork):
@@ -94,7 +94,7 @@ class RoundRobinNetwork(BaseNetwork):
         if season is not None:
             self.add_season_rating(rating, rating_name, team_id, season)
         else:
-            for s in range(self.seasons):
+            for s in list(get_seasons(self.iterate_over_games())):
                 self.add_season_rating(rating, rating_name, team_id, s)
 
     def add_season_rating(self, rating, rating_name, team_id, season):

@@ -1,7 +1,7 @@
 import numpy as np
 
-from dfg_rating.model.network.base_network import BaseNetwork, TeamId, base_edge_filter
-from dfg_rating.model.rating.base_rating import BaseRating, get_rounds, get_seasons, get_rounds_per_season
+from dfg_rating.model.network.base_network import BaseNetwork, TeamId, base_edge_filter, get_seasons
+from dfg_rating.model.rating.base_rating import BaseRating, get_rounds, get_rounds_per_season
 
 
 class ELORating(BaseRating):
