@@ -26,6 +26,7 @@ class AccuracyEvaluator(Evaluator):
         """
         pass
 
+
 class RankProbabilityScore(AccuracyEvaluator):
 
     def _compute(self, observed, model) -> float:
@@ -36,6 +37,7 @@ class RankProbabilityScore(AccuracyEvaluator):
         ])
         score /= (r - 1)
         return score
+
 
 class Likelihood(AccuracyEvaluator):
 

@@ -39,7 +39,6 @@ class ELORating(BaseRating):
             ratings[team, init_position] = self.init_ratings(team, season, n, ratings)
 
     def compute_expected_values(self, home_value, away_value):
-        print(home_value, away_value)
         expected_home = 1.0 / (1.0 + (self.settings['c'] ** ((away_value - home_value - self.settings['w']) / self.settings['d'])))
         return expected_home, 1 - expected_home
 
@@ -64,14 +63,11 @@ class ELORating(BaseRating):
         self.seasons = list(get_seasons(filtered_games))
         n_seasons = len(self.seasons)
         self.rounds_per_season = len(get_rounds_per_season(filtered_games))
-        print(f"Rounds per season {self.rounds_per_season}")
         ratings = np.zeros([n_teams, (n_rounds + 2) * n_seasons])
-        print(f"Looping through seasons {n_seasons}")
         for current_season in range(n_seasons):
             # Init of values for all the ratings, with previous season or with nothing.
             self.init_season_ratings(current_season, n, ratings)
             for r in range(self.rounds_per_season):
-                print(ratings)
                 def round_filter(edge):
                     return edge[3]['round'] == r
 
