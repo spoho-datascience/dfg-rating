@@ -12,7 +12,7 @@ import pandas as pd
 
 from dfg_rating.model.network.base_network import BaseNetwork
 from dfg_rating.viz import tables
-from dfg_rating.viz.charts import create_ratings_charts, publication_chart
+from dfg_rating.viz.charts import create_ratings_charts, publication_chart, avg_rating_chart, rating_metrics_chart
 
 
 class BaseWidget:
@@ -98,7 +98,7 @@ class NetworkExplorer(BaseWidget):
                                              'euler'
                                          ]
                                      ],
-                                    value="grid",
+                                    value="circle",
                                 ),
                                 html.Br(),
                                 dbc.Button(
@@ -454,3 +454,123 @@ class RatingsExplorer(BaseWidget):
                 seasons=[s - 1 for s in range(from_season, to_season + 1)],
                 selected_teams=teams,
             )
+
+
+class RatingsEvaluation(BaseWidget):
+
+    def __init__(self, network: BaseNetwork, **kwargs):
+        self.main_network = network
+        super().__init__(app_name="ratings_evaluation", **kwargs)
+
+    def build_layout(self):
+        self.app.layout = dbc.Container(
+            [
+                dbc.Row(
+                    dbc.Col(html.H1("Results"), width=6),
+                    justify='center'
+                ),
+                dbc.Row(
+                    id="rating-filters",
+                    children=[
+                        dbc.Col(
+                            id="teams-filter-col",
+                            children=dcc.Dropdown(
+                                id="dropdown-teams",
+                                placeholder="Teams",
+                                options=[
+                                    {
+                                        "label": f"Team {team_id}",
+                                        "value": team_id
+                                    } for team_id in self.main_network.data.nodes
+                                ],
+                                multi=True
+                            ),
+                        )
+                    ]
+                ),
+                dbc.Row(
+                    children=[
+                        dbc.Col(
+                            id="ratings-filter-col",
+                            children=dcc.Dropdown(
+                                id="dropdown-ratings",
+                                placeholder="Ratings",
+                                options=[
+                                    {
+                                        "label": r,
+                                        "value": r
+                                    } for r in self.main_network.get_rankings()
+                                ],
+                                multi=True
+                            ), width=6
+                        ),
+                        dbc.Col(
+                            id="seasons-filter-col",
+                            children=html.Div(
+                                [
+                                    "From season ",
+                                    dcc.Input(
+                                        id="from-season-input",
+                                        type="number",
+                                        debounce=True,
+                                        min=1,
+                                        max=self.main_network.seasons,
+                                        value=1
+                                    ),
+                                    " to season ",
+                                    dcc.Input(
+                                        id="to-season-input",
+                                        type="number",
+                                        debounce=True,
+                                        min=1,
+                                        max=self.main_network.seasons,
+                                        value=self.main_network.seasons
+                                    )
+                                ]
+                            ),
+                            width=6
+                        )
+                    ]
+                ),
+                dbc.Row(
+                    justify="center",
+                    children=[
+                        dbc.Col(
+                            children=dcc.Graph(id='rating_values'),
+                            width=6
+                        ),
+                        dbc.Col(
+                            children=[
+                                dcc.Graph(id='rating_metrics')
+                            ],
+                            width=6
+                        ),
+
+                    ]
+                )
+            ],
+            fluid=True
+        )
+
+    def configure_callbacks(self):
+        @self.app.callback([Callback.Output('rating_values', 'figure'),
+                            Callback.Output('rating_metrics', 'figure')],
+                           [Callback.Input('dropdown-teams', 'value'),
+                            Callback.Input('dropdown-ratings', 'value'),
+                            Callback.Input('from-season-input', 'value'),
+                            Callback.Input('to-season-input', 'value')])
+        def update_rating_charts(teams, ratings, from_season, to_season):
+            ratings = ratings or ['true_rating']
+            rating_values_figure = avg_rating_chart(
+                self.main_network,
+                ratings_list=ratings,
+                seasons=[s - 1 for s in range(from_season, to_season + 1)],
+                selected_teams=teams
+            )
+            rating_metrics_figure = rating_metrics_chart(
+                self.main_network,
+                ratings_list=[r for r in ratings if r != 'true_rating'],
+                seasons=[s - 1 for s in range(from_season, to_season + 1)],
+                selected_teams=teams
+            )
+            return rating_values_figure, rating_metrics_figure

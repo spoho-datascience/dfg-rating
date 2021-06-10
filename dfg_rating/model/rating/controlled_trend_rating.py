@@ -41,6 +41,7 @@ class ControlledTrendRating(BaseRating):
         games = n.data.edges(keys=True, data=True)
         filtered_games = [(away, home, key, data) for away, home, key, data in filter(edge_filter, games)]
         n_rounds = len(get_rounds(filtered_games))
+        self.all_seasons = list(get_seasons(games))
         self.seasons = list(get_seasons(filtered_games))
         n_seasons = len(self.seasons)
         self.rounds_per_season = len(get_rounds_per_season(filtered_games))
@@ -100,7 +101,7 @@ class ControlledTrendRating(BaseRating):
             ratings[team_i, init_position] = team_starting
 
     def init_ratings(self, team, current_season, season_name, n, ratings) -> float:
-        if indexOf(self.seasons, season_name) == 0:
+        if indexOf(self.all_seasons, season_name) == 0:
             """First season on the simulation, new starting point"""
             starting_point = self.starting_point.get()[0]
         elif current_season == 0:
@@ -108,7 +109,7 @@ class ControlledTrendRating(BaseRating):
             starting_point = self.apply_season_change(
                 last_season_rating=
                 n.data.nodes[indexOf(self.teams, team)].get('ratings', {}).get(self.rating_name, {}).get(
-                    indexOf(self.seasons, season_name) - 1, self.starting_point.get()
+                    indexOf(self.all_seasons, season_name) - 1, self.starting_point.get()
                 )[-1]
             )
         else:
