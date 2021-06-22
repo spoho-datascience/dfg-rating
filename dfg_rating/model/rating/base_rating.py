@@ -38,6 +38,7 @@ class BaseRating(ABC):
     def __init__(self, rating_type, **kwargs):
         self.type = rating_type
         self.params = kwargs
+        self.rating_mean = kwargs.get('rating_mean', 1000)
 
     @abstractmethod
     def get_all_ratings(self, n: BaseNetwork, edge_filter=None):

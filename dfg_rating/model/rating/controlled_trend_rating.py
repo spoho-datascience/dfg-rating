@@ -51,16 +51,17 @@ class ControlledTrendRating(BaseRating):
         for current_season, season_name in enumerate(self.seasons):
             self.agg = {}
             self.init_season_ratings(current_season, season_name, n, ratings)
+            ratings[:, 0] *= self.rating_mean / np.ndarray.mean(ratings[:, 0])
             for r in range(self.rounds_per_season):
                 def round_filter(edge):
                     return edge[3]['round'] == r
 
                 # Teams playing
                 teams_playing = []
+                current_position = (current_season * (self.rounds_per_season + 2)) + (r + 1)
                 for away_team, home_team, match_key, match_data in filter(round_filter, filtered_games):
                     teams_playing += [away_team, home_team]
                     current_round = match_data['round']
-                    current_position = (current_season * (self.rounds_per_season + 2)) + (current_round + 1)
                     ratings[indexOf(self.teams, away_team), current_position] = ratings[
                                                                                     indexOf(self.teams,
                                                                                             away_team), current_position - 1
@@ -76,8 +77,8 @@ class ControlledTrendRating(BaseRating):
                 # Dealing with teams not playing
                 for team_i, team in enumerate(self.teams):
                     if team not in teams_playing:
-                        rating_pointer = (current_season * (self.rounds_per_season + 2)) + (r + 1)
-                        ratings[team_i, rating_pointer] = ratings[team_i, rating_pointer - 1]
+                        ratings[team_i, current_position] = ratings[team_i, current_position - 1]
+                ratings[:, current_position] *= self.rating_mean / np.ndarray.mean(ratings[:, current_position])
             self.end_season_ratings(current_season, n, ratings)
         return ratings, self.props
 

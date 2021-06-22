@@ -22,11 +22,11 @@ class ELORating(BaseRating):
     def init_ratings(self, team, season, n, ratings):
         if self.seasons[season] == 0:
             """First season on the simulation, new starting point"""
-            starting_point = 1000
+            starting_point = self.rating_mean
         elif season == 0:
             """First season in the ratings computation but not in the network. Reading previous season"""
             starting_point = n.data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(
-                self.seasons[season] - 1, 1000
+                self.seasons[season] - 1, [self.rating_mean]
             )[-1]
         else:
             """New season for the ratings. Getting previous rating"""
