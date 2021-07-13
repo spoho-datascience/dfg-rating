@@ -19,6 +19,9 @@ class LeagueNetwork(RoundRobinNetwork):
 
     def __init__(self, **kwargs):
         kwargs['extra_type'] = 'multiple'
+        kwargs['play'] = False
+        pre_create = kwargs.get('create', True)
+        kwargs['create'] = False
         super().__init__(**kwargs)
         self.league_teams = kwargs.get('league_teams', self.n_teams)
         self.league_promotion = kwargs.get('league_promotion', 2)
@@ -26,12 +29,11 @@ class LeagueNetwork(RoundRobinNetwork):
         self.ranking_rating: BaseRating = kwargs.get('ranking_rating', LeagueRating())
         self.out_teams = self.n_teams - self.league_teams
         self.out_teams_labels = [self.league_teams + i for i in range(self.out_teams)]
-        if kwargs.get('create', False):
+        if pre_create:
             self.create_data()
 
     def create_data(self):
         for season in range(self.seasons):
-            print(f"Season {season}")
             # Create the new season matches
             self.fill_graph(self.league_teams_labels, season=season)
             self.add_rating(self.true_rating, 'true_rating', season=season)
@@ -44,9 +46,9 @@ class LeagueNetwork(RoundRobinNetwork):
             promoted_items = random.sample(range(self.out_teams), self.league_promotion)
             promoted_teams = [self.out_teams_labels[promoted_items[i]] for i in range(self.league_promotion)]
             relegation_candidates = self.get_teams(ascending=True, maximum_number_of_teams=6, season=season)
-            print(f"Relegation candidates {relegation_candidates}")
+            # print(f"Relegation candidates {relegation_candidates}")
             relegation_teams = random.sample(list(relegation_candidates.keys()), self.league_promotion)
-            print(f"Relegation teams {relegation_teams}")
+            # print(f"Relegation teams {relegation_teams}")
             for i in range(len(promoted_teams)):
                 for k, v in self.league_teams_labels.items():
                     if v == relegation_teams[i]:

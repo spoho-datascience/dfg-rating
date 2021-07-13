@@ -48,6 +48,7 @@ class BaseNetwork(ABC):
         self.data = None
         self.type = network_type
         self.params = kwargs
+        self.number_of_clusters = kwargs.get('clusters', 1)
         self.n_teams = self.params.get('teams', 0)
         self.n_rounds = self.params.get('rounds', self.n_teams - 1 + self.n_teams % 2)
         self.seasons = kwargs.get('seasons', 1)
@@ -337,6 +338,13 @@ class BaseNetwork(ABC):
                 )[evaluator_name] = metric_value
             else:
                 print("Incorrect output for metric")
+
+    def export_ratings(self):
+        ratings_value_list = {
+            node: self.data.nodes[node].get('ratings', {}) for node in self.data.nodes
+        }
+        return ratings_value_list
+
 
     def export(self, **kwargs):
         print("Export network")

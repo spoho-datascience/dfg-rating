@@ -9,6 +9,7 @@ from dfg_rating.model.forecast.base_forecast import BaseForecast
 from dfg_rating.model.network.base_network import BaseNetwork, get_seasons
 from dfg_rating.model.rating.base_rating import BaseRating
 
+
 class RoundRobinNetwork(BaseNetwork):
     """Class that defines a Network modeling a Round-Robin tournamnet (all-play-all tournament).
     A competition in which each contestant meets all other contestants in turn)
@@ -17,8 +18,12 @@ class RoundRobinNetwork(BaseNetwork):
 
     def __init__(self, **kwargs):
         super().__init__(f"{kwargs.get('extra_type', '')}round-robin", **kwargs)
+        if kwargs.get('create', True):
+            self.create_data()
+        if kwargs.get('play', True):
+            self.play()
 
-    def fill_graph(self, team_labels={}, season=0):
+    def fill_graph(self, team_labels=None, season=0):
         """Propagates data from parameters.
                 Updating self.data as the resulting network of matches scheduled.
                 Implementing Berger Tables Scheduling algorithm.
@@ -26,6 +31,8 @@ class RoundRobinNetwork(BaseNetwork):
                 Returns:
                     boolean: True if the process has been successful, False if else.
                 """
+        if team_labels is None:
+            team_labels = {}
         if self.data is None:
             graph = nx.MultiDiGraph()
         else:
@@ -144,4 +151,3 @@ class RoundRobinNetwork(BaseNetwork):
             ].setdefault(
                 'bets', {}
             )[bettor_name] = betting.bet(bettor_forecast.probabilities, match_odds)
-

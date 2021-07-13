@@ -308,7 +308,7 @@ class Controller:
 
     def add_bets(self, network_name: str, bookmaker_name: str, betting_name: str, base_forecast: str):
         n = self.networks[network_name]
-        betting_strategy = self.bettings[betting_name]
+        betting_strategy = self.betting_strategies[betting_name]
         n.add_bets(
             bettor_name=betting_name,
             bookmaker=bookmaker_name,
@@ -381,6 +381,7 @@ class Controller:
         self.add_odds(
             network_name="test_network",
             bookmaker_name="simple_bookmaker",
+            base_forecast='true_forecast'
         )
         self.create_betting_strategy(
             betting_name='elo_bettor',

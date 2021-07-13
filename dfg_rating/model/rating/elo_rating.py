@@ -73,24 +73,25 @@ class ELORating(BaseRating):
 
                 teams_playing = []
                 for away_team, home_team, match_key, match_data in filter(round_filter, filtered_games):
-                    teams_playing += [away_team, home_team]
-                    current_round = match_data['round']
-                    current_position = (current_season * (self.rounds_per_season + 2)) + (current_round + 1)
-                    home_expected, away_expected = self.compute_expected_values(
-                        ratings[home_team, current_position - 1],
-                        ratings[away_team, current_position - 1]
-                    )
-                    home_score, away_score = self.compute_scores(match_data['winner'])
-                    ratings[away_team, current_position] = self.update_elo(
-                        ratings[away_team, current_position - 1],
-                        away_score,
-                        away_expected
-                    )
-                    ratings[home_team, current_position] = self.update_elo(
-                        ratings[home_team, current_position - 1],
-                        home_score,
-                        home_expected
-                    )
+                    if match_data.get('state', 'active') == 'active':
+                        teams_playing += [away_team, home_team]
+                        current_round = match_data['round']
+                        current_position = (current_season * (self.rounds_per_season + 2)) + (current_round + 1)
+                        home_expected, away_expected = self.compute_expected_values(
+                            ratings[home_team, current_position - 1],
+                            ratings[away_team, current_position - 1]
+                        )
+                        home_score, away_score = self.compute_scores(match_data['winner'])
+                        ratings[away_team, current_position] = self.update_elo(
+                            ratings[away_team, current_position - 1],
+                            away_score,
+                            away_expected
+                        )
+                        ratings[home_team, current_position] = self.update_elo(
+                            ratings[home_team, current_position - 1],
+                            home_score,
+                            home_expected
+                        )
                 # Dealing with teams not playing
                 for team in n.data.nodes:
                     if team not in teams_playing:

@@ -26,7 +26,7 @@ def init():
     main_controller.run_demo()
     pio.templates.default = "plotly_white"
 
-    layout = forecasts_gui(app, main_controller)
+    layout = network_gui(app, 'test_network', main_controller)
 
     app.layout = html.Div(
         children=dbc.Container(
@@ -74,7 +74,6 @@ def network_gui(app, network_name, mc):
 
     elements = network_to_cyto(mc.networks[network_name])
     # elements = custom_cyto_network()
-    print(len(elements))
     layout = [
         dbc.Row(
             children=[
@@ -272,7 +271,6 @@ def forecasts_gui(app, mc):
         ["simple_bookmaker"],
         ["elo_bettor"],
     )
-    print("bettings_data", bettings_data)
     df = pd.DataFrame(bettings_data)
     layout = [
         dbc.Row(

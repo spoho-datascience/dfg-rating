@@ -205,11 +205,9 @@ def network_to_cyto(network: BaseNetwork):
         '176': 'Djokovic N.'
     }
     top_30_ids = list(top_30_dict.keys())[-15:]
-    print(top_30_ids)
     random_players = np.random.choice([player_id for player_id, conn in list_of_degrees], 200)
-    #print(random_players)
     for node1, node2, edge_key, edge_info in network.iterate_over_games():
-        # if node1 in top_connected_players_ids or node2 in top_connected_players_ids:
+        """# if node1 in top_connected_players_ids or node2 in top_connected_players_ids:
         if (
                 edge_info['Tournament'] in ['EM', 'EM Quali']
         ) and (
@@ -238,8 +236,8 @@ def network_to_cyto(network: BaseNetwork):
                         },
                         "classes": f"{str(edge_info['Season '])[-1]}_{edge_info['Round']}"
                     }
-            ]
-        """elements += [
+            ]"""
+        elements += [
             {
                 "data": {
                     "id": node1,
@@ -260,7 +258,7 @@ def network_to_cyto(network: BaseNetwork):
                     "source": node2, "target": node1
                 }
             }
-        ]"""
+        ]
         """if (edge_info['Date'].date() > datetime.date(2019, 1, 1)) and ((
                 edge_info['WRank'] <= 20) and (
                 edge_info['LRank'] <= 20)):"""

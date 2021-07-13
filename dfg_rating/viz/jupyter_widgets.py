@@ -1,5 +1,6 @@
 import numpy as np
 import plotly.express as px
+import dash
 from dash.exceptions import PreventUpdate
 from jupyter_dash import JupyterDash
 import dash_core_components as dcc
@@ -7,6 +8,7 @@ import dash_cytoscape as cyto
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 import dash.dependencies as Callback
+import dash_daq as daq
 
 import pandas as pd
 
@@ -17,12 +19,17 @@ from dfg_rating.viz.charts import create_ratings_charts, publication_chart, avg_
 
 class BaseWidget:
     def __init__(self, app_name=__name__, **kwargs):
-        self.app = JupyterDash(app_name, external_stylesheets=[dbc.themes.SANDSTONE], **kwargs)
+        self.offline = kwargs.pop('offline', False)
+        self.app = dash.Dash(
+            app_name, external_stylesheets=[dbc.themes.SANDSTONE]
+        ) if self.offline else JupyterDash(
+            app_name, external_stylesheets=[dbc.themes.SANDSTONE], **kwargs
+        )
         self.build_layout()
         self.configure_callbacks()
 
     def run(self, mode='inline', **kwargs):
-        self.app.run_server(mode=mode, **kwargs)
+        self.app.run_server(**kwargs) if self.offline else self.app.run_server(mode=mode, **kwargs)
 
     def build_layout(self):
         self.app.layout = html.Div(
@@ -47,6 +54,7 @@ class NetworkExplorer(BaseWidget):
                 'selector': 'node',
                 'style': {
                     'label': 'data(label)',
+                    'background-color': 'black'
                 }
             },
             {
@@ -55,11 +63,62 @@ class NetworkExplorer(BaseWidget):
                     'label': 'data(label)',
                     'curve-style': 'bezier',
                     'target-arrow-shape': 'triangle',
+                    'target-arrow-color': 'black',
+                    'line-color': 'black'
+                }
+            },
+            {
+                'selector': '.inactive',
+                'style': {
+                    "line-color": 'lightgray',
                     'target-arrow-color': 'gray',
-                    'line-color': 'lightgray'
+                    "line-style": 'dashed'
+                }
+            },
+            {
+                'selector': '.cluster0',
+                'style': {
+                    'background-color' : 'blue'
+                }
+            },
+            {
+                'selector': '.cluster1',
+                'style': {
+                    'background-color' : 'red'
+                }
+            },
+            {
+                'selector': '.cluster2',
+                'style': {
+                    'background-color' : 'yellow'
+                }
+            },
+            {
+                'selector': '.cluster3',
+                'style': {
+                    'background-color' : 'green'
+                }
+            },
+            {
+                'selector': '.cluster4',
+                'style': {
+                    'background-color' : 'gray'
+                }
+            },
+            {
+                'selector': '.cluster5',
+                'style': {
+                    'background-color' : 'brown'
+                }
+            },
+            {
+                'selector': '.cluster6',
+                'style': {
+                    'background-color' : 'purple'
                 }
             }
         ]
+        ratings = self.network.export_ratings()
         cyto_elements, analysis_dict = self.network_to_cyto()
         self.app.layout = dbc.Container(
             [
@@ -73,70 +132,102 @@ class NetworkExplorer(BaseWidget):
                             children=[
                                          html.H4("Data Filter"),
                                      ] + self.data_filter_layout() + [
-                                html.Hr(),
-                                html.H4("Network settings"),
-                                html.P("Drawing options:"),
-                                dcc.Dropdown(
-                                    id="dropdown-layout",
-                                    options=[
-                                         {
-                                             "label": layout_option,
-                                             "value": layout_option
-                                         } for layout_option in
-                                         [
-                                             'random',
-                                             'grid',
-                                             'circle',
-                                             'concentric',
-                                             'breadthfirst',
-                                             'cose',
-                                             'cose-bilkent',
-                                             'dagre',
-                                             'cola',
-                                             'klay',
-                                             'spread',
-                                             'euler'
-                                         ]
+                                         html.Hr(),
+                                         html.H4("Network settings"),
+                                         html.P("Drawing options:"),
+                                         dcc.Dropdown(
+                                             id="dropdown-layout",
+                                             options=[
+                                                 {
+                                                     "label": layout_option,
+                                                     "value": layout_option
+                                                 } for layout_option in
+                                                 [
+                                                     'random',
+                                                     'grid',
+                                                     'circle',
+                                                     'concentric',
+                                                     'breadthfirst',
+                                                     'cose',
+                                                     'cose-bilkent',
+                                                     'dagre',
+                                                     'cola',
+                                                     'klay',
+                                                     'spread',
+                                                     'euler'
+                                                 ]
+                                             ],
+                                             value='grid'
+                                         ),
+                                         html.Br(),
+                                         dbc.Button(
+                                             id="btn-download",
+                                             children="Download network as PNG"
+                                         ),
+                                         html.Br(),
+                                         dbc.Row(dbc.Col(daq.ToggleSwitch(
+                                             id="inactive_switch",
+                                             value=False,
+                                             label="Show inactive edges",
+                                             labelPosition="right"
+                                         ))),
+                                         html.Br(),
+
                                      ],
-                                    value="circle",
-                                ),
-                                html.Br(),
-                                dbc.Button(
-                                    id="btn-download",
-                                    children="Download network as PNG"
-                                ),
-                                html.Br(),
-                                html.Div(tables.calendar_table(pd.DataFrame(analysis_dict)))
-                             ],
                             width=4
                         ),
                         dbc.Col(
-                            children=dbc.Spinner(cyto.Cytoscape(
-                                id="network_cyto",
+                            children=cyto.Cytoscape(
+                                id="cytoscape_network",
                                 elements=cyto_elements,
                                 stylesheet=cyto_stylesheet,
                                 style={
                                     "height": "95vh",
                                     'width': '100%'
                                 }
-                            )),
+                            ),
                             width=8
                         )
                     ]
-                )
+                ),
+                dbc.Row(dbc.Col(dbc.Tabs(
+                    [
+                        dbc.Tab(
+                            html.Div(tables.calendar_table(pd.DataFrame(analysis_dict))),
+                            label="Schedule"
+                        ),
+                        dbc.Tab(
+                            tables.ratings_table(ratings),
+                            label="Ratings"
+                        ),
+                        dbc.Tab(
+                            html.Div("Not yet"),
+                            label="Ratings Charts"
+                        ),
+                        dbc.Tab(
+                            html.Div(tables.network_metrics(self.network)),
+                            label="Network metrics"
+                        ),
+                        dbc.Tab(
+                            html.Div("Not yet"),
+                            label="Evaluation metrics"
+                        )
+                    ]
+                )))
             ], fluid=True
         )
 
     def configure_callbacks(self):
-        @self.app.callback([Callback.Output('network_cyto', 'layout'),
-                            Callback.Output('network_cyto', 'elements'),
+        @self.app.callback([Callback.Output('cytoscape_network', 'layout'),
+                            Callback.Output('cytoscape_network', 'elements'),
                             Callback.Output('kalender-table', 'data')],
                            [Callback.Input('dropdown-layout', 'value'),
+                            Callback.Input('inactive_switch', 'value'),
                             Callback.Input("nodes_options_id", "value"),
                             Callback.Input("edges_options_season", "value"),
                             Callback.Input({'type': 'nodes_filter', 'index': Callback.ALL}, 'value'),
                             Callback.Input({'type': 'edges_filter', 'index': Callback.ALL}, 'value')])
-        def update_cytoscape_layout(layout, id_filter, season_filter, nodes_filter, edges_filter):
+        def update_cytoscape_layout(layout, input_show_inactive, id_filter, season_filter, nodes_filter, edges_filter):
             filter_nodes = {}
             filter_edges = {}
             if (id_filter is not None) and (len(id_filter) > 0):
@@ -150,15 +241,17 @@ class NetworkExplorer(BaseWidget):
                 if e_filter is not None:
                     filter_edges[self.extra_edge_properties[i]] = e_filter
 
-            cyto_elements, calendar_info = self.network_to_cyto(filter_nodes, filter_edges)
+            cyto_elements, calendar_info = self.network_to_cyto(filter_nodes, filter_edges, input_show_inactive)
             return {'name': layout}, cyto_elements, pd.DataFrame(calendar_info).to_dict('records')
 
         @self.app.callback(
-            Callback.Output("network_cyto", "generateImage"),
+            Callback.Output("cytoscape_network", "generateImage"),
             [
                 Callback.Input("btn-download", "n_clicks")
-            ])
-        def get_image(btn_clicks):
+            ],
+            Callback.State("cytoscape_network", "imageData")
+        )
+        def get_image(btn_clicks, image_data):
             # File type to ouput of 'svg, 'png', 'jpg', or 'jpeg' (alias of 'jpg')
             ftype = 'svg'
             # 'store': Stores the image data in 'imageData' !only jpg/png are supported
@@ -167,16 +260,17 @@ class NetworkExplorer(BaseWidget):
             action = 'download'
             if btn_clicks is None:
                 raise PreventUpdate
-
             return {
                 'type': ftype,
-                'action': action
+                'action': action,
+                'filename': "export"
             }
 
-    def network_to_cyto(self, nodes_filter={}, edges_filter={}):
+    def network_to_cyto(self, nodes_filter={}, edges_filter={}, show_inactive=False):
         elements = []
         list_of_ids = nodes_filter.get('id', [n for n in self.network.data.nodes()])
         analysis_dict = []
+        number_of_clusters = self.network.number_of_clusters or 1
         for node1, node2, edge_key, edge_info in self.network.iterate_over_games():
             if all(node not in list_of_ids for node in [node1, node2]):
                 continue
@@ -202,30 +296,35 @@ class NetworkExplorer(BaseWidget):
                         "id": node1,
                         "label": f"{self.network.data.nodes[node1].get('name', node1)}",
                     },
+                    "classes": f"cluster{node1 % number_of_clusters}"
                 },
                 {
                     "data": {
                         "id": node2,
                         "label": f"{self.network.data.nodes[node1].get('name', node2)}",
                     },
+                    "classes": f"cluster{node2 % number_of_clusters}"
                 },
             ]
-            elements += [
-                {
-                    "data": {
-                        "id": f"{node2}_{node1}_{edge_info['season']}_{edge_info['round']}",
-                        "source": node2, "target": node1
-                    },
-                    "classes": f"Season {(edge_info['season'])}, Round {edge_info['round']}"
-                }
-            ]
-            analysis_dict.append({
-                "HomeTeam": self.network.data.nodes[node2].get("name", node2),
-                "AwayTeam": self.network.data.nodes[node1].get("name", node1),
-                "Season": edge_info.get('season', None),
-                "Round": edge_info.get('round', None),
-                "Result": edge_info.get('winner', None),
-            })
+            if (edge_info.get('state', 'active') == 'active') or show_inactive:
+                elements += [
+                    {
+                        "data": {
+                            "id": f"{node2}_{node1}_{edge_info['season']}_{edge_info['round']}",
+                            "label": "",
+                            "source": node2, "target": node1
+                        },
+                        "classes": edge_info.get('state', 'active')
+                    }
+                ]
+                analysis_dict.append({
+                    "HomeTeam": self.network.data.nodes[node2].get("name", node2),
+                    "AwayTeam": self.network.data.nodes[node1].get("name", node1),
+                    "Season": edge_info.get('season', None),
+                    "Round": edge_info.get('round', None),
+                    "Result": edge_info.get('winner', None),
+                    "State": edge_info.get('state', 'active')
+                })
         return elements, analysis_dict
 
     def data_filter_layout(self):
@@ -284,7 +383,7 @@ class NetworkExplorer(BaseWidget):
                                    dbc.Col(html.P("Team id: "), width=2),
                                    dbc.Col(
                                        dcc.Dropdown(
-                                           id=f"nodes_options_id",
+                                           id="nodes_options_id",
                                            options=[
                                                {
                                                    "label": f"Team {v}", "value": v
