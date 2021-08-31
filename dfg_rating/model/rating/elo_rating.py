@@ -13,10 +13,10 @@ class ELORating(BaseRating):
         self.rating_name = kwargs.get('rating_name', 'elo_rating')
         if elo_trained:
             self.settings = {
-                "c": kwargs.get("param.c", 10.0),
-                "d": kwargs.get("param.d", 400.0),
-                "k": kwargs.get("param.k", 14.0),
-                "w": kwargs.get("param.w", 80)
+                "c": kwargs.get("param_c", 10.0),
+                "d": kwargs.get("param_d", 400.0),
+                "k": kwargs.get("param_k", 14.0),
+                "w": kwargs.get("param_w", 80)
             }
 
     def init_ratings(self, team, season, n, ratings):

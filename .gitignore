@@ -541,3 +541,8 @@ fabric.properties
 
 #Private config files
 database.ini
+
+#Large data files
+/experiments/scripts/Cluster_results/
+/experiments/scripts/Degree_results/
+/experiments/scripts/Density_results/

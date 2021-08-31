@@ -345,6 +345,25 @@ class BaseNetwork(ABC):
         }
         return ratings_value_list
 
+    def degree(self, filter_active=False):
+        if filter_active:
+            subgraph = nx.MultiDiGraph(
+                ((source, target, key) for source, target, key, attr in self.data.edges(keys=True, data=True) if attr.get('state', 'active') == 'active')
+            )
+            return subgraph.degree()
+        else:
+            return self.data.degree()
+
+    def density(self, filter_active=False):
+        if filter_active:
+            subgraph = nx.MultiDiGraph(
+                ((source, target, key) for source, target, key, attr in self.data.edges(keys=True, data=True) if attr.get('state', 'active') == 'active')
+            )
+            return nx.density(subgraph)
+        else:
+            return nx.density(self.data)
+
+
 
     def export(self, **kwargs):
         print("Export network")
@@ -387,7 +406,7 @@ class BaseNetwork(ABC):
         df.to_csv(file_name, index=False)
 
     @abstractmethod
-    def add_rating(self, new_rating, rating_name):
+    def add_rating(self, rating, rating_name):
         pass
 
     @abstractmethod

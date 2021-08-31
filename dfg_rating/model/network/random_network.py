@@ -45,7 +45,7 @@ class ConfigurationModelNetwork(RoundRobinNetwork):
             self.variance_away_matches,
             total_sum=home_sequence.sum()
         )
-        directed_conf_model = nx.directed_configuration_model(home_sequence, away_sequence, create_using=DiGraph)
+        directed_conf_model = nx.directed_configuration_model(home_sequence, away_sequence)
         for match in self.data.edges(keys=True):
             if directed_conf_model.has_edge(match[0], match[1]):
                 self.data.edges[match]["state"] = "active"
@@ -54,7 +54,7 @@ class ConfigurationModelNetwork(RoundRobinNetwork):
 
     def create_degree_sequence(self, expected, variance, total_sum=None):
         sequence = np.random.default_rng().integers(
-            low=expected - variance,
+            low=(expected - variance) if expected >= variance else 0,
             high=expected + variance + 1,
             size=self.n_teams
         )
@@ -62,8 +62,7 @@ class ConfigurationModelNetwork(RoundRobinNetwork):
             while sequence.sum() != total_sum:
                 diff = total_sum - sequence.sum()
                 random_index = np.random.randint(low=0, high=len(sequence))
-                if diff + sequence[random_index] > 0:
-                    sequence[random_index] += diff
+                sequence[random_index] += 1 if diff > 0 else -1
         return sequence
 
 
@@ -85,6 +84,3 @@ class ClusteredNetwork(RoundRobinNetwork):
                     edge_probability = self.in_probability if u_cluster == v_cluster else self.out_probability
                     self.data.edges[u, v, 0][
                         'state'] = 'active' if random.random() < edge_probability else 'inactive'
-
-
-

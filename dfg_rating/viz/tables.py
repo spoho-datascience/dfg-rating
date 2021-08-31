@@ -57,9 +57,9 @@ def bettings_tables(df):
     )
 
 
-def calendar_table(df):
+def calendar_table(df, forecasts=False):
     return dash_table.DataTable(
-        id="kalender-table",
+        id="kalender-table" + ("full" if forecasts else ""),
         columns=[
             {"name": ["Match", "HomeTeam"], "id": "HomeTeam"},
             {"name": ["Match", "AwayTeam"], "id": "AwayTeam"},
@@ -67,7 +67,7 @@ def calendar_table(df):
             {"name": ["Match", "Round"], "id": "Round"},
             {"name": ["Match", "Result"], "id": "Result"},
             {"name": ["Match", "State"], "id": "State"},
-        ],
+        ] + [{"name": ["Match", i], "id": i, 'type': 'numeric', 'format': {'specifier': '.2f'}} for i in df.columns if '#' in i],
         merge_duplicate_headers=True,
         data=df.to_dict('records'),
         style_header={
@@ -98,9 +98,9 @@ def calendar_table(df):
 def ratings_table(ratings_dict, season=0):
     df_data = []
     ratings_list = set([])
-    first_proc = True
     conditional_styles = []
     for team, team_ratings in ratings_dict.items():
+        ratings_list = set([])
         for rating, rating_values in team_ratings.items():
             if rating not in ['hyper_parameters']:
                 ratings_list.add(rating)
@@ -108,23 +108,22 @@ def ratings_table(ratings_dict, season=0):
                     "Team": team,
                     "Id": rating
                 }
+
                 previous_value = 1000.00
                 for round_id, round_value in enumerate(rating_values[season]):
                     new_rating[f"#{round_id + 1}"] = round_value
-                    if (rating != "true_rating") and first_proc:
+                    if rating == "elo_rating_1d7":
                         if round_id > 0:
                             if round_value != previous_value:
                                 conditional_styles.append({
                                     'if': {
-                                        'filter_query': '{{Id}} = "elo_rating" && {{Team}} = {}'.format(team),
+                                        'filter_query': '{{Id}} = "elo_rating_17" && {{Team}} = {}'.format(team),
                                         'column_id': f"#{round_id + 1}"
                                     },
                                     'backgroundColor': '#3D9970',
                                     'color': 'white'
                                 })
                     previous_value = round_value
-
-                first_proc = rating == "true_rating"
                 df_data.append(new_rating)
     ratings_df = pd.DataFrame(df_data)
     export_df = ratings_df.to_dict('records')
@@ -156,8 +155,78 @@ def ratings_table(ratings_dict, season=0):
 
 
 def network_metrics(n: BaseNetwork):
-    graph = n.data.edge_subgraph([(edge[0], edge[1], edge[2]) for edge in n.data.edges(keys=True, data=True) if edge[3]['state'] == 'active'])
     layout = html.Div([
-        dbc.Row(html.Div(f"Network density: {nx.density(graph)}")),
-    ] + [dbc.Row(html.Div(f"Node {node}: {d}")) for node, d in graph.degree()])
+        dbc.Row(html.Div(f"Network density: {n.density(True)}")),
+    ] + [dbc.Row(html.Div(f"Node {node}: {d}")) for node, d in n.degree(True)])
     return layout
+
+
+def evaluation_table(df):
+    return dash_table.DataTable(
+        id="evaluation_table",
+        columns=[{"name": i, "id": i} for i in df.columns],
+        merge_duplicate_headers=True,
+        data=df.to_dict('records'),
+        style_header={
+            'backgroundColor': 'white',
+            'fontWeight': 'bold',
+        },
+        style_cell={
+            'textAlign': 'left',
+            'whiteSpace': 'pre-line',
+            'height': 'auto',
+        },
+        sort_action='native',
+        page_size=20,
+        page_action='native',
+        filter_action='native'
+    )
+
+
+def get_evaluation(network: BaseNetwork, k, abs=True, evaluators=[], **kwargs):
+    rating_name = f"elo_rating_{k}"
+    forecast_name = f"elo_forecast_{k}"
+    analysis_data = []
+    for node1, node2, edge_key, edge_info in filter(lambda match: match[3].get('state', 'active') == 'active', network.iterate_over_games()):
+        if edge_info.get('state', 'active') == 'active':
+            tf = edge_info.get('forecasts', {}).get('true_forecast')
+            tf_tuple = "-".join([f"{outcome:.2f}" for outcome in tf.probabilities])
+            cf = edge_info.get('forecasts', {}).get(forecast_name)
+            cf_tuple = "-".join([f"{outcome:.2f}" for outcome in cf.probabilities])
+            new_dict = {
+                "HomeTeam": network.data.nodes[node2].get("name", node2),
+                "AwayTeam": network.data.nodes[node1].get("name", node1),
+                "Season": edge_info.get('season', None),
+                "Round": edge_info.get('round', None),
+                "Result": edge_info.get('winner', None),
+                "TrueForecast": tf_tuple,
+                "CalculatedForecast": cf_tuple,
+                "ELO_Rating_K": k,
+            }
+            for key, value in kwargs.items():
+                new_dict[key] = value
+            for e in evaluators:
+                evaluator_name = f"{rating_name}_{e}"
+                new_dict[e] = edge_info.get('metrics', {}).get(evaluator_name, 0)
+            if abs:
+                round_pointer = edge_info.get('round', 0)
+                home_true = network.data.nodes[node2].get(
+                    'ratings', {}
+                ).get('true_rating', {}).get(0, [0])[round_pointer]
+                home_c = network.data.nodes[node2].get(
+                    'ratings', {}
+                ).get(rating_name, {}).get(0, [0])[round_pointer]
+                away_true = network.data.nodes[node1].get(
+                    'ratings', {}
+                ).get('true_rating', {}).get(0, [0])[round_pointer]
+                away_c = network.data.nodes[node1].get(
+                    'ratings', {}
+                ).get(rating_name, {}).get(0, [0])[round_pointer]
+                new_dict["HomeRating"] = home_true
+                new_dict['AwayRating'] = away_true
+                new_dict[f"Home_{rating_name[:-3]}"] = home_c
+                new_dict[f"Away_{rating_name[:-3]}"] = away_c
+            analysis_data.append(new_dict)
+    return analysis_data
+
+
