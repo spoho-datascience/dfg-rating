@@ -4,7 +4,7 @@ import numpy as np
 import networkx as nx
 import pandas as pd
 from abc import ABC, abstractmethod
-from typing import NewType
+from typing import NewType, Tuple, List
 
 from dfg_rating.model.betting.betting import BaseBetting
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
@@ -329,15 +329,16 @@ class BaseNetwork(ABC):
             forecasts_list += [f for f in self.data.edges[edge].get('forecasts', {}).keys() if f not in forecasts_list]
         return forecasts_list
 
-    def add_evaluation(self, evaluator: Evaluator, evaluator_name: str):
+    def add_evaluation(self, evaluators_list: List[Tuple[Evaluator, str]]):
         for away_team, home_team, match_id, match_attributes in self.iterate_over_games():
-            correct, metric_value = evaluator.eval(match_attributes)
-            if correct:
-                self.data.edges[(away_team, home_team, match_id)].setdefault(
-                    'metrics', {}
-                )[evaluator_name] = metric_value
-            else:
-                print("Incorrect output for metric")
+            for evaluator, evaluator_name in evaluators_list:
+                correct, metric_value = evaluator.eval(match_attributes)
+                if correct:
+                    self.data.edges[(away_team, home_team, match_id)].setdefault(
+                        'metrics', {}
+                    )[evaluator_name] = metric_value
+                else:
+                    print(f"Incorrect output for metric {evaluator_name}")
 
     def export_ratings(self):
         ratings_value_list = {

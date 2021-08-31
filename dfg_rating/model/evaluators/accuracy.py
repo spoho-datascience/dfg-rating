@@ -39,6 +39,28 @@ class RankProbabilityScore(AccuracyEvaluator):
         return score
 
 
+class ProbabilityDifference(AccuracyEvaluator):
+
+    def _compute(self, observed, model) -> float:
+        return model[0] - model[-1]
+
+
+class ProbabilityPointer(AccuracyEvaluator):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.probability_pointer = kwargs.get('probability_index', 0)
+
+    def _compute(self, observed, model) -> float:
+        return model[self.probability_pointer]
+
+
+class FavouriteProbability(AccuracyEvaluator):
+
+    def _compute(self, observed, model) -> float:
+        return max(model[0], model[-1])
+
+
 class Likelihood(AccuracyEvaluator):
 
     def _compute(self, observed, model) -> float:
