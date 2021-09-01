@@ -49,8 +49,7 @@ class ProbabilityPointer(AccuracyEvaluator):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.probability_pointer = kwargs.get('probability_index', 1)
-
+        self.probability_pointer = kwargs.get('probability_index', 0)
     def _compute(self, observed, model) -> float:
         return model[self.probability_pointer]
 
