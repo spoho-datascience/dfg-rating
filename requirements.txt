@@ -1,20 +1,22 @@
 ansi2html==1.6.0
 anyio==2.2.0
-argon2-cffi==20.1.0
+argon2-cffi @ file:///tmp/build/80754af9/argon2-cffi_1613037492802/work
 astroid==2.4.2
 async-generator==1.10
-attrs==20.3.0
+attrs @ file:///tmp/build/80754af9/attrs_1604765588209/work
 autopep8==1.5.3
 Babel==2.9.0
-backcall==0.2.0
-bleach==3.3.0
+backcall @ file:///home/ktietz/src/ci/backcall_1611930011877/work
+bleach @ file:///tmp/build/80754af9/bleach_1612211392645/work
 Brotli==1.0.9
 certifi==2020.6.20
-cffi==1.14.5
+cffi @ file:///tmp/build/80754af9/cffi_1613246439577/work
 chardet==4.0.0
 click==7.1.2
 colorama==0.4.4
+configuration-model-mcmc==0.0.6
 contextvars==2.4
+cycler==0.10.0
 dash==1.20.0
 dash-bootstrap-components==0.10.7
 dash-core-components==1.16.0
@@ -24,9 +26,9 @@ dash-html-components==1.1.3
 dash-renderer==1.9.1
 dash-table==4.11.3
 dataclasses==0.8
-decorator==4.4.2
-defusedxml==0.7.1
--e git+git@github.com:marcgarnica13/dfg-rating.git@9977f24e7ddb2cfbe728476d46a0f159fe95fa9d#egg=dfg_rating
+decorator @ file:///home/ktietz/src/ci/decorator_1611930055503/work
+defusedxml @ file:///tmp/build/80754af9/defusedxml_1615228127516/work
+-e git+git@github.com:marcgarnica13/dfg-rating.git@45ee84791fc938798eb6eb90b993e782529bd0d9#egg=dfg_rating
 entrypoints==0.3
 et-xmlfile==1.0.1
 Flask==1.1.2
@@ -35,82 +37,97 @@ future==0.18.2
 halo==0.0.31
 idna==2.10
 immutables==0.15
-importlib-metadata==3.10.0
+importlib-metadata @ file:///tmp/build/80754af9/importlib-metadata_1617877310517/work
 ipykernel==5.5.3
-ipython==7.16.1
-ipython-genutils==0.2.0
+ipython @ file:///tmp/build/80754af9/ipython_1593447367857/work
+ipython-genutils @ file:///tmp/build/80754af9/ipython_genutils_1606773439826/work
+ipywidgets @ file:///tmp/build/80754af9/ipywidgets_1610481889018/work
 isort==4.3.21
 itsdangerous==1.1.0
 jdcal==1.4.1
 jedi==0.17.2
-Jinja2==2.11.2
+Jinja2 @ file:///home/linux1/recipes/ci/jinja2_1610990516718/work
 joblib==0.17.0
 json5==0.9.5
-jsonschema==3.2.0
-jupyter-client==6.1.12
-jupyter-core==4.7.1
+jsonschema @ file:///tmp/build/80754af9/jsonschema_1602607155483/work
+jupyter==1.0.0
+jupyter-client @ file:///tmp/build/80754af9/jupyter_client_1616770841739/work
+jupyter-console @ file:///tmp/build/80754af9/jupyter_console_1616615302928/work
+jupyter-core @ file:///tmp/build/80754af9/jupyter_core_1612213308682/work
 jupyter-dash==0.4.0
 jupyter-packaging==0.7.12
 jupyter-server==1.5.1
 jupyterlab==3.0.12
 jupyterlab-pygments==0.1.2
 jupyterlab-server==2.4.0
+jupyterlab-widgets @ file:///tmp/build/80754af9/jupyterlab_widgets_1609884341231/work
+kiwisolver==1.3.1
 lazy-object-proxy==1.4.3
+llvmlite==0.32.1
 log-symbols==0.0.14
 MarkupSafe==1.1.1
+matplotlib==3.3.4
 mccabe==0.6.1
 mistune==0.8.4
 nbclassic==0.2.6
 nbclient==0.5.3
 nbconvert==6.0.7
-nbformat==5.1.3
+nbformat @ file:///tmp/build/80754af9/nbformat_1617383369282/work
 nest-asyncio==1.5.1
 networkx==2.4
-notebook==6.3.0
+notebook @ file:///tmp/build/80754af9/notebook_1616443456543/work
+numba==0.49.1
 numpy==1.19.0
 openpyxl==3.0.6
-packaging==20.9
+packaging @ file:///tmp/build/80754af9/packaging_1611952188834/work
 pandas==1.1.4
-pandocfilters==1.4.3
-parso==0.7.1
-pexpect==4.8.0
-pickleshare==0.7.5
+pandocfilters @ file:///tmp/build/80754af9/pandocfilters_1605120937332/work
+parso @ file:///tmp/build/80754af9/parso_1617223946239/work
+patsy==0.5.1
+pexpect @ file:///tmp/build/80754af9/pexpect_1605563209008/work
+pickleshare @ file:///tmp/build/80754af9/pickleshare_1606932040724/work
+Pillow==8.3.1
 plotly==4.12.0
-prometheus-client==0.10.0
+prometheus-client @ file:///tmp/build/80754af9/prometheus_client_1623189609245/work
 prompt-toolkit==3.0.18
 psycopg2-binary==2.8.6
-ptyprocess==0.7.0
+ptyprocess @ file:///tmp/build/80754af9/ptyprocess_1609355006118/work/dist/ptyprocess-0.7.0-py2.py3-none-any.whl
 pycodestyle==2.6.0
-pycparser==2.20
-Pygments==2.8.1
+pycparser @ file:///tmp/build/80754af9/pycparser_1594388511720/work
+Pygments @ file:///tmp/build/80754af9/pygments_1615143339740/work
 pylint==2.5.3
-pyparsing==2.4.7
-pyrsistent==0.17.3
-python-dateutil==2.8.1
+pyparsing @ file:///home/linux1/recipes/ci/pyparsing_1610983426697/work
+pyrsistent @ file:///tmp/build/80754af9/pyrsistent_1600141725711/work
+python-dateutil @ file:///home/ktietz/src/ci/python-dateutil_1611928101742/work
 pytz==2020.4
-pyzmq==22.0.3
+pyzmq @ file:///tmp/build/80754af9/pyzmq_1628268400816/work
+qtconsole @ file:///tmp/build/80754af9/qtconsole_1623278325812/work
+QtPy @ file:///tmp/build/80754af9/qtpy_1629397026935/work
 requests==2.25.1
 retrying==1.3.3
 scikit-learn==0.23.2
 scipy==1.5.3
-Send2Trash==1.5.0
-six==1.15.0
+Send2Trash @ file:///tmp/build/80754af9/send2trash_1607525499227/work
+six @ file:///home/linux1/recipes/ci/six_1610970791821/work
 sklearn==0.0
 sniffio==1.2.0
 spinners==0.0.24
+statsmodels==0.12.2
 termcolor==1.1.0
 terminado==0.9.4
-testpath==0.4.4
+testpath @ file:///home/ktietz/src/ci/testpath_1611930608132/work
 threadpoolctl==2.1.0
 toml==0.10.1
-tornado==6.1
+tornado @ file:///tmp/build/80754af9/tornado_1606942266872/work
+tqdm==4.62.0
 traitlets==4.3.3
 typed-ast==1.4.1
-typing-extensions==3.7.4.3
+typing-extensions @ file:///tmp/build/80754af9/typing_extensions_1611751222202/work
 urllib3==1.26.4
-wcwidth==0.2.5
+wcwidth @ file:///tmp/build/80754af9/wcwidth_1593447189090/work
 webencodings==0.5.1
 Werkzeug==1.0.1
+widgetsnbextension==3.5.1
 wrapt==1.12.1
 xlrd==2.0.1
-zipp==3.4.1
+zipp @ file:///tmp/build/80754af9/zipp_1615904174917/work
