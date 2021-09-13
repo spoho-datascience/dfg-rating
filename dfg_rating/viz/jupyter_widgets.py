@@ -297,14 +297,14 @@ class NetworkExplorer(BaseWidget):
                         "id": node1,
                         "label": f"{self.network.data.nodes[node1].get('name', node1)}",
                     },
-                    "classes": f"cluster{node1 % number_of_clusters}"
+                    "classes": f"cluster{node1}"
                 },
                 {
                     "data": {
                         "id": node2,
                         "label": f"{self.network.data.nodes[node1].get('name', node2)}",
                     },
-                    "classes": f"cluster{node2 % number_of_clusters}"
+                    "classes": f"cluster{node2}"
                 },
             ]
             if (edge_info.get('state', 'active') == 'active') or show_inactive:

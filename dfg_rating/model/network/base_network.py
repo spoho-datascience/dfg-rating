@@ -1,3 +1,4 @@
+import json
 from copy import deepcopy
 from datetime import date
 import numpy as np
@@ -117,7 +118,7 @@ class BaseNetwork(ABC):
                             f"Rating <{rating}> for team {team}: > {self.data.nodes[team].get('ratings', {}).get(rating, {})}")
 
     def iterate_over_games(self):
-        return sorted(self.data.edges(keys=True, data=True), key=lambda t: (t[3].get('day', 0)))
+        return sorted(self.data.edges(keys=True, data=True), key=lambda t: (int(t[3].get('day', 0))))
 
     def play_sub_network(self, games):
         for away_team, home_team, edge_key, edge_attributes in games:
@@ -188,10 +189,21 @@ class BaseNetwork(ABC):
 
     def serialize_network(self, network_name):
         serialized_network = {}
-        matches, forecasts = self._serialize_matches(network_name)
-        serialized_network['networks'] = [{"network_name": network_name, "network_type": self.type}]
+        matches, forecasts, odds, bets, metrics = self._serialize_matches(network_name)
+        serialized_network['networks'] = [
+            {
+                "network_name": network_name,
+                "network_type": self.type,
+                "seasons": self.seasons,
+                "days_between_rounds": self.days_between_rounds,
+                "rounds": self.n_rounds
+            },
+        ]
         serialized_network['matches'] = matches
         serialized_network['forecasts'] = forecasts
+        serialized_network['odds'] = odds
+        serialized_network['bets'] = bets
+        serialized_network['metrics'] = metrics
         serialized_network['ratings'] = self._serialize_ratings(network_name)
         return serialized_network
 
@@ -221,28 +233,46 @@ class BaseNetwork(ABC):
                 new_forecast = {
                     "forecast_name": f_name,
                     "network_name": network_name,
-                    "match_id": new_match['match_id']
+                    "match_id": new_match['match_id'],
+                    "attributes": {}
                 }
                 for i in range(len(f.outcomes)):
-                    new_forecast[f"probability_{f.outcomes[i]}"] = f.probabilities[i]
+                    new_forecast["attributes"][f"probability_{f.outcomes[i]}"] = f.probabilities[i]
+                new_forecast["attributes"] = json.dumps(new_forecast["attributes"])
                 forecasts.append(new_forecast)
             for odd, values in edge_attributes.get('odds', {}).items():
                 new_odd = {
-                    "name": odd
+                    "network_name": network_name,
+                    "bookmaker_name": odd,
+                    "match_id": new_match['match_id'],
+                    "attributes": {}
                 }
                 for i, value in enumerate(values):
-                    new_odd[f"value_{i}"] = value
+                    new_odd["attributes"][f"value_{i}"] = value
+                new_odd["attributes"] = json.dumps(new_odd["attributes"])
                 odds.append(new_odd)
             for bet, values in edge_attributes.get('bets', {}).items():
                 new_bet = {
-                    "name": bet
+                    "bettor_name": bet,
+                    "network_name": network_name,
+                    "match_id": new_match['match_id'],
+                    "attributes": {}
                 }
                 for i, value in enumerate(values):
-                    new_bet[f"value_{i}"] = value
+                    new_bet["attributes"][f"value_{i}"] = value
+                new_bet["attributes"] = json.dumps(new_bet["attributes"])
                 bets.append(new_bet)
+            for metric, values in edge_attributes.get('metrics', {}).items():
+                new_metric = {
+                    "metric_name": metric,
+                    "network_name": network_name,
+                    "match_id": new_match['match_id'],
+                    "attributes": json.dumps(values)
+                }
+                metrics.append(new_metric)
             matches.append(new_match)
 
-        return matches, forecasts
+        return matches, forecasts, odds, bets, metrics
 
     def _serialize_ratings(self, network_name):
         all_ratings = []
@@ -272,45 +302,49 @@ class BaseNetwork(ABC):
                             all_ratings.append(new_rating)
         return all_ratings
 
-    def deserialize_network(self, matches, forecasts, ratings):
+    def deserialize_network(self, rounds, seasons, days, matches, forecasts, ratings, odds, bets, metrics):
         graph = nx.MultiDiGraph()
-        max_season = 0
-        max_round = 0
-        max_day = 1
+        self.n_rounds = rounds
+        self.seasons = seasons
+        self.days_between_rounds = days
         for m in matches:
             edge_dict = {key: value for key, value in m.items()}
-            max_day = edge_dict['day'] if edge_dict['round'] > max_round else max_day
-            max_round = edge_dict['round'] if edge_dict['round'] > max_round else max_round
-            max_season = edge_dict['season'] if edge_dict['season'] > max_round else max_round
             match_forecasts = [f for f in forecasts if f['match_id'] == m['match_id']]
             for f in match_forecasts:
+                f_attributes = f['attributes']
                 edge_dict.setdefault('forecasts', {})[f['forecast_name']] = SimpleForecast(
                     outcomes=['home', 'draw', 'away'],
-                    probs=[f['probability_home'], f['probability_draw'], f['probability_away']]
+                    probs=[f_attributes['probability_home'], f_attributes['probability_draw'], f_attributes['probability_away']]
                 )
-            graph.add_edge(m['away_team'], m['home_team'], **edge_dict)
+            for o in [match_odds for match_odds in odds if match_odds['match_id'] == m['match_id']]:
+                edge_dict.setdefault('odds', {})[o['bookmaker_name']] = [v for v in o['attributes'].values()]
+            for b in [match_bets for match_bets in bets if match_bets['match_id'] == m['match_id']]:
+                edge_dict.setdefault('bets', {})[b['bettor_name']] = [v for v in b['attributes'].values()]
+            for metric in [match_metrics for match_metrics in metrics if match_metrics['match_id'] == m['match_id']]:
+                edge_dict.setdefault('metrics', {})[metric['metric_name']] = [
+                    v for v in metric['attributes'].values()
+                ] if (type(metric["attributes"]) == dict) else metric["attributes"]
+            graph.add_edge(m['node1'], m['node2'], **edge_dict)
+        print(graph.nodes)
         for r in ratings:
-            graph.nodes[int(r['team_id'])]['name'] = r['team_name']
-            ratings_object = graph.nodes[int(r['team_id'])].setdefault(
+            graph.nodes[r['node_id']]['name'] = r['node_name']
+            ratings_object = graph.nodes[r['node_id']].setdefault(
                 'ratings', {}
             ).setdefault(r['rating_name'], {})
             ratings_object.setdefault(
-                int(r['season']), []
+                r['season'], []
             ).append(r['value'])
 
-            graph.nodes[int(r['team_id'])].setdefault(
+            graph.nodes[r['node_id']].setdefault(
                 'ratings', {}
             ).setdefault(
                 'hyper_parameters', {}
             ).setdefault(
                 r['rating_name'], {}
             ).setdefault(
-                int(r['season']), {"trends": [r['trend']], "starting_points": [r['starting_point']]}
+                r['season'], {"trends": [r['trend']], "starting_points": [r['starting_point']]}
             )
         self.data = graph
-        self.n_rounds = max_round + 1
-        self.seasons = max_season + 1
-        self.days_between_rounds = max_day / self.n_rounds
 
     def get_number_of_teams(self):
         return len(self.data.nodes)

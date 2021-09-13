@@ -1,6 +1,9 @@
 CREATE TABLE networks (
     network_name VARCHAR(255) PRIMARY KEY,
-    network_type VARCHAR(255)
+    network_type VARCHAR(255),
+    seasons INTEGER,
+    rounds INTEGER,
+    days_between_rounds INTEGER
 );
 
 CREATE TABLE matches (
@@ -21,9 +24,7 @@ CREATE TABLE forecasts (
     forecast_name VARCHAR(255) NOT NULL,
     network_name VARCHAR(255) NOT NULL,
     match_id VARCHAR(255) NOT NULL,
-    probability_home REAL,
-    probability_draw REAL,
-    probability_away REAL,
+    attributes JSONB,
     PRIMARY KEY(forecast_name, network_name, match_id),
     FOREIGN KEY (match_id)
     REFERENCES matches (match_id)
@@ -47,4 +48,46 @@ CREATE TABLE ratings (
     FOREIGN KEY (network_name)
     REFERENCES networks (network_name)
     ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE odds (
+   bookmaker_name VARCHAR(255) NOT NULL,
+   network_name VARCHAR(255) NOT NULL,
+   match_id VARCHAR(255) NOT NULL,
+   attributes JSONB,
+   PRIMARY KEY(bookmaker_name, network_name, match_id),
+   FOREIGN KEY (match_id)
+       REFERENCES matches (match_id)
+       ON UPDATE CASCADE ON DELETE CASCADE,
+   FOREIGN KEY (network_name)
+       REFERENCES networks (network_name)
+       ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE bets (
+      bettor_name VARCHAR(255) NOT NULL,
+      network_name VARCHAR(255) NOT NULL,
+      match_id VARCHAR(255) NOT NULL,
+      attributes JSONB,
+      PRIMARY KEY(bettor_name, network_name, match_id),
+      FOREIGN KEY (match_id)
+          REFERENCES matches (match_id)
+          ON UPDATE CASCADE ON DELETE CASCADE,
+      FOREIGN KEY (network_name)
+          REFERENCES networks (network_name)
+          ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE metrics (
+      metric_name VARCHAR(255) NOT NULL,
+      network_name VARCHAR(255) NOT NULL,
+      match_id VARCHAR(255) NOT NULL,
+      attributes JSONB,
+      PRIMARY KEY(metric_name, network_name, match_id),
+      FOREIGN KEY (match_id)
+          REFERENCES matches (match_id)
+          ON UPDATE CASCADE ON DELETE CASCADE,
+      FOREIGN KEY (network_name)
+          REFERENCES networks (network_name)
+          ON UPDATE CASCADE ON DELETE CASCADE
 );

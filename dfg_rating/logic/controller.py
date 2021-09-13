@@ -207,8 +207,9 @@ class Controller:
         )
         return 1, "Network loaded correctly"
 
-    def load_network_from_sql(self, network_name: str):
-        if network_name in self.networks:
+    def load_network_from_sql(self, network_name: str, new_network_name=None):
+        new_network_name = new_network_name or network_name
+        if new_network_name in self.networks:
             return 0, f"Network <{network_name}> already exists"
         self.db.connect()
         db_networks = self.db.execute_query(
@@ -218,15 +219,33 @@ class Controller:
         matches = self.db.execute_query(query=f"SELECT * FROM public.matches m WHERE m.network_name = '{network_name}'")
         forecasts = self.db.execute_query(
             query=f"SELECT * FROM public.forecasts f WHERE f.network_name = '{network_name}'")
+        odds = self.db.execute_query(
+            query=f"SELECT * FROM public.odds o WHERE o.network_name = '{network_name}'")
+        bets = self.db.execute_query(
+            query=f"SELECT * FROM public.bets b WHERE b.network_name = '{network_name}'")
+        metrics = self.db.execute_query(
+            query=f"SELECT * FROM public.metrics m WHERE m.network_name = '{network_name}'")
         ratings = self.db.execute_query(query=f"SELECT * FROM public.ratings r WHERE r.network_name = '{network_name}'")
+        print(f"Total of {len(matches)} matches.")
+        print(f"Total of {len(forecasts)} forecasts.")
+        print(f"Total of {len(ratings)} ratings.")
+        print(f"Total of {len(odds)} odds.")
+        print(f"Total of {len(bets)} bets.")
+        print(f"Total of {len(metrics)} metrics.")
         for network in db_networks:
             self.networks.setdefault(
-                network['network_name'],
-                factory.new_network(network['network_type'])
+                new_network_name,
+                factory.new_network(network['network_type'], create=False, play=False),
             ).deserialize_network(
+                network['seasons'],
+                network['rounds'],
+                network['days_between_rounds'],
                 matches=matches,
                 forecasts=forecasts,
-                ratings=ratings
+                ratings=ratings,
+                odds=odds,
+                bets=bets,
+                metrics=metrics
             )
         return 1, "Network loaded correctly"
 
@@ -236,6 +255,7 @@ class Controller:
         self.db.connect()
         serialized_network = self.networks[network_name].serialize_network(network_name)
         for table, table_rows in serialized_network.items():
+            print(table, len(table_rows))
             if len(table_rows) > 0:
                 columns = table_rows[0].keys()
                 query_string = f"INSERT INTO {table}({','.join(columns)}) VALUES %s ON CONFLICT DO NOTHING"
