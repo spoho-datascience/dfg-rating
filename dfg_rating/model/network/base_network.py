@@ -12,6 +12,8 @@ from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
 from dfg_rating.model.evaluators.base_evaluators import Evaluator
 from dfg_rating.model.forecast.base_forecast import BaseForecast, SimpleForecast
 
+from tqdm import tqdm
+
 TeamId = NewType('TeamId', int)
 
 
@@ -307,7 +309,7 @@ class BaseNetwork(ABC):
         self.n_rounds = rounds
         self.seasons = seasons
         self.days_between_rounds = days
-        for m in matches:
+        for m in tqdm(matches, leave=False):
             edge_dict = {key: value for key, value in m.items()}
             match_forecasts = [f for f in forecasts if f['match_id'] == m['match_id']]
             for f in match_forecasts:

@@ -7,7 +7,7 @@ CREATE TABLE networks (
 );
 
 CREATE TABLE matches (
-    match_id VARCHAR(255) PRIMARY KEY,
+    match_id VARCHAR(255),
     network_name VARCHAR(255) NOT NULL,
     node1 VARCHAR(255) NOT NULL,
     node2 VARCHAR(255) NOT NULL,
@@ -15,6 +15,7 @@ CREATE TABLE matches (
     round VARCHAR(255) NOT NULL,
     day INTEGER NOT NULL,
     winner VARCHAR(255),
+    PRIMARY KEY(match_id, network_name),
     FOREIGN KEY (network_name)
     REFERENCES networks (network_name)
     ON UPDATE CASCADE ON DELETE CASCADE
