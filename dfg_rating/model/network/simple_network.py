@@ -17,7 +17,7 @@ class RoundRobinNetwork(BaseNetwork):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(f"{kwargs.get('extra_type', '')}-round-robin", **kwargs)
+        super().__init__(f"{kwargs.get('extra_type', '')}round-robin", **kwargs)
         if kwargs.get('create', True):
             self.create_data()
         if kwargs.get('play', True):

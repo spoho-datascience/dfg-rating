@@ -18,7 +18,7 @@ class LeagueNetwork(RoundRobinNetwork):
     """
 
     def __init__(self, **kwargs):
-        kwargs['extra_type'] = 'multiple'
+        kwargs['extra_type'] = 'multiple-'
         kwargs['play'] = False
         pre_create = kwargs.get('create', True)
         kwargs['create'] = False
