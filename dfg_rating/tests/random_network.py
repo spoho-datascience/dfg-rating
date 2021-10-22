@@ -24,8 +24,8 @@ from dfg_rating.viz.tables import get_evaluation
 np.random.seed(1234)"""
 
 #n = 12
-r = 99
-d = 0.02
+r = 98
+d = 1
 n = int(math.ceil((r / (2 * d)) + 1))
 if (n%2) != 0:
     n += 1
