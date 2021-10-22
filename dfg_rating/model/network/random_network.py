@@ -24,6 +24,26 @@ class RandomNetwork(RoundRobinNetwork):
                         'state'] = 'active' if random.random() < self.edge_probability else 'inactive'
 
 
+class RandomRoundsNetwork(RoundRobinNetwork):
+
+    def __init__(self, **kwargs):
+        self.absolute_rounds = kwargs.get("absolute_rounds", 1)
+        super().__init__(**kwargs)
+
+    def fill_graph(self, team_labels=None, season=0):
+        super().fill_graph(team_labels, season)
+        selected_rounds = np.random.choice(self.n_rounds * 2, self.absolute_rounds, replace=False)
+        print("selected rounds: ", selected_rounds)
+        for u in range(self.n_teams):
+            for v in range(self.n_teams):
+                if u != v:
+                    edge_round = self.data.edges[u, v, season]['round']
+                    self.data.edges[u, v, season][
+                        'state'] = 'active' if edge_round in selected_rounds else 'inactive'
+
+
+
+
 class ConfigurationModelNetwork(RoundRobinNetwork):
     """
     Creates a system network that is mapped into a configuration model network

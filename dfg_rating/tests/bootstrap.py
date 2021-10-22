@@ -16,7 +16,7 @@ pd.set_option("display.max_columns", None)
 
 # %%
 experiment_df = pd.read_csv(
-    os.path.join("experiments", "scripts", "Density_results", "Monday, 09. August 2021 10:30AM.csv"))
+    os.path.join("..", "..", "experiments", "scripts", "Density_results", "Monday, 09. August 2021 10:30AM.csv"))
 
 
 # %%
@@ -25,7 +25,7 @@ def bootstrap(data, n_iter=9999):
     n = len(data)
     dist_bootstrapped = np.full(shape=n_iter, fill_value=np.nan)
     for i in tqdm(range(n_iter)):
-        resample = np.random.choice(data, size=n, replace=True)
+        resample = np.random.choice(data, size=int(n/100), replace=True)
         dist_bootstrapped[i] = np.mean(resample)
     quantiles = np.quantile(a=dist_bootstrapped, q=[0.025, 0.975])
     return quantiles[0], quantiles[1]
@@ -66,4 +66,4 @@ fig = go.Figure([
     )
 ])
 fig.update_yaxes(range=[0.1, 0.6])
-fig.write_html('fig.html')
+fig.write_html("fig.html")

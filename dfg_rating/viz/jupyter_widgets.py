@@ -14,7 +14,7 @@ import pandas as pd
 
 from dfg_rating.model.network.base_network import BaseNetwork
 from dfg_rating.viz import tables
-from dfg_rating.viz.charts import create_ratings_charts, publication_chart, avg_rating_chart, rating_metrics_chart
+from dfg_rating.viz.charts import create_ratings_charts, publication_chart, avg_rating_chart, rating_metrics_chart, teams_rating_chart
 
 
 class BaseWidget:
@@ -531,20 +531,32 @@ class RatingsExplorer(BaseWidget):
                         ),
 
                     ]
+                ),
+                dbc.Row(
+                    justify="center",
+                    children=[
+                        dbc.Col(
+                            children=dcc.Graph(id='teams-ratings'),
+                            width=6
+                        ),
+
+                    ]
                 )
             ],
             fluid=True
         )
 
     def configure_callbacks(self):
-        @self.app.callback(Callback.Output('ratings_chart', 'figure'),
+        @self.app.callback([Callback.Output('ratings_chart', 'figure'),
+                            Callback.Output('teams-ratings', 'figure')],
                            [Callback.Input('dropdown-teams', 'value'),
                             Callback.Input('dropdown-ratings', 'value'),
                             Callback.Input('from-season-input', 'value'),
                             Callback.Input('to-season-input', 'value')])
         def update_ratings_overview(teams, ratings, from_season, to_season):
             teams = teams or []
-            return create_ratings_charts(
+            ratings = ratings or ['true_rating']
+            ratings_chart_figure = create_ratings_charts(
                 self.main_network,
                 ratings=ratings,
                 seasons=[s - 1 for s in range(from_season, to_season + 1)],
@@ -552,6 +564,13 @@ class RatingsExplorer(BaseWidget):
                 show_trend=False,
                 selected_teams=teams
             )
+            teams_rating_figure = teams_rating_chart(
+                self.main_network,
+                rating=ratings[-1],
+                seasons=[s - 1 for s in range(from_season, to_season + 1)],
+                selected_teams=teams,
+            )
+            return ratings_chart_figure, teams_rating_figure
 
         @self.app.callback(
             Callback.Output('ratings_chart_print', 'figure'),

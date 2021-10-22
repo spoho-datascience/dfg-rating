@@ -28,7 +28,7 @@ dash-table==4.11.3
 dataclasses==0.8
 decorator @ file:///home/ktietz/src/ci/decorator_1611930055503/work
 defusedxml @ file:///tmp/build/80754af9/defusedxml_1615228127516/work
--e git+git@github.com:marcgarnica13/dfg-rating.git@45ee84791fc938798eb6eb90b993e782529bd0d9#egg=dfg_rating
+-e git+git@github.com:marcgarnica13/dfg-rating.git@3fa6d4f553166c4fc08f1832f10e1077957995d9#egg=dfg_rating
 entrypoints==0.3
 et-xmlfile==1.0.1
 Flask==1.1.2
@@ -87,7 +87,7 @@ patsy==0.5.1
 pexpect @ file:///tmp/build/80754af9/pexpect_1605563209008/work
 pickleshare @ file:///tmp/build/80754af9/pickleshare_1606932040724/work
 Pillow==8.3.1
-plotly==4.12.0
+plotly==5.3.1
 prometheus-client @ file:///tmp/build/80754af9/prometheus_client_1623189609245/work
 prompt-toolkit==3.0.18
 psycopg2-binary==2.8.6
@@ -113,6 +113,7 @@ sklearn==0.0
 sniffio==1.2.0
 spinners==0.0.24
 statsmodels==0.12.2
+tenacity==8.0.1
 termcolor==1.1.0
 terminado==0.9.4
 testpath @ file:///home/ktietz/src/ci/testpath_1611930608132/work

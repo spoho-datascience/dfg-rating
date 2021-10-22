@@ -440,6 +440,107 @@ def rating_metrics_chart(
     return fig
 
 
+def teams_rating_chart(
+        network: BaseNetwork,
+        rating: str,
+        seasons: [int] = None,
+        selected_teams: [int] = None
+):
+    if len(seasons) == 0:
+        seasons = range(network.seasons)
+    fig = go.Figure()
+    selected_teams = selected_teams or []
+    if len(selected_teams) > 0:
+        array_ratings = []
+        for t_i, team in enumerate(selected_teams):
+            total_rating_array = np.array([])
+            total_trend_x = np.array([])
+            total_trend_y = np.array([])
+            for season in seasons:
+                rating_array = network.data.nodes[team].get('ratings', {}).get(rating, {}).get(season, [])
+                total_rating_array = np.concatenate((total_rating_array, np.array(rating_array)))
+                rating_hp = network.data.nodes[team].get('ratings', {}).get("hyper_parameters", {}).get(rating, {}).get(
+                    season, {})
+                trend_x = np.array(range(len(rating_array)), dtype=np.float) + (len(rating_array) * season)
+                total_trend_x = np.concatenate((total_trend_x, trend_x))
+                to_zero_trend_x = np.array([i for i in range(len(trend_x))])
+                trend_y = to_zero_trend_x * rating_hp.get('trends', [0])[0] * network.days_between_rounds + \
+                          rating_hp.get('starting_points', [0])[0]
+                total_trend_y = np.concatenate((total_trend_y, trend_y))
+            array_ratings.append(total_rating_array)
+            fig.add_trace(go.Scatter(
+                x=[i for i in range(len(total_rating_array))],
+                y=total_rating_array,
+                mode='lines',
+                line=dict(
+                    color=px.colors.sequential.Greys[-((t_i*2) + 1)],
+                    width=3
+                ),
+                name=f"Team {chr(65 + t_i)}"
+            ))
+        np.save('economic_figure.npy', np.array(array_ratings))
+    fig.update_layout(
+        xaxis_title="League rounds",
+        yaxis_title="Rating value",
+        legend=dict(
+            font=dict(
+                family='Helvetica',
+                size=12,
+                color="Black"
+            ),
+            orientation='h',
+            bordercolor="Black",
+            borderwidth=2,
+            yanchor="bottom",
+            xanchor='right',
+            x=1,
+            y=1
+        )
+    )
+    font_dict = dict(
+        family='Times New Roman',
+        size=20,
+        color='black'
+    )
+    fig.update_layout(
+        font=font_dict,  # font formatting
+        plot_bgcolor='white',  # background color
+    )
+    fig.update_yaxes(
+        title_text='Rating',  # axis label
+        showgrid=False,
+        showline=True,
+        linecolor='black',  # line color
+        linewidth=2.4,  # line size
+        tickmode='auto',
+        ticklen=10,
+        tickfont=dict(
+            size=12
+        ),
+        tickvals=[i for i in range(100, 1501, 100)],
+        ticks='inside'
+    )
+    fig.update_xaxes(
+        title_text='Seasons',
+        showgrid=False,
+        rangemode='tozero',
+        showline=True,
+        linecolor='black',
+        linewidth=2.4,
+        tickmode='array',
+        ticklen=10,
+        tickfont=dict(
+            size=14
+        ),
+        tickvals=[i for i in range(0, 37 * 20, 37)],
+        ticktext=[f"Season {int(i / 37)}" for i in range(37, 37 * 20, 37)],
+        tickangle=0,
+        ticklabelposition="outside right",
+        ticks="inside"
+    )
+    return fig
+
+
 def create_rating_traces(network, team, rating, seasons):
     total_rating_array = np.array([])
     total_trend_x = np.array([])

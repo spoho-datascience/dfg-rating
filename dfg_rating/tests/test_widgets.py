@@ -17,7 +17,7 @@ np.random.seed(1234)
 
 rr_network = LeagueNetwork(
     teams=18,
-    seasons=20,
+    seasons=10,
     league_teams=18,
     league_promotion=0,
     days_between_rounds=3,
@@ -47,7 +47,7 @@ rps = RankProbabilityScore(
     outcomes=['home', 'draw', 'away'],
     forecast_name='elo_forecast'
 )
-rr_network.add_evaluation(rps, 'elo_rating')
+rr_network.add_evaluation([(rps, 'elo_rating')])
 
 """
 df = pd.read_csv('/home/marc/Development/dshs/dfg-rating/data/real/ATP_Network_2010_2019.csv')
@@ -87,5 +87,5 @@ white_network = WhiteNetwork(
     }
 )
 """
-ratings_app = DFGWidgets.RatingsEvaluation(network=rr_network)
+ratings_app = DFGWidgets.RatingsExplorer(network=rr_network)
 ratings_app.run('external', debug=True)
