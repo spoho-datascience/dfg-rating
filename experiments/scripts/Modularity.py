@@ -76,7 +76,7 @@ for prob in probs_range:
             forecast_name,
             rating_name
         )
-        current_network.add_evaluation(rps, f"{rating_name}_RPS")
+        current_network.add_evaluation([(rps, f"{rating_name}_RPS")])
         print(f"Added ELO Rating with k = {k_parameter} in {time.time() - start_time} seconds.")
 
         experiment_results += get_evaluation(

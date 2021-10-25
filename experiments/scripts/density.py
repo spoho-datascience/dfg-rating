@@ -20,7 +20,7 @@ import pandas as pd
 import os
 import datetime
 
-initial_density = 2
+initial_density = 50
 maximum_density = 100
 density_step = 2
 rounds = 98
@@ -83,7 +83,7 @@ for step, current_density in enumerate(density_range):
             forecast_name,
             rating_name
         )
-        current_network.add_evaluation(rps, f"{rating_name}_RPS")
+        current_network.add_evaluation([(rps, f"{rating_name}_RPS")])
 
         print(f"Added ELO Rating with k = {k_parameter} in {time.time() - start_time} seconds.")
         experiment_results += get_evaluation(
