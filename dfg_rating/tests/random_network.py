@@ -29,7 +29,25 @@ d = 1
 n = int(math.ceil((r / (2 * d)) + 1))
 if (n%2) != 0:
     n += 1
-print(f"{n} teams.")
+
+initial_density = 2
+maximum_density = 100
+density_step = 2
+rounds = 98
+
+minimum_k = 15
+maximum_k = 65
+k_options = [v for v in range(minimum_k, maximum_k + 1, 2)]
+experiment_results = []
+density_range = range(initial_density, maximum_density + 1, density_step)
+for step, current_density in enumerate(density_range):
+    d = float(current_density / 100.00)
+    number_of_nodes = int(
+        math.ceil(
+            (rounds / (2 * d)) + 1
+        )
+    )
+    print(f"{number_of_nodes} teams, network with {d}")
 
 random_network = RandomRoundsNetwork(
     teams=n,

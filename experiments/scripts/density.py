@@ -1,3 +1,4 @@
+import math
 import time
 import networkx as nx
 
@@ -5,7 +6,7 @@ from typing import List
 import dfg_rating.viz.jupyter_widgets as DFGWidgets
 from dfg_rating.model.network.base_network import BaseNetwork
 from dfg_rating.model.network.simple_network import RoundRobinNetwork
-from dfg_rating.model.network.random_network import ConfigurationModelNetwork
+from dfg_rating.model.network.random_network import ConfigurationModelNetwork, RandomRoundsNetwork
 from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
 from dfg_rating.model.rating.elo_rating import ELORating
 
@@ -19,22 +20,28 @@ import pandas as pd
 import os
 import datetime
 
-in_degree = 180
-out_degree = 180
-initial_number_of_nodes = 60
-maximum_number_of_nodes = 260
-nodes_step = 5
+initial_density = 2
+maximum_density = 100
+density_step = 2
+rounds = 98
 
 minimum_k = 15
 maximum_k = 65
 k_options = [v for v in range(minimum_k, maximum_k + 1, 2)]
 experiment_results = []
-nodes_range = range(initial_number_of_nodes, maximum_number_of_nodes + 1, nodes_step)
-for step, number_of_nodes in enumerate(nodes_range):
+density_range = range(initial_density, maximum_density + 1, density_step)
+for step, current_density in enumerate(density_range):
+    d = float(current_density / 100.00)
     start_time = time.time()
-    current_network = ConfigurationModelNetwork(
+    number_of_nodes = int(
+        math.ceil(
+            (rounds / (2 * d)) + 1
+        )
+    )
+    current_network = RandomRoundsNetwork(
         teams=number_of_nodes,
         days_between_rounds=3,
+        absolute_rounds=rounds,
         true_forecast=LogFunctionForecast(
             outcomes=['home', 'draw', 'away'],
             coefficients=[-0.9, 0.3],
@@ -45,15 +52,10 @@ for step, number_of_nodes in enumerate(nodes_range):
             delta=ControlledRandomFunction(distribution='normal', loc=0, scale=3),
             trend=ControlledRandomFunction(distribution='normal', loc=0, scale=20/365),
             season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
-        ),
-        expected_home_matches=in_degree - (step * 4),
-        expected_away_matches=in_degree - (step * 4),
-        variance_home_matches=0,
-        variance_away_matches=0
+        )
     )
-    print(in_degree - (step * 2))
-    print(current_network.density(True))
-    print(f"Added network with {number_of_nodes} number of nodes in {time.time() -  start_time} seconds.")
+    print("Density ", current_network.density(True))
+    print(f"Added network {number_of_nodes}:{d} in {time.time() -  start_time} seconds.")
 
     for k_parameter in k_options:
         start_time = time.time()
