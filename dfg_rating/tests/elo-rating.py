@@ -1,3 +1,4 @@
+import itertools
 from dfg_rating.model.forecast.base_forecast import SimpleForecast
 from dfg_rating.model.network.multiple_network import LeagueNetwork
 from dfg_rating.model.network.simple_network import RoundRobinNetwork
@@ -7,19 +8,18 @@ from dfg_rating.model.rating.function_rating import FunctionRating
 from dfg_rating.model.rating.ranking_rating import LeagueRating
 from dfg_rating.model.rating.winner_rating import WinnerRating
 
-rr_network = s = LeagueNetwork(
-    teams=18,
-    league_teams=18,
-    league_promotion=0,
-    days_between_rounds=3,
-    seasons=2,
-    create=True
+rr_network = s = RoundRobinNetwork(
+    teams=10,
+    days_between_rounds=3
 )
 
-tested_rating = ELORating(trained=True)
 
-rr_network.add_rating(tested_rating, "elo_rating")
+def season_filter(edge):
+    return edge[3]["season"] == 0
 
-for team in rr_network.data.nodes:
-    print(rr_network.data.nodes[team]['ratings']['elo_rating'])
 
+games_by_round = {}
+for k, g in itertools.groupby(filter(season_filter, rr_network.data.edges(keys=True, data=True)),
+                              lambda x: x[3]['round']):
+    games_by_round.setdefault(k, []).append(next(g))
+print(games_by_round)

@@ -20,7 +20,7 @@ import pandas as pd
 import os
 import datetime
 
-initial_density = 50
+initial_density = 2
 maximum_density = 100
 density_step = 2
 rounds = 98
@@ -38,6 +38,7 @@ for step, current_density in enumerate(density_range):
             (rounds / (2 * d)) + 1
         )
     )
+    print(f"Nework {number_of_nodes}:{d}")
     current_network = RandomRoundsNetwork(
         teams=number_of_nodes,
         days_between_rounds=3,

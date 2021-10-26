@@ -1,6 +1,8 @@
+import itertools
 from operator import indexOf
-
+import time
 import numpy as np
+from tqdm import tqdm
 
 from dfg_rating.model.network.base_network import BaseNetwork, TeamId, base_edge_filter, get_seasons
 from dfg_rating.model.rating.base_rating import BaseRating, get_rounds, get_rounds_per_season
@@ -38,48 +40,45 @@ class ControlledTrendRating(BaseRating):
         edge_filter = edge_filter or base_edge_filter
         self.teams = list(n.data.nodes)
         n_teams = len(self.teams)
-        games = n.data.edges(keys=True, data=True)
-        filtered_games = [(away, home, key, data) for away, home, key, data in filter(edge_filter, games)]
-        n_rounds = len(get_rounds(filtered_games))
-        self.all_seasons = list(get_seasons(games))
-        self.seasons = list(get_seasons(filtered_games))
-        n_seasons = len(self.seasons)
-        self.rounds_per_season = len(get_rounds_per_season(filtered_games))
-        # The ratings object is initialized with as many positions as number of rounds in the network
-        # and 2 extra positions (begin, end) of the season.
+        n_rounds = n.n_rounds * 2
+        self.all_seasons = range(n.seasons)
+        n_seasons = 1
+        self.rounds_per_season = n_rounds
         ratings = np.zeros([n_teams, (n_rounds + 2) * n_seasons])
-        for current_season, season_name in enumerate(self.seasons):
-            self.agg = {}
-            self.init_season_ratings(current_season, season_name, n, ratings)
-            ratings[:, 0] *= self.rating_mean / np.ndarray.mean(ratings[:, 0])
-            for r in range(self.rounds_per_season):
-                def round_filter(edge):
-                    return edge[3]['round'] == r
+        current_season = 0
+        season_name = 0
+        self.agg = {}
+        self.init_season_ratings(current_season, season_name, n, ratings)
+        ratings[:, 0] *= self.rating_mean / np.ndarray.mean(ratings[:, 0])
+        games_by_round = {}
+        for k, g in itertools.groupby(
+                filter(edge_filter, n.data.edges(keys=True, data=True)), lambda x: x[3]['round']
+        ):
+            games_by_round.setdefault(k, []).append(next(g))
+        for r in range(self.rounds_per_season):
+            teams_playing = []
+            current_position = (current_season * (self.rounds_per_season + 2)) + (r + 1)
+            for away_team, home_team, match_key, match_data in games_by_round[r]:
+                teams_playing += [away_team, home_team]
+                ratings[indexOf(self.teams, away_team), current_position] = ratings[
+                                                                                indexOf(self.teams,
+                                                                                        away_team), current_position - 1
+                                                                            ] + self.new_rating_value(away_team,
+                                                                                                      match_data)
+                self.agg[away_team]['last_day'] = match_data['day']
+                ratings[indexOf(self.teams, home_team), current_position] = ratings[
+                                                                                indexOf(self.teams,
+                                                                                        home_team), current_position - 1
+                                                                            ] + self.new_rating_value(home_team,
+                                                                                                      match_data)
+                self.agg[home_team]['last_day'] = match_data['day']
+            # Dealing with teams not playing
+            for team_i, team in enumerate(self.teams):
+                if team not in teams_playing:
+                    ratings[team_i, current_position] = ratings[team_i, current_position - 1]
+            ratings[:, current_position] *= self.rating_mean / np.ndarray.mean(ratings[:, current_position])
+        self.end_season_ratings(current_season, n, ratings)
 
-                # Teams playing
-                teams_playing = []
-                current_position = (current_season * (self.rounds_per_season + 2)) + (r + 1)
-                for away_team, home_team, match_key, match_data in filter(round_filter, filtered_games):
-                    teams_playing += [away_team, home_team]
-                    current_round = match_data['round']
-                    ratings[indexOf(self.teams, away_team), current_position] = ratings[
-                                                                                    indexOf(self.teams,
-                                                                                            away_team), current_position - 1
-                                                                                ] + self.new_rating_value(away_team,
-                                                                                                          match_data)
-                    self.agg[away_team]['last_day'] = match_data['day']
-                    ratings[indexOf(self.teams, home_team), current_position] = ratings[
-                                                                                    indexOf(self.teams,
-                                                                                            home_team), current_position - 1
-                                                                                ] + self.new_rating_value(home_team,
-                                                                                                          match_data)
-                    self.agg[home_team]['last_day'] = match_data['day']
-                # Dealing with teams not playing
-                for team_i, team in enumerate(self.teams):
-                    if team not in teams_playing:
-                        ratings[team_i, current_position] = ratings[team_i, current_position - 1]
-                ratings[:, current_position] *= self.rating_mean / np.ndarray.mean(ratings[:, current_position])
-            self.end_season_ratings(current_season, n, ratings)
         return ratings, self.props
 
     def init_season_ratings(self, season, season_name, n, ratings):

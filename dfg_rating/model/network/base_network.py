@@ -215,7 +215,7 @@ class BaseNetwork(ABC):
         odds = []
         bets = []
         metrics = []
-        for node1, node2, edge_key, edge_attributes in self.iterate_over_games():
+        for node1, node2, edge_key, edge_attributes in self.data.edges(keys=True, data=True):
             new_match = {
                 "network_name": network_name,
                 "node1": node1,
@@ -366,7 +366,7 @@ class BaseNetwork(ABC):
         return forecasts_list
 
     def add_evaluation(self, evaluators_list: List[Tuple[Evaluator, str]]):
-        for away_team, home_team, match_id, match_attributes in self.iterate_over_games():
+        for away_team, home_team, match_id, match_attributes in self.data.edges(keys=True, data=True):
             for evaluator, evaluator_name in evaluators_list:
                 correct, metric_value = evaluator.eval(match_attributes)
                 if correct:
@@ -410,7 +410,7 @@ class BaseNetwork(ABC):
         printing_odds = kwargs.get("odds", [])
         printing_bets = kwargs.get("bets", [])
         printing_metrics = kwargs.get("metrics", [])
-        for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
+        for away_team, home_team, edge_key, edge_attributes in self.data.edges(keys=True, data=True):
             match_dict = {
                 "Home": home_team,
                 "Away": away_team,
@@ -628,7 +628,7 @@ class WhiteNetwork(BaseNetwork):
                 self._add_forecast_to_team(match, deepcopy(forecast), forecast_name, base_ranking)
 
     def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker, base_forecast: str):
-        for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
+        for away_team, home_team, edge_key, edge_attributes in self.data.edges(keys=True, data=True):
             if base_forecast not in edge_attributes['forecasts']:
                 print(f"Missing <{base_forecast}> forecast in network")
             match_base_forecast = edge_attributes['forecasts'][base_forecast]
@@ -642,7 +642,7 @@ class WhiteNetwork(BaseNetwork):
             )[bookmaker_name] = bookmaker.get_odds(base_probabilities)
 
     def add_bets(self, bettor_name: str, bookmaker: str, betting: BaseBetting, base_forecast: str):
-        for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
+        for away_team, home_team, edge_key, edge_attributes in self.data.edges(keys=True, data=True):
             if base_forecast not in edge_attributes['forecasts']:
                 print(f"Missing <{base_forecast}< forecast.")
             bettor_forecast = edge_attributes['forecasts'][base_forecast]

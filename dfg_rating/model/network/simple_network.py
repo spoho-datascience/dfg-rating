@@ -101,15 +101,12 @@ class RoundRobinNetwork(BaseNetwork):
         if season is not None:
             self.add_season_rating(rating, rating_name, team_id, season)
         else:
-            for s in list(get_seasons(self.iterate_over_games())):
+            for s in range(self.seasons):
                 self.add_season_rating(rating, rating_name, team_id, s)
 
     def add_season_rating(self, rating, rating_name, team_id, season):
         def edge_filter(e):
-            new_filter = (
-                (e[3]['season'] == season)
-            )
-            return new_filter
+            return e[3]['season'] == season
 
         if team_id:
             rating_values, rating_hp = rating.get_ratings(
@@ -127,7 +124,7 @@ class RoundRobinNetwork(BaseNetwork):
                 self._add_forecast_to_team(match, deepcopy(forecast), forecast_name, base_ranking)
 
     def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker, base_forecast: str):
-        for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
+        for away_team, home_team, edge_key, edge_attributes in self.data.edges(keys=True, data=True):
             if base_forecast not in edge_attributes['forecasts']:
                 print(f"Missing <{base_forecast}> forecast in network")
             match_base_forecast = edge_attributes['forecasts'][base_forecast]
@@ -141,7 +138,7 @@ class RoundRobinNetwork(BaseNetwork):
             )[bookmaker_name] = bookmaker.get_odds(base_probabilities)
 
     def add_bets(self, bettor_name: str, bookmaker: str, betting: BaseBetting, base_forecast: str):
-        for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
+        for away_team, home_team, edge_key, edge_attributes in self.data.edges(keys=True, data=True):
             if base_forecast not in edge_attributes['forecasts']:
                 print(f"Missing <{base_forecast}< forecast.")
             bettor_forecast = edge_attributes['forecasts'][base_forecast]

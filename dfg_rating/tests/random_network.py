@@ -50,11 +50,11 @@ for step, current_density in enumerate(density_range):
     print(f"{number_of_nodes} teams, network with {d}")
 
 random_network = RandomRoundsNetwork(
-    teams=n,
+    teams=10,
     days_between_rounds=3,
-    absolute_rounds=r
+    absolute_rounds=2
 )
-
+random_network.add_rating(ELORating(trained=True), "elo_rating")
 print("random network created")
 
 cyto.load_extra_layouts()
