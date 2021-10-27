@@ -20,16 +20,15 @@ import pandas as pd
 import os
 import datetime
 
-initial_density = 2
 maximum_density = 100
-density_step = 2
+density_step = -2
 rounds = 98
 
 minimum_k = 15
 maximum_k = 65
 k_options = [v for v in range(minimum_k, maximum_k + 1, 2)]
 experiment_results = []
-density_range = range(initial_density, maximum_density + 1, density_step)
+density_range = range(maximum_density, 6, density_step)
 for step, current_density in enumerate(density_range):
     d = float(current_density / 100.00)
     start_time = time.time()
@@ -38,7 +37,7 @@ for step, current_density in enumerate(density_range):
             (rounds / (2 * d)) + 1
         )
     )
-    print(f"Nework {number_of_nodes}:{d}")
+    print(f"Network {number_of_nodes}:{d}")
     current_network = RandomRoundsNetwork(
         teams=number_of_nodes,
         days_between_rounds=3,

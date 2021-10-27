@@ -74,7 +74,6 @@ class ELORating(BaseRating):
                 filter(edge_filter, n.data.edges(keys=True, data=True)), lambda x: x[3]['round']
         ):
             games_by_round.setdefault(k, []).append(next(g))
-        print(games_by_round)
         for r in range(self.rounds_per_season):
             teams_playing = set(())
             for away_team, home_team, match_key, match_data in games_by_round[r]:
