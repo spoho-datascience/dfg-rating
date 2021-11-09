@@ -25,13 +25,13 @@ np.random.seed(1234)"""
 
 #n = 12
 r = 98
-d = 1
+d = 0.98
 n = int(math.ceil((r / (2 * d)) + 1))
 if (n%2) != 0:
     n += 1
 
-initial_density = 2
-maximum_density = 100
+initial_density = 98
+maximum_density = 98
 density_step = 2
 rounds = 98
 
@@ -49,10 +49,12 @@ for step, current_density in enumerate(density_range):
     )
     print(f"{number_of_nodes} teams, network with {d}")
 
-random_network = RandomRoundsNetwork(
+random_network = ClusteredNetwork(
     teams=10,
     days_between_rounds=3,
-    absolute_rounds=2
+    clusters=5,
+    in_probability=1.0,
+    out_probability=0.0
 )
 random_network.add_rating(ELORating(trained=True), "elo_rating")
 print("random network created")
