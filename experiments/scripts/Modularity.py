@@ -1,3 +1,4 @@
+import math
 import time
 import networkx as nx
 import numpy as np
@@ -17,20 +18,21 @@ import datetime
 from dfg_rating.model.evaluators.accuracy import RankProbabilityScore, Likelihood
 from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
 
-from dfg_rating.viz.tables import get_evaluation
+from dfg_rating.viz.tables import get_evaluation, get_league_rating_values, get_evaluation_list
 
 number_of_clusters = 10
 in_probability = 100
 initial_out_probability = 0
 
 minimum_k = 15
-maximum_k = 65
+maximum_k = 25
 k_options = [v for v in range(minimum_k, maximum_k + 1, 2)]
 
 experiment_results = []
+league_rating_values = []
 probs_range = [float(p / 100) for p in range(initial_out_probability, 101, 2)]
 n = 300
-d_between = 36000000 / (n * (n - 1) * 2)
+d_between = math.floor(36000000 / (n * (n - 1) * 2))
 for prob in probs_range:
     start_time = time.time()
     current_network = ClusteredNetwork(
@@ -52,19 +54,17 @@ for prob in probs_range:
         out_probability=prob
     )
     print(f"Added network with {number_of_clusters} clusters, intra-cluster probability of {float(in_probability / 100)} and inter-cluster probability of {prob} in {time.time() -  start_time} seconds.")
+    league_rating_values += get_league_rating_values(
+        network=current_network,
+        rating="true_rating",
+        number_of_leagues=number_of_clusters,
+        **{"Clusters": number_of_clusters, "InProbability": float(in_probability/100), "OutProbability": prob}
+    )
     for k_parameter in k_options:
         start_time = time.time()
         rating_name = f"elo_rating_{k_parameter}"
         forecast_name = f"elo_forecast_{k_parameter}"
         elo = ELORating(trained=True, param_k=k_parameter)
-        rps = RankProbabilityScore(
-            outcomes=['home', 'draw', 'away'],
-            forecast_name=forecast_name
-        )
-        l = Likelihood(
-            outcomes=['home', 'draw', 'away'],
-            forecast_name=forecast_name
-        )
         current_network.add_rating(
             rating=elo,
             rating_name=rating_name
@@ -78,11 +78,17 @@ for prob in probs_range:
             forecast_name,
             rating_name
         )
-        current_network.add_evaluation([(rps, f"{rating_name}_RPS")])
+        current_network.add_evaluation(get_evaluation_list(rating_name, forecast_name))
         print(f"Added ELO Rating with k = {k_parameter} in {time.time() - start_time} seconds.")
 
         experiment_results += get_evaluation(
             current_network, k_parameter, evaluators=['RPS'],
+            **{"Clusters": number_of_clusters, "InProbability": float(in_probability/100), "OutProbability": prob}
+        )
+        league_rating_values += get_league_rating_values(
+            network=current_network,
+            rating=rating_name,
+            number_of_leagues=number_of_clusters,
             **{"Clusters": number_of_clusters, "InProbability": float(in_probability/100), "OutProbability": prob}
         )
 
@@ -92,5 +98,6 @@ print("Saving results")
 
 today = datetime.datetime.today().strftime("%A, %d. %B %Y %I:%M%p")
 pd.DataFrame(experiment_results).to_csv(os.path.join("Cluster_results", f"{today}.csv"))
+pd.DataFrame(league_rating_values).to_csv(os.path.join("Cluster_results", f"{today} LR.csv"))
 
 print("Test finished")

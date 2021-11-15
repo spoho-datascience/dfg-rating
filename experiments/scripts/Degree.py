@@ -1,3 +1,4 @@
+import math
 import time
 import networkx as nx
 import numpy as np
@@ -18,7 +19,7 @@ import pandas as pd
 import os
 import datetime
 
-from dfg_rating.viz.tables import get_evaluation
+from dfg_rating.viz.tables import get_evaluation, get_evaluation_list
 
 in_degree = 120
 out_degree = 120
@@ -33,28 +34,29 @@ experiment_results = []
 networks_list: List[BaseNetwork] = []
 variance_range = range(initial_variance, maximum_variance + 1, variance_step)
 n = 300
-d_between = 36000000 / (n * (n - 1) * 2)
+d_between = math.floor(36000000 / (n * (n - 1) * 2))
 for variance in variance_range:
     start_time = time.time()
     current_network = ConfigurationModelNetwork(
-            teams=n,
-            days_between_rounds=d_between,
-            true_forecast=LogFunctionForecast(
-                outcomes=['home', 'draw', 'away'],
-                coefficients=[-0.9, 0.3],
-                beta_parameter=0.006
-            ),
-            true_rating=ControlledTrendRating(
-                starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=100),
-                delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.1),
-                trend=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
-                season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=0)
-            ),
-            expected_home_matches=in_degree,
-            expected_away_matches=out_degree,
-            variance_home_matches=variance,
-            variance_away_matches=variance
-        )
+        teams=n,
+        days_between_rounds=d_between,
+        true_forecast=LogFunctionForecast(
+            outcomes=['home', 'draw', 'away'],
+            coefficients=[-0.9, 0.3],
+            beta_parameter=0.006
+        ),
+        true_rating=ControlledTrendRating(
+            starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=100),
+            delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.1),
+            trend=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
+            season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=0)
+        ),
+        expected_matches=in_degree,
+        variance_matches=variance
+    )
+    network_degrees = np.array([d[1] for d in current_network.degree(filter_active=True)])
+    real_degree = network_degrees.mean()
+    real_variance = network_degrees.std()
     print(f"Added network with Degree variance of {variance} in {time.time() -  start_time} seconds.")
     for k_parameter in k_options:
         start_time = time.time()
@@ -82,13 +84,16 @@ for variance in variance_range:
             forecast_name,
             rating_name
         )
-        current_network.add_evaluation([(rps, f"{rating_name}_RPS")])
-
+        current_network.add_evaluation(get_evaluation_list(rating_name, forecast_name))
         print(f"Added ELO Rating with k = {k_parameter} in {time.time() - start_time} seconds.")
-
         experiment_results += get_evaluation(
             current_network, k_parameter, evaluators=['RPS'],
-            **{"Variance": variance, "Density": current_network.density(True)}
+            **{
+                "Variance": variance,
+                "Density": current_network.density(True),
+                "RealDegree": real_degree,
+                "RealVariance": real_variance
+            }
         )
 
 print("Saving results")

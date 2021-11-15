@@ -52,21 +52,15 @@ class ConfigurationModelNetwork(RoundRobinNetwork):
     """
 
     def __init__(self, **kwargs):
-        self.expected_home_matches = kwargs.get("expected_home_matches")
-        self.expected_away_matches = kwargs.get("expected_away_matches")
-        self.variance_home_matches = kwargs.get("variance_home_matches", 0)
-        self.variance_away_matches = kwargs.get("variance_away_matches", 0)
+        self.expected_matches = kwargs.get("expected_matches")
+        self.variance_matches = kwargs.get("variance_matches", 0)
         super().__init__(**kwargs)
 
     def fill_graph(self, team_labels=None, season=0):
         super().fill_graph(team_labels, season)
-        home_sequence = self.create_degree_sequence(self.expected_home_matches, self.variance_home_matches)
-        away_sequence = self.create_degree_sequence(
-            self.expected_away_matches,
-            self.variance_away_matches,
-            total_sum=home_sequence.sum()
-        )
-        directed_conf_model = nx.directed_configuration_model(home_sequence, away_sequence)
+        degree_sequence = self.create_degree_sequence(self.expected_matches, self.variance_matches)
+        print("Seq", degree_sequence)
+        directed_conf_model = nx.expected_degree_graph(degree_sequence, selfloops=False)
         for match in self.data.edges(keys=True):
             if directed_conf_model.has_edge(match[0], match[1]):
                 self.data.edges[match]["state"] = "active"
@@ -76,9 +70,9 @@ class ConfigurationModelNetwork(RoundRobinNetwork):
     def create_degree_sequence(self, expected, variance, total_sum=None):
         sequence = np.random.default_rng().integers(
             low=(expected - variance) if expected >= variance else 0,
-            high=expected + variance + 1,
+            high=expected + variance,
             size=self.n_teams
-        )
+        ) if variance > 0 else np.array([expected] * self.n_teams)
         if total_sum is not None:
             while sequence.sum() != total_sum:
                 diff = total_sum - sequence.sum()

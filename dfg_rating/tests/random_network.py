@@ -30,36 +30,18 @@ n = int(math.ceil((r / (2 * d)) + 1))
 if (n%2) != 0:
     n += 1
 
-initial_density = 98
-maximum_density = 98
-density_step = 2
-rounds = 98
-
-minimum_k = 15
-maximum_k = 65
-k_options = [v for v in range(minimum_k, maximum_k + 1, 2)]
-experiment_results = []
-density_range = range(initial_density, maximum_density + 1, density_step)
-for step, current_density in enumerate(density_range):
-    d = float(current_density / 100.00)
-    number_of_nodes = int(
-        math.ceil(
-            (rounds / (2 * d)) + 1
-        )
-    )
-    print(f"{number_of_nodes} teams, network with {d}")
-
-random_network = ClusteredNetwork(
-    teams=10,
+random_network = ConfigurationModelNetwork(
+    teams=300,
     days_between_rounds=3,
-    clusters=5,
-    in_probability=1.0,
-    out_probability=0.0
+    expected_matches=120,
+    variance_matches=120
 )
 random_network.add_rating(ELORating(trained=True), "elo_rating")
 print("random network created")
-
-cyto.load_extra_layouts()
+print(random_network.density(filter_active=True))
+degrees = np.array([d[1] for d in random_network.degree(filter_active=True)])
+print(degrees.mean(), degrees.std())
+"""cyto.load_extra_layouts()
 ratings_app = DFGWidgets.NetworkExplorer(network=random_network, offline=True)
 print("running app")
-ratings_app.run('external', debug=True, port=8001)
+ratings_app.run('external', debug=True, port=8001)"""

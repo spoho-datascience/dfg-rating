@@ -2,10 +2,13 @@ import dash_table
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 import pandas as pd
+import numpy as np
 
 import networkx as nx
 from networkx import MultiDiGraph
 
+from dfg_rating.model.evaluators.accuracy import RankProbabilityScore, Likelihood, ForecastError, \
+    ExpectedRankProbabilityScore
 from dfg_rating.model.network.base_network import BaseNetwork
 
 pd.options.display.float_format = '${:.2f}'.format
@@ -61,13 +64,14 @@ def calendar_table(df, forecasts=False):
     return dash_table.DataTable(
         id="kalender-table" + ("full" if forecasts else ""),
         columns=[
-            {"name": ["Match", "HomeTeam"], "id": "HomeTeam"},
-            {"name": ["Match", "AwayTeam"], "id": "AwayTeam"},
-            {"name": ["Match", "Season"], "id": "Season"},
-            {"name": ["Match", "Round"], "id": "Round"},
-            {"name": ["Match", "Result"], "id": "Result"},
-            {"name": ["Match", "State"], "id": "State"},
-        ] + [{"name": ["Match", i], "id": i, 'type': 'numeric', 'format': {'specifier': '.2f'}} for i in df.columns if '#' in i],
+                    {"name": ["Match", "HomeTeam"], "id": "HomeTeam"},
+                    {"name": ["Match", "AwayTeam"], "id": "AwayTeam"},
+                    {"name": ["Match", "Season"], "id": "Season"},
+                    {"name": ["Match", "Round"], "id": "Round"},
+                    {"name": ["Match", "Result"], "id": "Result"},
+                    {"name": ["Match", "State"], "id": "State"},
+                ] + [{"name": ["Match", i], "id": i, 'type': 'numeric', 'format': {'specifier': '.2f'}} for i in
+                     df.columns if '#' in i],
         merge_duplicate_headers=True,
         data=df.to_dict('records'),
         style_header={
@@ -156,8 +160,8 @@ def ratings_table(ratings_dict, season=0):
 
 def network_metrics(n: BaseNetwork):
     layout = html.Div([
-        dbc.Row(html.Div(f"Network density: {n.density(True)}")),
-    ] + [dbc.Row(html.Div(f"Node {node}: {d}")) for node, d in n.degree(True)])
+                          dbc.Row(html.Div(f"Network density: {n.density(True)}")),
+                      ] + [dbc.Row(html.Div(f"Node {node}: {d}")) for node, d in n.degree(True)])
     return layout
 
 
@@ -187,7 +191,8 @@ def get_evaluation(network: BaseNetwork, k, abs=True, evaluators=[], **kwargs):
     rating_name = f"elo_rating_{k}"
     forecast_name = f"elo_forecast_{k}"
     analysis_data = []
-    for node1, node2, edge_key, edge_info in filter(lambda match: match[3].get('state', 'active') == 'active', network.iterate_over_games()):
+    for node1, node2, edge_key, edge_info in filter(lambda match: match[3].get('state', 'active') == 'active',
+                                                    network.iterate_over_games()):
         if edge_info.get('state', 'active') == 'active':
             tf = edge_info.get('forecasts', {}).get('true_forecast')
             tf_tuple = "-".join([f"{outcome:.2f}" for outcome in tf.probabilities])
@@ -230,3 +235,55 @@ def get_evaluation(network: BaseNetwork, k, abs=True, evaluators=[], **kwargs):
     return analysis_data
 
 
+def get_league_rating_values(network: BaseNetwork, rating: str, number_of_leagues: int, **kwargs):
+    rating_values = []
+    list_of_arrays = {}
+    for node in network.data:
+        cluster_name = node % number_of_leagues
+        for season, season_array in network.data.nodes[node]['ratings'][rating].items():
+            list_of_arrays.setdefault(
+                cluster_name, []
+            ).append(season_array)
+    for cluster, cluster_arrays in list_of_arrays.items():
+        a = np.array(cluster_arrays)
+        mean_array = a.mean(axis=0)
+        for i, value in enumerate(mean_array):
+            rating_values.append({
+                **kwargs,
+                "rating": rating,
+                "cluster_name": cluster,
+                "Round": i,
+                "cluster_rating": value
+            })
+    return rating_values
+
+
+def get_evaluation_list(rating_name, forecast_name):
+    rps = RankProbabilityScore(
+        outcomes=['home', 'draw', 'away'],
+        forecast_name=forecast_name
+    )
+    likelihood = Likelihood(
+        outcomes=['home', 'draw', 'away'],
+        forecast_name=forecast_name
+    )
+    forecast_error = ForecastError(
+        outcomes=['home', 'draw', 'away'],
+        forecast_name=forecast_name
+    )
+    exp_rps = ExpectedRankProbabilityScore(
+        outcomes=['home', 'draw', 'away'],
+        forecast_name=forecast_name
+    )
+    min_rps = ExpectedRankProbabilityScore(
+        outcomes=['home', 'draw', 'away'],
+        forecast_name="true_forecast"
+    )
+    evaluation_list = [
+        (rps, f"{rating_name}_RPS"),
+        (likelihood, f"{rating_name}_Likelihood"),
+        (forecast_error, f"{rating_name}_ForecastError"),
+        (exp_rps, f"{rating_name}_ExpectedRPS"),
+        (min_rps, f"{rating_name}_Forecastability")
+    ]
+    return evaluation_list

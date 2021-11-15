@@ -25,7 +25,7 @@ class AccuracyEvaluator(Evaluator):
         """Numerical evaluation of a forecast given the probabilities set
         """
         pass
-    
+
 
 class RankProbabilityScore(AccuracyEvaluator):
 
@@ -37,9 +37,10 @@ class RankProbabilityScore(AccuracyEvaluator):
         ])
         score /= (r - 1)
         return score
-    
+
+
 class ExpectedRankProbabilityScore(RankProbabilityScore):
-    
+
     def eval(self, match_attributes):
         probabilities: List[float] = match_attributes['forecasts'][self.forecast_name].probabilities
         true_probabilities: List[float] = match_attributes['forecasts']["true_forecast"].probabilities
@@ -52,9 +53,9 @@ class ExpectedRankProbabilityScore(RankProbabilityScore):
             evaluation_score += true_probabilities[i] * self._compute(observed=observed_model, model=probabilities)
         return 1, evaluation_score
 
-    
+
 class ForecastError(RankProbabilityScore):
-    
+
     def eval(self, match_attributes):
         probabilities: List[float] = match_attributes['forecasts'][self.forecast_name].probabilities
         true_probabilities: List[float] = match_attributes['forecasts']["true_forecast"].probabilities
@@ -62,7 +63,6 @@ class ForecastError(RankProbabilityScore):
             return 0, "Probabilities do not fit in potential outcomes array"
         evaluation_score = self._compute(observed=true_probabilities, model=probabilities)
         return 1, evaluation_score
-    
 
 
 class ProbabilityDifference(AccuracyEvaluator):
@@ -76,6 +76,7 @@ class ProbabilityPointer(AccuracyEvaluator):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.probability_pointer = kwargs.get('probability_index', 0)
+
     def _compute(self, observed, model) -> float:
         return model[self.probability_pointer]
 
