@@ -29,11 +29,13 @@ k_options = [v for v in range(minimum_k, maximum_k + 1, 2)]
 
 experiment_results = []
 probs_range = [float(p / 100) for p in range(initial_out_probability, 101, 2)]
+n = 300
+d_between = 36000000 / (n * (n - 1) * 2)
 for prob in probs_range:
     start_time = time.time()
     current_network = ClusteredNetwork(
-        teams=200,
-        days_between_rounds=3,
+        teams=n,
+        days_between_rounds=d_between,
         true_forecast=LogFunctionForecast(
             outcomes=['home', 'draw', 'away'],
             coefficients=[-0.9, 0.3],
@@ -41,8 +43,8 @@ for prob in probs_range:
         ),
         true_rating=ControlledTrendRating(
             starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=100),
-            delta=ControlledRandomFunction(distribution='normal', loc=0, scale=3),
-            trend=ControlledRandomFunction(distribution='normal', loc=0, scale=20/365),
+            delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.1),
+            trend=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
             season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
         ),
         clusters=number_of_clusters,

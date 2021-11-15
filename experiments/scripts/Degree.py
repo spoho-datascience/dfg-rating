@@ -32,21 +32,23 @@ k_options = [v for v in range(minimum_k, maximum_k + 1, 2)]
 experiment_results = []
 networks_list: List[BaseNetwork] = []
 variance_range = range(initial_variance, maximum_variance + 1, variance_step)
+n = 300
+d_between = 36000000 / (n * (n - 1) * 2)
 for variance in variance_range:
     start_time = time.time()
     current_network = ConfigurationModelNetwork(
-            teams=200,
-            days_between_rounds=3,
+            teams=n,
+            days_between_rounds=d_between,
             true_forecast=LogFunctionForecast(
                 outcomes=['home', 'draw', 'away'],
-                coefficients = [-0.9,0.3],
+                coefficients=[-0.9, 0.3],
                 beta_parameter=0.006
             ),
             true_rating=ControlledTrendRating(
                 starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=100),
-                delta=ControlledRandomFunction(distribution='normal', loc=0, scale=3),
-                trend=ControlledRandomFunction(distribution='normal', loc=0, scale=20/365),
-                season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
+                delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.1),
+                trend=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
+                season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=0)
             ),
             expected_home_matches=in_degree,
             expected_away_matches=out_degree,

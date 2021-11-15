@@ -25,7 +25,7 @@ class AccuracyEvaluator(Evaluator):
         """Numerical evaluation of a forecast given the probabilities set
         """
         pass
-
+    
 
 class RankProbabilityScore(AccuracyEvaluator):
 
@@ -37,6 +37,32 @@ class RankProbabilityScore(AccuracyEvaluator):
         ])
         score /= (r - 1)
         return score
+    
+class ExpectedRankProbabilityScore(RankProbabilityScore):
+    
+    def eval(self, match_attributes):
+        probabilities: List[float] = match_attributes['forecasts'][self.forecast_name].probabilities
+        true_probabilities: List[float] = match_attributes['forecasts']["true_forecast"].probabilities
+        if len(probabilities) != len(self.outcomes):
+            return 0, "Probabilities do not fit in potential outcomes array"
+        evaluation_score = 0.0
+        for i in range(len(self.outcomes)):
+            observed_model = [0.0 for outcome in self.outcomes]
+            observed_model[i] = 1.0
+            evaluation_score += true_probabilities[i] * self._compute(observed=observed_model, model=probabilities)
+        return 1, evaluation_score
+
+    
+class ForecastError(RankProbabilityScore):
+    
+    def eval(self, match_attributes):
+        probabilities: List[float] = match_attributes['forecasts'][self.forecast_name].probabilities
+        true_probabilities: List[float] = match_attributes['forecasts']["true_forecast"].probabilities
+        if len(probabilities) != len(self.outcomes):
+            return 0, "Probabilities do not fit in potential outcomes array"
+        evaluation_score = self._compute(observed=true_probabilities, model=probabilities)
+        return 1, evaluation_score
+    
 
 
 class ProbabilityDifference(AccuracyEvaluator):

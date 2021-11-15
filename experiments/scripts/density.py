@@ -37,10 +37,11 @@ for step, current_density in enumerate(density_range):
             (rounds / (2 * d)) + 1
         )
     )
+    d_between = 36000000 / (number_of_nodes * (number_of_nodes - 1) * 2)
     print(f"Network {number_of_nodes}:{d}")
     current_network = RandomRoundsNetwork(
         teams=number_of_nodes,
-        days_between_rounds=3,
+        days_between_rounds=d_between,
         absolute_rounds=rounds,
         true_forecast=LogFunctionForecast(
             outcomes=['home', 'draw', 'away'],
@@ -49,8 +50,8 @@ for step, current_density in enumerate(density_range):
         ),
         true_rating=ControlledTrendRating(
             starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=100),
-            delta=ControlledRandomFunction(distribution='normal', loc=0, scale=3),
-            trend=ControlledRandomFunction(distribution='normal', loc=0, scale=20/365),
+            delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.1),
+            trend=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
             season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
         )
     )

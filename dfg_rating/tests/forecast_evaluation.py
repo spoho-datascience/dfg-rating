@@ -4,7 +4,7 @@ from typing import List
 from dfg_rating.model import factory
 from dfg_rating.model.betting.betting import FixedBetting
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
-from dfg_rating.model.evaluators.accuracy import RankProbabilityScore
+from dfg_rating.model.evaluators.accuracy import RankProbabilityScore, ForecastError
 from dfg_rating.model.evaluators.profitability import BettingReturnsEvaluator
 from dfg_rating.model.forecast.base_forecast import SimpleForecast, BaseForecast
 from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
