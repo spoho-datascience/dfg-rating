@@ -25,13 +25,13 @@ in_probability = 100
 initial_out_probability = 0
 
 minimum_k = 15
-maximum_k = 25
+maximum_k = 65
 k_options = [v for v in range(minimum_k, maximum_k + 1, 2)]
 
 experiment_results = []
 league_rating_values = []
 probs_range = [float(p / 100) for p in range(initial_out_probability, 101, 2)]
-n = 300
+n = 200
 d_between = math.floor(36000000 / (n * (n - 1) * 2))
 for prob in probs_range:
     start_time = time.time()
@@ -82,7 +82,8 @@ for prob in probs_range:
         print(f"Added ELO Rating with k = {k_parameter} in {time.time() - start_time} seconds.")
 
         experiment_results += get_evaluation(
-            current_network, k_parameter, evaluators=['RPS'],
+            current_network, k_parameter,
+            evaluators=['RPS', 'Likelihood', 'ForecastError', 'ExpectedRPS', 'Forecastability'],
             **{"Clusters": number_of_clusters, "InProbability": float(in_probability/100), "OutProbability": prob}
         )
         league_rating_values += get_league_rating_values(

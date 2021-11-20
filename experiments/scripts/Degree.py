@@ -33,7 +33,7 @@ k_options = [v for v in range(minimum_k, maximum_k + 1, 2)]
 experiment_results = []
 networks_list: List[BaseNetwork] = []
 variance_range = range(initial_variance, maximum_variance + 1, variance_step)
-n = 300
+n = 200
 d_between = math.floor(36000000 / (n * (n - 1) * 2))
 for variance in variance_range:
     start_time = time.time()
@@ -87,7 +87,8 @@ for variance in variance_range:
         current_network.add_evaluation(get_evaluation_list(rating_name, forecast_name))
         print(f"Added ELO Rating with k = {k_parameter} in {time.time() - start_time} seconds.")
         experiment_results += get_evaluation(
-            current_network, k_parameter, evaluators=['RPS'],
+            current_network, k_parameter,
+            evaluators=['RPS', 'Likelihood', 'ForecastError', 'ExpectedRPS', 'Forecastability'],
             **{
                 "Variance": variance,
                 "Density": current_network.density(True),
@@ -95,6 +96,7 @@ for variance in variance_range:
                 "RealVariance": real_variance
             }
         )
+    del current_network
 
 print("Saving results")
 
