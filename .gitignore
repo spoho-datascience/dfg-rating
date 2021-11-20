@@ -547,3 +547,6 @@ database.ini
 /experiments/scripts/Degree_results/
 /experiments/scripts/Density_results/
 /experiments/notebooks/Economic/Results*
+/experiments/*.csv
+/experiments/scripts/*.csv
+/experiments/notebooks/*.csv

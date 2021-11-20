@@ -33,8 +33,8 @@ if (n%2) != 0:
 random_network = ConfigurationModelNetwork(
     teams=300,
     days_between_rounds=3,
-    expected_matches=120,
-    variance_matches=120
+    expected_matches=200,
+    variance_matches=200
 )
 random_network.add_rating(ELORating(trained=True), "elo_rating")
 print("random network created")

@@ -203,6 +203,7 @@ def get_evaluation(network: BaseNetwork, k, abs=True, evaluators=[], **kwargs):
                 "AwayTeam": network.data.nodes[node1].get("name", node1),
                 "Season": edge_info.get('season', None),
                 "Round": edge_info.get('round', None),
+                "Day": edge_info.get('day', None),
                 "Result": edge_info.get('winner', None),
                 "TrueForecast": tf_tuple,
                 "CalculatedForecast": cf_tuple,
