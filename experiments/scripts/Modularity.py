@@ -46,8 +46,8 @@ for prob in probs_range:
         true_rating=ControlledTrendRating(
             starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=100),
             delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.1),
-            trend=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
-            season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
+            trend=ControlledRandomFunction(distribution='normal', loc=0, scale=30/36000000),
+            season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=0)
         ),
         clusters=number_of_clusters,
         in_probability=float(in_probability / 100),

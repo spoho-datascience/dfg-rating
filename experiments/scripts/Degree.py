@@ -48,7 +48,7 @@ for variance in variance_range:
         true_rating=ControlledTrendRating(
             starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=100),
             delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.1),
-            trend=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
+            trend=ControlledRandomFunction(distribution='normal', loc=0, scale=30/36000000),
             season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=0)
         ),
         expected_matches=in_degree,

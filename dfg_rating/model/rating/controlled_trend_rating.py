@@ -19,9 +19,12 @@ class ControlledRandomFunction:
             print("Distribution method not available")
             raise attr
 
-    def get(self, array_length=1):
+    def get(self, array_length=1, as_list=True):
         self.distribution_arguments['size'] = array_length
-        return list(self.distribution_method(**self.distribution_arguments))
+        if as_list:
+            return list(self.distribution_method(**self.distribution_arguments))
+        else:
+            return self.distribution_method(**self.distribution_arguments)
 
 
 class ControlledTrendRating(BaseRating):
@@ -55,6 +58,7 @@ class ControlledTrendRating(BaseRating):
                 filter(edge_filter, n.data.edges(keys=True, data=True)), lambda x: x[3]['round']
         ):
             games_by_round.setdefault(k, []).append(next(g))
+
         for r in range(self.rounds_per_season):
             teams_playing = []
             current_position = (current_season * (self.rounds_per_season + 2)) + (r + 1)
@@ -130,9 +134,8 @@ class ControlledTrendRating(BaseRating):
     def new_rating_value(self, team, match_data):
         delta_days = match_data['day'] - self.agg[team].get('last_day', 0)
         self.agg[team]['last_day'] = match_data['day']
-        total_delta = sum(self.delta.get(delta_days))
+        total_delta = self.delta.get(delta_days, as_list=False).sum()
         round_ranking = self.agg[team]['trend'] * delta_days
-
         return round_ranking + total_delta
 
     def get_ratings(self, n: BaseNetwork, t: [TeamId], edge_filter=None):

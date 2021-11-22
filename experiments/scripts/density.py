@@ -38,7 +38,7 @@ for step, current_density in enumerate(density_range):
             (rounds / (2 * d)) + 1
         )
     )
-    d_between = math.floor(36000000 / (number_of_nodes * (number_of_nodes - 1) * 2))
+    d_between = math.floor(36000000 / ((number_of_nodes - 1) * 2))
     print(d_between)
     print(f"Network {number_of_nodes}:{d}")
     current_network = RandomRoundsNetwork(
