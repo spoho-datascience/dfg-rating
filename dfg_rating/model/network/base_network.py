@@ -25,7 +25,7 @@ def get_seasons(games):
 
 
 def weighted_winner(forecast: BaseForecast, match_data, home_team, away_team, round_values):
-    f = abs(forecast.get_forecast(match_data, home_team, away_team, round_values))
+    f = abs(forecast.get_forecast(match_data, home_team, away_team, round_values=round_values))
     weights = f.cumsum()
     x = np.random.default_rng().uniform(0, 1)
     for i in range(len(weights)):
@@ -125,12 +125,13 @@ class BaseNetwork(ABC):
         return [s for s in range(self.seasons)]
 
     def get_rounds(self):
-        return self.n_rounds * 2, [r for r in range(self.n_rounds + 2)]
+        return self.n_rounds * 2, [r for r in range(self.n_rounds * 2)]
 
     def iterate_over_games(self):
         return sorted(self.data.edges(keys=True, data=True), key=lambda t: (int(t[3].get('day', 0))))
 
     def play_sub_network(self, games):
+        r, rv = self.get_rounds()
         for away_team, home_team, edge_key, edge_attributes in games:
             # Random winner with weighted choices
             if 'true_rating' not in self.data.nodes[away_team].get('ratings', {}):
@@ -144,7 +145,7 @@ class BaseNetwork(ABC):
                 edge_attributes,
                 self.data.nodes[home_team],
                 self.data.nodes[away_team],
-                self.get_rounds()[1]
+                rv
             )
             self.data.edges[away_team, home_team, edge_key]['winner'] = winner
 

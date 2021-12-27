@@ -34,13 +34,13 @@ mc = controller.Controller()
     file_path='./RealData/atp_2019.csv',
     new_mapping='atp'
 )"""
-mc.load_network_from_tabular(
+"""mc.load_network_from_tabular(
     network_name="football_national",
     file_path="./RealData/Data_Football_National.csv",
     new_mapping="soccer",
     delimiter=";",
 )
-loaded_network = mc.networks["football_national"]
+loaded_network = mc.networks["football_national"]"""
 
 """created_network = LeagueNetwork(
     teams=20,
@@ -93,7 +93,7 @@ loaded_network = RandomRoundsNetwork(
     clusters=10,
     out_probability=0.01
 )"""
-"""import random
+import random
 import numpy as np
 
 random.seed(1234)
@@ -107,7 +107,7 @@ loaded_network = LeagueNetwork(
     league_promotion=0,
     create=True
 )
-print(loaded_network.data.nodes[2])"""
+print(loaded_network.data.nodes[2])
 """loaded_network = ConfigurationModelNetwork(
     teams=20,
     days_between_rounds=3,
@@ -126,16 +126,15 @@ loaded_network.add_rating(elo_rating, "Added_elo_rating")
 #loaded_network.add_rating(tested_rating, "Added_true_rating")
 
 loaded_network.add_forecast(
-    forecast=LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-1.2, 0.0], beta_parameter=0.006),
+    forecast=LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-0.9, 0.3], beta_parameter=0.006),
     forecast_name='player_forecast',
     base_ranking='Added_elo_rating'
 )
 
-print("Done")
-
-app = DFGWidgets.RatingsExplorer(
+app = DFGWidgets.ForecastExplorer(
     network=loaded_network,
-    edge_props=["round"],
+    forecasts=["player_forecast"],
+    ratings=["Added_elo_rating", "true_rating"],
     offline=True
 )
 app.run('internal', debug=True, port=8001)

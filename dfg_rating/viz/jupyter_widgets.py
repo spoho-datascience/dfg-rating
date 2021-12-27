@@ -1,3 +1,5 @@
+from operator import indexOf
+
 import numpy as np
 import plotly.express as px
 import dash
@@ -488,7 +490,7 @@ class RatingsExplorer(BaseWidget):
                         dbc.Col(
                             children=dcc.Graph(id='ratings_chart'),
                             width=12
-                        ),q
+                        )
                     ]
                 ),
                 dbc.Row(
@@ -525,6 +527,8 @@ class RatingsExplorer(BaseWidget):
                             Callback.Input('from-season-input', 'value'),
                             Callback.Input('to-season-input', 'value')])
         def update_ratings_overview(teams, ratings, from_season, to_season):
+            if any(attribute is None for attribute in [from_season, to_season]):
+                raise PreventUpdate
             teams = teams or []
             ratings = ratings or ['true_rating']
             ratings_chart_figure = create_ratings_charts(
@@ -990,6 +994,198 @@ class DegreeExplorer(BaseWidget):
                         }
                     )
         return elements, analysis_dict, evaluation_dict
+
+    def data_filter_layout(self):
+        data_layout = []
+        extra_node_properties = []
+        seasons = set([data['season'] for a, h, k, data in self.network.iterate_over_games()])
+        for n_prop in self.extra_node_properties:
+            if n_prop in self.network.data.nodes()[1].keys():
+                extra_node_properties.append(dbc.Row([
+                    dbc.Col(html.P(f"{n_prop}: "), width=2),
+                    dbc.Col(
+                        dcc.Dropdown(
+                            id={
+                                'type': 'nodes_filter',
+                                'index': n_prop,
+                            },
+                            options=[
+                                {
+                                    "label": self.network.data.nodes[v].get(n_prop, v), "value": v
+                                } for v in sorted(self.network.data.nodes())
+                            ],
+                            multi=True
+                        ),
+                    )
+                ]))
+        extra_edge_properties = []
+        for e_prop in self.extra_edge_properties:
+            network_projection = self.network.data.edges.data(e_prop)
+            options = []
+            for node1, node2, prop_value in network_projection:
+                if prop_value not in options:
+                    options.append(prop_value)
+            extra_edge_properties.append(dbc.Row(children=[
+                dbc.Col(html.P(f"{e_prop}: "), width=2),
+                dbc.Col(
+                    dcc.Dropdown(
+                        id={
+                            'type': 'edges_filter',
+                            'index': e_prop,
+                        },
+                        options=[
+                            {
+                                "label": o, "value": o
+                            } for o in sorted(options)
+                        ],
+                        multi=True
+                    ),
+                )
+            ]))
+
+        data_layout += [
+                           html.H5("Nodes"),
+                           dbc.Row(
+                               id="nodes_id_row",
+                               children=[
+                                   dbc.Col(html.P("Team id: "), width=2),
+                                   dbc.Col(
+                                       dcc.Dropdown(
+                                           id="nodes_options_id",
+                                           options=[
+                                               {
+                                                   "label": f"Team {v}", "value": v
+                                               } for v in sorted(self.network.data.nodes())
+                                           ],
+                                           multi=True
+                                       ),
+                                   )
+                               ]
+                           )
+                       ] + extra_node_properties + [
+                           html.H5("Edges"),
+                           dbc.Row(
+                               id="season_row",
+                               children=[
+                                   dbc.Col(html.P("Season: "), width=2),
+                                   dbc.Col(
+                                       dcc.Dropdown(
+                                           id=f"edges_options_season",
+                                           options=[
+                                               {
+                                                   "label": f"Season {s}", "value": s
+                                               } for s in sorted(seasons)
+                                           ],
+                                           multi=True
+                                       ),
+                                   )
+                               ]
+                           )
+                       ] + extra_edge_properties
+        return data_layout
+
+
+class ForecastExplorer(BaseWidget):
+
+    def __init__(self, network: BaseNetwork, **kwargs):
+        self.network = network
+        self.extra_node_properties = kwargs.pop('node_props', [])
+        self.extra_edge_properties = kwargs.pop('edge_props', [])
+        self.ratings = kwargs.pop('ratings', None)
+        self.forecasts = kwargs.pop('forecasts', None)
+        super().__init__(app_name="network_explorer", **kwargs)
+
+    def build_layout(self):
+        self.ratings_dict = self.network.export_ratings()
+        analysis_dict, evaluation_dict = self.export_network()
+        self.app.layout = dbc.Container(
+            [
+                dbc.Row(
+                    dbc.Col(
+                        html.Div(tables.calendar_table(pd.DataFrame(analysis_dict), forecasts=True)),
+                        width=12
+                    )
+                )
+            ], fluid=True
+        )
+
+    def configure_callbacks(self):
+        pass
+
+    def export_network(self, nodes_filter={}, edges_filter={}, show_inactive=False):
+        list_of_ids = nodes_filter.get('id', [n for n in self.network.data.nodes()])
+        analysis_dict = []
+        evaluation_dict = []
+        for node1, node2, edge_key, edge_info in self.network.iterate_over_games():
+            if all(node not in list_of_ids for node in [node1, node2]):
+                continue
+            next_match = False
+            for k, v in nodes_filter.items():
+                if (k not in ['id']) and (len(v) > 0):
+                    node1_value = self.network.data.nodes[node1].get(k, None)
+                    node2_value = self.network.data.nodes[node2].get(k, None)
+                    next_match = (any(
+                        (value is None) or (value not in v) for value in [node1_value, node2_value]
+                    )) or next_match
+            if next_match:
+                continue
+            for k, v in edges_filter.items():
+                if len(v) > 0:
+                    edge_value = edge_info.get(k, None)
+                    next_match = ((edge_value is None) or (edge_value not in v)) or next_match
+            if next_match:
+                continue
+            if (edge_info.get('state', 'active') == 'active') or show_inactive:
+                new_dict = {
+                    "HomeTeam": self.network.data.nodes[node2].get("name", node2),
+                    "AwayTeam": self.network.data.nodes[node1].get("name", node1),
+                    "Season": edge_info.get('season', None),
+                    "Round": edge_info.get('round', None),
+                    "Result": edge_info.get('winner', None),
+                    "State": edge_info.get('state', 'active')
+                }
+                rating_node_1 = self.ratings_dict.get(node1, {})
+                rating_node_2 = self.ratings_dict.get(node2, {})
+                rounds, round_values = self.network.get_rounds()
+                round_pointer = indexOf(round_values, new_dict["Round"])
+                if self.ratings is None:
+                    for rating_node, p in [(rating_node_2, "HomeTeam"), (rating_node_1, "AwayTeam")]:
+                        for r_name, r_value in rating_node.items():
+                            new_dict[f"{r_name} # {p}"] = r_value.get(
+                                new_dict["Season"]
+                            )[round_pointer]
+                else:
+                    for rating_node, p in [(rating_node_2, "HomeTeam"), (rating_node_1, "AwayTeam")]:
+                        for r_name in self.ratings:
+                            r_value = rating_node.get(r_name)
+                            new_dict[f"{r_name} # {p}"] = r_value.get(
+                                new_dict["Season"]
+                            )[round_pointer]
+
+                if self.forecasts is None:
+                    for f_name, f in edge_info.get('forecasts', {}).items():
+                        new_dict[f"{f_name}#"] = [f"{outcome:.2f} - " for outcome in f.probabilities]
+
+                else:
+                    for f_name in self.forecasts:
+                        f = edge_info.get('forecasts', {}).get(f_name, None)
+                        if f is not None:
+                            new_dict[f"{f_name}#"] = [f"{outcome:.2f} - " for outcome in f.probabilities]
+                analysis_dict.append(new_dict)
+                for evaluator_name, evaluator in edge_info.get('metrics', {}).items():
+                    evaluation_dict.append(
+                        {
+                            "HomeTeam": self.network.data.nodes[node2].get("name", node2),
+                            "AwayTeam": self.network.data.nodes[node1].get("name", node1),
+                            "Season": edge_info.get('season', None),
+                            "Round": edge_info.get('round', None),
+                            "Result": edge_info.get('winner', None),
+                            "State": edge_info.get('state', 'active'),
+                            "Metric": evaluator_name,
+                            "Value": evaluator
+                        }
+                    )
+        return analysis_dict, evaluation_dict
 
     def data_filter_layout(self):
         data_layout = []

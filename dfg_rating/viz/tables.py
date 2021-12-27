@@ -244,6 +244,7 @@ def get_evaluation(network: BaseNetwork, k, abs=True, evaluators=[], **kwargs):
     return analysis_data
 
 
+
 def get_league_rating_values(network: BaseNetwork, rating: str, number_of_leagues: int, **kwargs):
     rating_values = []
     list_of_arrays = {}

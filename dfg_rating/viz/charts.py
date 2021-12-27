@@ -32,6 +32,7 @@ def create_ratings_charts(
         A dict-based plotly Figure object with the rating chart for all the teams in the network.
 
     """
+    teams_dict = {team: team_i for team_i, team in enumerate(network.data.nodes)}
     fig = go.Figure()
     if len(selected_teams) == 0:
         selected_teams = network.data.nodes
@@ -40,13 +41,17 @@ def create_ratings_charts(
     if len(seasons) == 0:
         seasons = range(network.seasons)
     for team in selected_teams:
+        team_i = teams_dict.get(team, team)
+        team_name = network.data.nodes[team].get("name", team)
         for rating in ratings:
             total_rating_array = np.array([])
             total_trend_x = np.array([])
             total_trend_y = np.array([])
+            seasons_array = np.array([])
             for season in seasons:
                 rating_array = network.data.nodes[team].get('ratings', {}).get(rating, {}).get(season, [])
                 total_rating_array = np.concatenate((total_rating_array, np.array(rating_array)))
+                seasons_array = np.concatenate((seasons_array, np.array([season] * len(rating_array))))
                 rating_hp = network.data.nodes[team].get('ratings', {}).get("hyper_parameters", {}).get(rating, {}).get(
                     season, {})
                 trend_x = np.array(range(len(rating_array)), dtype=np.float) + (len(rating_array) * season)
@@ -61,13 +66,14 @@ def create_ratings_charts(
                 y=total_rating_array,
                 mode='lines',
                 line=dict(
-                    color=reduced_color_scale[team],
+                    color=reduced_color_scale[team_i],
                     width=3.5
                 ) if rating != 'true_rating' else dict(
-                    color=reduced_color_scale[team],
+                    color=reduced_color_scale[team_i],
                     width=1.5
                 ),
-                name=f"{rating}-Team {team}"
+                hovertext=[f"Season {s}" for s in seasons_array],
+                name=f"{rating} - Team {team_name}({team})"
             ))
             if show_trend and (rating == 'true_rating'):
                 fig.add_trace(go.Scatter(
@@ -78,12 +84,13 @@ def create_ratings_charts(
                         width=0.5,
                         color=reduced_color_scale[team],
                     ),
-                    name=f"{rating}-Trend team {team}"
+                    name=f"{rating}-Trend team {team_name}({team})"
                 ))
     fig.update_layout(
         title="Team ratings",
         xaxis_title="League rounds",
         yaxis_title="Rating value",
+        hovermode='x unified'
     )
     return fig
 
