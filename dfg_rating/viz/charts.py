@@ -92,7 +92,7 @@ def publication_chart(
         network: BaseNetwork,
         ratings: [str] = ['true_rating'],
         seasons: [int] = None,
-        show_trend=True,
+        show_trend=False,
         show_starting=False,
         selected_teams: [int] = None
 ) -> go.Figure:
@@ -126,7 +126,7 @@ def publication_chart(
                 y=total_rating_array,
                 mode='lines',
                 line=dict(color=px.colors.sequential.Greys[
-                    len(px.colors.sequential.Greys) - 1 - (i_rating + i_rating + i_rating)]),
+                    len(px.colors.sequential.Greys) - 2 - (i_rating + i_rating + i_rating)]),
                 name=rating
             ))
             if show_starting:
@@ -155,7 +155,7 @@ def publication_chart(
         yaxis_title="Rating value",
         legend=dict(
             font=dict(
-                family='Helvetica',
+                family='Times New Roman',
                 size=12,
                 color="Black"
             ),
@@ -169,7 +169,7 @@ def publication_chart(
         )
     )
     font_dict = dict(
-        family='Helvetica',
+        family='Times New Roman',
         size=26,
         color='black'
     )
@@ -193,6 +193,7 @@ def publication_chart(
     )
     fig.update_xaxes(
         title_text='Seasons',
+        range=[0, 170],
         showgrid=False,
         rangemode='tozero',
         showline=True,
@@ -203,9 +204,9 @@ def publication_chart(
         tickfont=dict(
             size=14
         ),
-        tickvals=[i for i in range(37, 37 * 20, 37)],
-        ticktext=[f"Season {int(i / 37)}" for i in range(37, 37 * 20, 37)],
-        tickangle=45,
+        tickvals=[i for i in range(40, 40 * 20, 40)],
+        ticktext=[f"Season {int(i / 39)}" for i in range(39, 39 * 20, 39)],
+        tickangle=-35,
         ticks="inside"
     )
     return fig
@@ -301,6 +302,14 @@ def accumulated_betting_chart(
             size=12
         )
     )
+    config = {
+        'toImageButtonOptions': {
+            'format': 'svg', # one of png, svg, jpeg, webp
+            'filename': 'rating_chart',
+            'scale': 1 # Multiply title/legend/axis/canvas sizes by this factor
+        }
+    }
+    fig._config = config
 
     return fig
 
@@ -478,7 +487,6 @@ def teams_rating_chart(
                 ),
                 name=f"Team {chr(65 + t_i)}"
             ))
-        np.save('economic_figure.npy', np.array(array_ratings))
     fig.update_layout(
         xaxis_title="League rounds",
         yaxis_title="Rating value",
@@ -521,7 +529,7 @@ def teams_rating_chart(
         ticks='inside'
     )
     fig.update_xaxes(
-        title_text='Seasons',
+        title_text='',
         showgrid=False,
         rangemode='tozero',
         showline=True,

@@ -53,8 +53,8 @@ class NetworkExplorer(BaseWidget):
             {
                 'selector': 'node',
                 'style': {
-                    'label': 'data(label)',
-                    'background-color': 'black'
+                    #'label': 'data(label)',
+                    'background-color': 'gray'
                 }
             },
             {
@@ -63,8 +63,8 @@ class NetworkExplorer(BaseWidget):
                     'label': 'data(label)',
                     'curve-style': 'bezier',
                     'target-arrow-shape': 'triangle',
-                    'target-arrow-color': 'gray',
-                    'line-color': 'gray'
+                    'target-arrow-color': 'lightgray',
+                    'line-color': 'lightgray'
                 }
             },
             {
@@ -73,48 +73,6 @@ class NetworkExplorer(BaseWidget):
                     "line-color": 'lightgray',
                     'target-arrow-color': 'gray',
                     "line-style": 'dashed'
-                }
-            },
-            {
-                'selector': '.cluster0',
-                'style': {
-                    'background-color' : 'blue'
-                }
-            },
-            {
-                'selector': '.cluster1',
-                'style': {
-                    'background-color' : 'red'
-                }
-            },
-            {
-                'selector': '.cluster2',
-                'style': {
-                    'background-color' : 'yellow'
-                }
-            },
-            {
-                'selector': '.cluster3',
-                'style': {
-                    'background-color' : 'green'
-                }
-            },
-            {
-                'selector': '.cluster4',
-                'style': {
-                    'background-color' : 'gray'
-                }
-            },
-            {
-                'selector': '.cluster5',
-                'style': {
-                    'background-color' : 'brown'
-                }
-            },
-            {
-                'selector': '.cluster6',
-                'style': {
-                    'background-color' : 'purple'
                 }
             }
         ]
@@ -272,6 +230,7 @@ class NetworkExplorer(BaseWidget):
         analysis_dict = []
         evaluation_dict = []
         number_of_clusters = self.network.number_of_clusters or 1
+        nodes_added_to_elements = []
         for node1, node2, edge_key, edge_info in self.network.iterate_over_games():
             if all(node not in list_of_ids for node in [node1, node2]):
                 continue
@@ -291,22 +250,30 @@ class NetworkExplorer(BaseWidget):
                     next_match = ((edge_value is None) or (edge_value not in v)) or next_match
             if next_match:
                 continue
-            elements += [
-                {
-                    "data": {
-                        "id": node1,
-                        "label": f"{self.network.data.nodes[node1].get('name', node1)}",
-                    },
-                    "classes": f"cluster{node1}"
-                },
-                {
-                    "data": {
-                        "id": node2,
-                        "label": f"{self.network.data.nodes[node1].get('name', node2)}",
-                    },
-                    "classes": f"cluster{node2}"
-                },
-            ]
+            if (node1 not in nodes_added_to_elements) and (self.network.data.degree(node1) >= 0):
+                elements += [
+                    {
+                        "data": {
+                            "id": node1,
+                            "label": f"{self.network.data.nodes[node1].get('name', node1)}",
+                        },
+                        "classes": f"cluster{node1}"
+                    }
+                ]
+                nodes_added_to_elements.append(node1)
+            if (node2 not in nodes_added_to_elements) and (self.network.data.degree(node2) >= 0):
+                elements += [
+                    {
+                        "data": {
+                            "id": node2,
+                            "label": f"{self.network.data.nodes[node2].get('name', node2)}",
+                        },
+                        "classes": f"cluster{node2}"
+                    }
+                ]
+                nodes_added_to_elements.append(node2)
+            if any(self.network.data.degree(n) < 0 for n in [node1, node2]):
+                continue
             if (edge_info.get('state', 'active') == 'active') or show_inactive:
                 elements += [
                     {
@@ -461,7 +428,7 @@ class RatingsExplorer(BaseWidget):
                                 placeholder="Select teams...",
                                 options=[
                                     {
-                                        "label": f"Team {team_id}",
+                                        "label": f"Team {team_id}{self.main_network.data.nodes[team_id].get('name', '')}",
                                         "value": team_id
                                     } for team_id in self.main_network.data.nodes
                                 ],
@@ -497,7 +464,7 @@ class RatingsExplorer(BaseWidget):
                                         type="number",
                                         debounce=True,
                                         min=1,
-                                        max=self.main_network.seasons,
+                                        max=max(self.main_network.get_seasons()),
                                         value=1
                                     ),
                                     " to season ",
@@ -506,8 +473,8 @@ class RatingsExplorer(BaseWidget):
                                         type="number",
                                         debounce=True,
                                         min=1,
-                                        max=self.main_network.seasons,
-                                        value=self.main_network.seasons
+                                        max=max(self.main_network.get_seasons()),
+                                        value=max(self.main_network.get_seasons()),
                                     )
                                 ]
                             ),
@@ -520,16 +487,8 @@ class RatingsExplorer(BaseWidget):
                     children=[
                         dbc.Col(
                             children=dcc.Graph(id='ratings_chart'),
-                            width=6
-                        ),
-                        dbc.Col(
-                            children=[
-                                dbc.Button(id='print-button', children="Print"),
-                                dcc.Graph(id='ratings_chart_print')
-                            ],
-                            width=6
-                        ),
-
+                            width=12
+                        ),q
                     ]
                 ),
                 dbc.Row(
@@ -539,7 +498,19 @@ class RatingsExplorer(BaseWidget):
                             children=dcc.Graph(id='teams-ratings'),
                             width=6
                         ),
-
+                        dbc.Col(
+                            children=[
+                                dbc.Button(id='print-button', children="Print"),
+                                dcc.Graph(id='ratings_chart_print', config = {
+                                    'toImageButtonOptions': {
+                                        'format': 'svg', # one of png, svg, jpeg, webp
+                                        'filename': 'rating_chart',
+                                        'scale': 1 # Multiply title/legend/axis/canvas sizes by this factor
+                                    }
+                                })
+                            ],
+                            width=6
+                        ),
                     ]
                 )
             ],
@@ -724,7 +695,7 @@ class DegreeExplorer(BaseWidget):
             {
                 'selector': 'node',
                 'style': {
-                    'label': 'data(label)',
+                    #'label': 'data(label)',
                     "width": "mapData(score, 10, 40, 10, 150)",
                     "height": "mapData(score, 10, 40, 10, 150)",
                     'background-color': 'black'
@@ -926,7 +897,7 @@ class DegreeExplorer(BaseWidget):
         )
         def get_image(btn_clicks, image_data):
             # File type to ouput of 'svg, 'png', 'jpg', or 'jpeg' (alias of 'jpg')
-            ftype = 'svg'
+            ftype = 'png'
             # 'store': Stores the image data in 'imageData' !only jpg/png are supported
             # 'download'`: Downloads the image as a file with all data handling
             # 'both'`: Stores image data and downloads image as file.
@@ -935,8 +906,7 @@ class DegreeExplorer(BaseWidget):
                 raise PreventUpdate
             return {
                 'type': ftype,
-                'action': action,
-                'filename': "export"
+                'action': action
             }
 
     def network_to_cyto(self, nodes_filter={}, edges_filter={}, show_inactive=False):

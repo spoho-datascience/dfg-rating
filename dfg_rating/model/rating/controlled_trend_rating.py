@@ -39,19 +39,19 @@ class ControlledTrendRating(BaseRating):
         self.props = {}
         self.rating_name = kwargs.get('rating_name', 'true_rating')
 
-    def get_all_ratings(self, n: BaseNetwork, edge_filter=None):
+    def get_all_ratings(self, n: BaseNetwork, edge_filter=None, season=0):
+        print(season, "current_season")
         edge_filter = edge_filter or base_edge_filter
         self.teams = list(n.data.nodes)
         n_teams = len(self.teams)
-        n_rounds = n.n_rounds * 2
-        self.all_seasons = range(n.seasons)
-        n_seasons = 1
+        n_rounds, round_values = n.get_rounds()
+        self.all_seasons = n.get_seasons()
+        n_seasons = len(self.all_seasons)
         self.rounds_per_season = n_rounds
         ratings = np.zeros([n_teams, (n_rounds + 2) * n_seasons])
-        current_season = 0
-        season_name = 0
+        relative_season = 0
         self.agg = {}
-        self.init_season_ratings(current_season, season_name, n, ratings)
+        self.init_season_ratings(relative_season, season, n, ratings)
         ratings[:, 0] *= self.rating_mean / np.ndarray.mean(ratings[:, 0])
         games_by_round = {}
         for k, g in itertools.groupby(
@@ -60,9 +60,10 @@ class ControlledTrendRating(BaseRating):
             games_by_round.setdefault(k, []).append(next(g))
 
         for r in range(self.rounds_per_season):
+            r_value = round_values[r]
             teams_playing = []
-            current_position = (current_season * (self.rounds_per_season + 2)) + (r + 1)
-            for away_team, home_team, match_key, match_data in games_by_round[r]:
+            current_position = (relative_season * (self.rounds_per_season + 2)) + (r + 1)
+            for away_team, home_team, match_key, match_data in games_by_round.get(r, []):
                 teams_playing += [away_team, home_team]
                 ratings[indexOf(self.teams, away_team), current_position] = ratings[
                                                                                 indexOf(self.teams,
@@ -81,7 +82,7 @@ class ControlledTrendRating(BaseRating):
                 if team not in teams_playing:
                     ratings[team_i, current_position] = ratings[team_i, current_position - 1]
             ratings[:, current_position] *= self.rating_mean / np.ndarray.mean(ratings[:, current_position])
-        self.end_season_ratings(current_season, n, ratings)
+        self.end_season_ratings(relative_season, n, ratings)
 
         return ratings, self.props
 
@@ -106,13 +107,14 @@ class ControlledTrendRating(BaseRating):
 
     def init_ratings(self, team, current_season, season_name, n, ratings) -> float:
         if indexOf(self.all_seasons, season_name) == 0:
+            print("first season")
             """First season on the simulation, new starting point"""
             starting_point = self.starting_point.get()[0]
         elif current_season == 0:
             """First season in the ratings computation but not in the network. Reading previous season"""
             starting_point = self.apply_season_change(
                 last_season_rating=
-                n.data.nodes[indexOf(self.teams, team)].get('ratings', {}).get(self.rating_name, {}).get(
+                n.data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(
                     indexOf(self.all_seasons, season_name) - 1, self.starting_point.get()
                 )[-1]
             )
@@ -129,7 +131,9 @@ class ControlledTrendRating(BaseRating):
             ratings[team_i, end_position] = ratings[team_i, end_position - 1]
 
     def apply_season_change(self, last_season_rating):
-        return last_season_rating + self.season_delta.get()[0]
+        additive_value = self.season_delta.get()[0]
+        #print("last_season_rating", last_season_rating, "additive", additive_value)
+        return last_season_rating + additive_value
 
     def new_rating_value(self, team, match_data):
         delta_days = match_data['day'] - self.agg[team].get('last_day', 0)

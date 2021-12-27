@@ -35,6 +35,7 @@ class LeagueNetwork(RoundRobinNetwork):
     def create_data(self):
         for season in range(self.seasons):
             # Create the new season matches
+            print("Season", season)
             self.fill_graph(self.league_teams_labels, season=season)
             self.add_rating(self.true_rating, 'true_rating', season=season)
             self.add_forecast(self.true_forecast, 'true_forecast', season=season)

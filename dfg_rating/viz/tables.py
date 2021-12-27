@@ -99,7 +99,7 @@ def calendar_table(df, forecasts=False):
     )
 
 
-def ratings_table(ratings_dict, season=0):
+def ratings_table(ratings_dict, season=1):
     df_data = []
     ratings_list = set([])
     conditional_styles = []
@@ -112,11 +112,10 @@ def ratings_table(ratings_dict, season=0):
                     "Team": team,
                     "Id": rating
                 }
-
                 previous_value = 1000.00
-                for round_id, round_value in enumerate(rating_values[season]):
+                for round_id, round_value in enumerate(rating_values.get(season, [])):
                     new_rating[f"#{round_id + 1}"] = round_value
-                    if rating == "elo_rating_1d7":
+                    if rating == "elo_rating_17":
                         if round_id > 0:
                             if round_value != previous_value:
                                 conditional_styles.append({
@@ -159,9 +158,18 @@ def ratings_table(ratings_dict, season=0):
 
 
 def network_metrics(n: BaseNetwork):
+    degree_distribution = np.array([v for k, v in n.degree()])
     layout = html.Div([
-                          dbc.Row(html.Div(f"Network density: {n.density(True)}")),
-                      ] + [dbc.Row(html.Div(f"Node {node}: {d}")) for node, d in n.degree(True)])
+        dbc.Row(html.Div(f"Network density: {n.density(True)}")),
+        dbc.Row(html.Div(f"Q1: {np.percentile(degree_distribution, 25)}")),
+        dbc.Row(html.Div(f"Median: {np.percentile(degree_distribution, 50)}")),
+        dbc.Row(html.Div(f"Q3: {np.percentile(degree_distribution, 75)}")),
+        dbc.Row(html.Div(f"Min: {degree_distribution.min()}")),
+        dbc.Row(html.Div(f"Max: {degree_distribution.max()}")),
+        dbc.Row(children="----------")
+    ] + [
+        dbc.Row(html.Div(f"Node {node}: {d}")) for node, d in n.degree(True)
+    ])
     return layout
 
 

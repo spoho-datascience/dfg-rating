@@ -1,5 +1,6 @@
 import itertools
 import time
+from operator import indexOf
 
 import numpy as np
 from tqdm import tqdm
@@ -23,24 +24,21 @@ class ELORating(BaseRating):
                 "w": kwargs.get("param_w", 80)
             }
 
-    def init_ratings(self, team, season, n, ratings):
-        if self.seasons[season] == 0:
+    def init_ratings(self, team, season, n):
+        if season == 0:
             """First season on the simulation, new starting point"""
             starting_point = self.rating_mean
-        elif season == 0:
+        else:
             """First season in the ratings computation but not in the network. Reading previous season"""
             starting_point = n.data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(
-                self.seasons[season] - 1, [self.rating_mean]
+                season - 1, [self.rating_mean]
             )[-1]
-        else:
-            """New season for the ratings. Getting previous rating"""
-            starting_point = ratings[team][season * (self.rounds_per_season + 1)]
         return starting_point
 
     def init_season_ratings(self, season, n, ratings):
-        init_position = season * (self.rounds_per_season + 2)
-        for team in n.data.nodes:
-            ratings[team, init_position] = self.init_ratings(team, season, n, ratings)
+        init_position = 0
+        for team_i, team in enumerate(n.data.nodes):
+            ratings[team_i, init_position] = self.init_ratings(team, season, n)
 
     def compute_expected_values(self, home_value, away_value):
         expected_home = 1.0 / (
@@ -54,56 +52,59 @@ class ELORating(BaseRating):
     def update_elo(self, current, score, expected):
         return current + (self.settings['k'] * (score - expected))
 
-    def end_season_ratings(self, season, network, ratings):
-        end_position = (season + 1) * (self.rounds_per_season + 2) - 1
-        for team in network.data.nodes:
-            ratings[team, end_position] = ratings[team, end_position - 1]
+    def end_season_ratings(self, network, ratings):
+        end_position = (self.rounds_per_season + 2) - 1
+        for team_i, team in enumerate(self.teams):
+            ratings[team_i, end_position] = ratings[team_i, end_position - 1]
 
-    def get_all_ratings(self, n: BaseNetwork, edge_filter=None, **params):
+    def get_all_ratings(self, n: BaseNetwork, edge_filter=None, season=0, **params):
         edge_filter = edge_filter or base_edge_filter
-        n_teams = n.n_teams
-        n_rounds = n.n_rounds * 2
-        n_seasons = 1
-        self.seasons = range(n.seasons)
+        self.teams = list(n.data.nodes)
+        n_teams = len(self.teams)
+        n_rounds, round_values = n.get_rounds()
         self.rounds_per_season = n_rounds
-        ratings = np.zeros([n_teams, (n_rounds + 2) * n_seasons])
-        current_season = 0
-        self.init_season_ratings(current_season, n, ratings)
+        ratings = np.zeros([n_teams, (n_rounds + 2)])
+        self.init_season_ratings(season, n, ratings)
+        players_dict = {team: team_i for team_i, team in enumerate(self.teams)}
         games_by_round = {}
         for k, g in itertools.groupby(
                 filter(edge_filter, n.data.edges(keys=True, data=True)), lambda x: x[3]['round']
         ):
             games_by_round.setdefault(k, []).append(next(g))
         for r in range(self.rounds_per_season):
+            r_value = round_values[r]
             teams_playing = set(())
-            for away_team, home_team, match_key, match_data in games_by_round[r]:
+            for away_team, home_team, match_key, match_data in games_by_round.get(r_value, {}):
                 if match_data.get('state', 'active') == 'active':
+                    home_team_i = players_dict.get(home_team, home_team)
+                    away_team_i = players_dict.get(away_team, away_team)
                     teams_playing.update([away_team, home_team])
                     current_round = match_data['round']
-                    current_position = (current_season * (self.rounds_per_season + 2)) + (current_round + 1)
+                    current_position = r + 1
                     home_expected, away_expected = self.compute_expected_values(
-                        ratings[home_team, current_position - 1],
-                        ratings[away_team, current_position - 1]
+                        ratings[home_team_i, current_position - 1],
+                        ratings[away_team_i, current_position - 1]
                     )
                     home_score, away_score = self.compute_scores(match_data['winner'])
-                    ratings[away_team, current_position] = self.update_elo(
-                        ratings[away_team, current_position - 1],
+                    ratings[away_team_i, current_position] = self.update_elo(
+                        ratings[away_team_i, current_position - 1],
                         away_score,
                         away_expected
                     )
-                    ratings[home_team, current_position] = self.update_elo(
-                        ratings[home_team, current_position - 1],
+                    ratings[home_team_i, current_position] = self.update_elo(
+                        ratings[home_team_i, current_position - 1],
                         home_score,
                         home_expected
                     )
 
             # Dealing with teams not playing
-            if len(teams_playing) != len(n.data.nodes):
-                for team in n.data.nodes:
+            if len(teams_playing) != len(self.teams):
+                for team in self.teams:
                     if team not in teams_playing:
-                        rating_pointer = (current_season * (self.rounds_per_season + 2)) + (r + 1)
-                        ratings[team, rating_pointer] = ratings[team, rating_pointer - 1]
-        self.end_season_ratings(current_season, n, ratings)
+                        team_i = players_dict.get(team, team)
+                        rating_pointer = r + 1
+                        ratings[team_i, rating_pointer] = ratings[team_i, rating_pointer - 1]
+        self.end_season_ratings(n, ratings)
         return ratings, self.props
 
     def get_ratings(self, n: BaseNetwork, t: [TeamId], edge_filter=None):

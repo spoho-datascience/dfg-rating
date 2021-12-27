@@ -549,5 +549,6 @@ database.ini
 /experiments/notebooks/Economic/Results*
 /experiments/*.csv
 /experiments/scripts/*.csv
+/experiments/scripts/Final_results/*.csv
 /experiments/notebooks/*.csv
 *.tar.gz

@@ -98,6 +98,7 @@ class RoundRobinNetwork(BaseNetwork):
         return True
 
     def add_rating(self, rating: BaseRating, rating_name, team_id=None, season=None):
+        print(season)
         if season is not None:
             self.add_season_rating(rating, rating_name, team_id, season)
         else:
@@ -114,7 +115,8 @@ class RoundRobinNetwork(BaseNetwork):
             )
             self._add_rating_to_team(team_id, rating_values, rating_hp, rating_name, season=season)
         else:
-            ratings, rating_hp = rating.get_all_ratings(self, edge_filter)
+            print(self)
+            ratings, rating_hp = rating.get_all_ratings(self, edge_filter=edge_filter, season=season)
             for team in self.data.nodes:
                 self._add_rating_to_team(int(team), ratings[int(team)], rating_hp, rating_name, season=season)
 
@@ -129,7 +131,10 @@ class RoundRobinNetwork(BaseNetwork):
                 print(f"Missing <{base_forecast}> forecast in network")
             match_base_forecast = edge_attributes['forecasts'][base_forecast]
             base_probabilities = match_base_forecast.get_forecast(
-                edge_attributes, self.data.nodes[home_team], self.data.nodes[away_team]
+                match_data=edge_attributes,
+                home_team=self.data.nodes[home_team],
+                away_team=self.data.nodes[away_team],
+                round_values=self.get_rounds()[1]
             )
             self.data.edges[
                 away_team, home_team, edge_key

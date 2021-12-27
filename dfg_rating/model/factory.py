@@ -33,7 +33,8 @@ pre_mappings = {
         },
         "day": "Date",
         "dayIsTimestamp": True,
-        "round": "Round",
+        "ts_format": "%m/%d/%Y",
+        "round": "day",
         "season": "Year",
         'winner': {
             "id": "WinnerID"
@@ -49,19 +50,38 @@ pre_mappings = {
     },
     "soccer": {
         "node1": {
-            "id": "Team away",
-            "name": "Team away"
+            "id": "AwayID",
+            "name": "AwayTeam",
         },
         "node2": {
-            "id": "Team home",
-            "name": "Team home"
+            "id": "HomeID",
+            "name": "HomeTeam",
         },
         "day": "Date",
         "dayIsTimestamp": True,
-        "round": "Round",
+        "ts_format": "%d.%m.%Y",
         "season": "Season",
-        "forecasts": {},
-        "odds": {},
+        "winner": {
+            "result": "ResultFT",
+            "translation": {
+                "H": "home",
+                "D": "draw",
+                "A": "away"
+            }
+        },
+        "round": "day",
+        "odds": {
+            "maximumodds": {
+                "home": "OddsHomeMax",
+                "draw": "OddsDrawMax",
+                "away": "OddsAwayMax"
+            },
+            "averageodds": {
+                "home": "OddsHomeAvg",
+                "draw": "OddsDrawAvg",
+                "away": "OddsAwayAvg"
+            },
+        },
         "bets": {}
     }
 }

@@ -1,3 +1,5 @@
+from operator import indexOf
+
 import numpy as np
 
 from dfg_rating.model.forecast.base_forecast import BaseForecast
@@ -13,21 +15,22 @@ class LogFunctionForecast(BaseForecast):
         self.home_error = kwargs.get('home_team_error', RatingNullError())
         self.away_error = kwargs.get('away_team_error', RatingNullError())
 
-    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating'):
+    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating', round_values=None):
+        round_pointer = indexOf(round_values, match_data['round'])
         home_rating = home_team.get(
             'ratings', {}
         ).get(
             base_ranking, {}
         ).get(
             match_data['season'], []
-        )[match_data['round']]
+        )[round_pointer]
         away_rating = away_team.get(
             'ratings', {}
         ).get(
             base_ranking, {}
         ).get(
             match_data['season'], []
-        )[match_data['round']]
+        )[round_pointer]
         diff = self.home_error.apply(home_rating) - self.away_error.apply(away_rating)
         for i in range(len(self.outcomes)):
             n = len(self.outcomes)

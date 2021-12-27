@@ -24,7 +24,7 @@ class BaseForecast(ABC):
 
 
     @abstractmethod
-    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating'):
+    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating', round_values=None):
         pass
 
     def print(self):
@@ -41,5 +41,5 @@ class SimpleForecast(BaseForecast):
         super().__init__('simple', **kwargs)
         self.computed = True
 
-    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_forecast'):
+    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_forecast', round_values=None):
         return self.probabilities

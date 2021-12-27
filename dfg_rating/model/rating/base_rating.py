@@ -41,13 +41,14 @@ class BaseRating(ABC):
         self.rating_mean = kwargs.get('rating_mean', 1000)
 
     @abstractmethod
-    def get_all_ratings(self, n: BaseNetwork, edge_filter=None):
+    def get_all_ratings(self, n: BaseNetwork, edge_filter=None, season=None):
         """Computes the temporal rating of each team in a given network. Return the rating values and the rating
         hyperparameters.
 
         Args:
             :param n:
-            :param edge_filter:
+            :param edge_filter
+            :param season
         """
         pass
 

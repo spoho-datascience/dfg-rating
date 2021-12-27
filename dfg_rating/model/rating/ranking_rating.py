@@ -11,7 +11,7 @@ class BaseRankingRating(BaseRating):
     """ Base Raking Rating class"""
 
     @abstractmethod
-    def get_all_ratings(self, n: BaseNetwork, edge_filter=base_edge_filter):
+    def get_all_ratings(self, n: BaseNetwork, edge_filter=base_edge_filter, season=0):
         pass
 
     @abstractmethod
@@ -36,7 +36,7 @@ class LeagueRating(BaseRankingRating):
         for i in range(len(results)):
             self.points_system[results[i]] = points[i]
 
-    def get_all_ratings(self, league_network: BaseNetwork, edge_filter=None):
+    def get_all_ratings(self, league_network: BaseNetwork, edge_filter=None, season=0):
         edge_filter = edge_filter or base_edge_filter
         n_teams = league_network.n_teams
         games = league_network.data.edges(keys=True, data=True)
