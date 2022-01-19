@@ -58,6 +58,7 @@ class BaseNetwork(ABC):
         self.n_rounds = self.params.get('rounds', self.n_teams - 1 + self.n_teams % 2)
         self.seasons = kwargs.get('seasons', 1)
         self.days_between_rounds = self.params.get('days_between_rounds', 1)
+        self.network_info = {}
 
         from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
         from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
@@ -419,6 +420,9 @@ class BaseNetwork(ABC):
             return nx.density(subgraph)
         else:
             return nx.density(self.data)
+
+    def get_playing_teams(self, season):
+        return {t: t for t in range(self.n_teams)}
 
 
 

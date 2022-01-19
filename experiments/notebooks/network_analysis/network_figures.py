@@ -42,31 +42,53 @@ mc = controller.Controller()
 )
 loaded_network = mc.networks["football_national"]"""
 
-"""created_network = LeagueNetwork(
-    teams=20,
+loaded_network = LeagueNetwork(
+    teams=30,
     days_between_rounds=3,
     seasons=4,
-    league_teams=20,
-    league_promotion=0,
+    league_teams=18,
+    league_promotion=2,
     create=True
-)"""
-
-"""loaded_network = WhiteNetwork(
-    data=df,
+)
+"""data_football_national = pd.read_csv(os.path.join('..', '..', '..', 'data', 'real', 'Data_Football_National.csv'),sep = ";")
+loaded_network = WhiteNetwork(
+    data=data_football_national,
+    #node1 = away
     mapping={
         "node1": {
-            "id": "team2_id",
-            "name": "team2_name"
+            "id": "AwayID",
+            "name": "AwayTeam",
         },
         "node2": {
-            "id": "team1_id",
-            "name": "team1_name"
+            "id": "HomeID",
+            "name": "HomeTeam",
         },
-        "day": "match_date",
+        "day": "Date",
         "dayIsTimestamp": True,
-        "ts_format": "%Y-%m-%d %H:%M:%S",
-        "round": "round_name",
-        "season": "tournament_name"
+        "ts_format": "%d.%m.%Y",
+        "season": "Season",
+        "winner": {
+            "result": "ResultFT",
+            "translation": {
+                "H": "home",
+                "D": "draw",
+                "A": "away"
+            }
+        },
+        "round": "day",
+        "odds": {
+            "maximumodds": {
+                "home": "OddsHomeMax",
+                "draw": "OddsDrawMax",
+                "away": "OddsAwayMax"
+            },
+            "averageodds": {
+                "home": "OddsHomeAvg",
+                "draw": "OddsDrawAvg",
+                "away": "OddsAwayAvg"
+            },
+        },
+        "bets": {}
     }
 )"""
 
@@ -99,7 +121,7 @@ import numpy as np
 random.seed(1234)
 np.random.seed(1234)
 
-loaded_network = LeagueNetwork(
+"""loaded_network = LeagueNetwork(
     teams=20,
     days_between_rounds=3,
     seasons=4,
@@ -107,7 +129,7 @@ loaded_network = LeagueNetwork(
     league_promotion=0,
     create=True
 )
-print(loaded_network.data.nodes[2])
+print(loaded_network.data.nodes[2])"""
 """loaded_network = ConfigurationModelNetwork(
     teams=20,
     days_between_rounds=3,
@@ -131,10 +153,7 @@ loaded_network.add_forecast(
     base_ranking='Added_elo_rating'
 )
 
-app = DFGWidgets.ForecastExplorer(
+app = DFGWidgets.RatingsExplorer(
     network=loaded_network,
-    forecasts=["player_forecast"],
-    ratings=["Added_elo_rating", "true_rating"],
-    offline=True
 )
 app.run('internal', debug=True, port=8001)
