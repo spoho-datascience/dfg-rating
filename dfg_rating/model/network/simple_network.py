@@ -86,7 +86,7 @@ class RoundRobinNetwork(BaseNetwork):
             rotate = slice_a[-1]
             slice_a = [fixed, slice_b[0]] + slice_a[1:-1]
             slice_b = slice_b[1:] + [rotate]
-        self.network_info.setdefault(str(season), {})["teams_playing"] = {k:v for k, v in team_labels.items()}
+        self.network_info.setdefault(str(season), {})["teams_playing"] = {k: v for k, v in team_labels.items()}
         if self.data is None:
             self.data = graph
 
@@ -153,23 +153,16 @@ class RoundRobinNetwork(BaseNetwork):
                 'bets', {}
             )[bettor_name] = betting.bet(bettor_forecast.probabilities, match_odds)
 
-    def get_playing_teams(self, season):
+    def get_playing_teams(self, season, league=None):
         default = super().get_playing_teams(season)
-        return self.network_info.get(str(season), {}).get("teams_playing", default)
+        if league is None:
+            return self.network_info.get(str(season), {}).get("teams_playing", default)
+        else:
+            return self.network_info.get(league, {}).get(str(season), {}).get("teams_playing", default)
 
-    def get_mean_rating(self, rating_name, season, default_rating, **kwargs):
-        only_relegated = kwargs.get("relegated", False)
-        season_teams = self.get_playing_teams(season)
-        teams_playing = season_teams if not only_relegated else {
-            t: t for t in season_teams.values() if t not in self.get_playing_teams(season + 1).values()
-        }
-        ratings_list = []
-        for team_i, team in teams_playing.items():
-            last_season_rating = self.data.nodes[team].get(
-                'ratings', {}).get(rating_name, {}).get(
-                season, default_rating
-            )[-1]
-            ratings_list.append(last_season_rating)
-        return np.array(ratings_list).mean()
-
-
+    def get_current_league(self, season, team_id):
+        for league, seasons in self.network_info.items():
+            for season, attributes in seasons.get(season, {}).items():
+                if team_id in attributes.get("teams_playing", {}).values():
+                    return league
+        return None

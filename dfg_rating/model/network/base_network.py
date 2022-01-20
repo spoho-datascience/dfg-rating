@@ -421,8 +421,28 @@ class BaseNetwork(ABC):
         else:
             return nx.density(self.data)
 
-    def get_playing_teams(self, season):
+    def get_playing_teams(self, season, league=None):
         return {t: t for t in range(self.n_teams)}
+
+    def get_mean_rating(self, rating_name, season, league, default_rating, **kwargs):
+        only_relegated = kwargs.get("relegated", False)
+        season_teams = self.get_playing_teams(season, league)
+        teams_playing = season_teams if not only_relegated else {
+            t: t for t in season_teams.values() if t not in self.get_playing_teams(season + 1, league).values()
+        }
+        ratings_list = []
+        for team_i, team in teams_playing.items():
+            current_league = self.get_current_league(season + 1, team)
+            if current_league is not None:
+                last_season_rating = self.data.nodes[team].get(
+                    'ratings', {}).get(rating_name, {}).get(
+                    season, default_rating
+                )[-1]
+                ratings_list.append(last_season_rating)
+        return default_rating[0] if len(ratings_list) == 0 else np.array(ratings_list).mean()
+
+    def get_current_league(self, season, team_id):
+        return None
 
 
 
@@ -604,7 +624,19 @@ class WhiteNetwork(BaseNetwork):
                         )
                     else:
                         edge_dict.setdefault(entity, {})[entity_name] = values
-            graph.add_edge(row[self.mapping['node1']['id']], row[self.mapping['node2']['id']], **edge_dict)
+            node1_id = row[self.mapping['node1']['id']]
+            node2_id = row[self.mapping['node2']['id']]
+            if 'tournament' in self.mapping:
+                for n in [node1_id, node2_id]:
+                    tournament_value = edge_dict.get(self.mapping["tournament"], "main")
+                    self.network_info.setdefault(
+                        tournament_value, {}
+                    ).setdefault(
+                        str(edge_dict['season']), {}
+                    ).setdefault(
+                        "teams_playing", {}
+                    )[n] = n
+            graph.add_edge(node1_id, node2_id, **edge_dict)
             for n in ['node1', 'node2']:
                 for node_property_key, row_column in self.mapping[n].items():
                     if node_property_key not in ['id', 'ratings']:
@@ -706,3 +738,17 @@ class WhiteNetwork(BaseNetwork):
             ].setdefault(
                 'bets', {}
             )[bettor_name] = betting.bet(bettor_forecast.probabilities, match_odds)
+
+    def get_playing_teams(self, season, league=None):
+        default = {t: t+1 for t in range(self.n_teams)}
+        if league is None:
+            return self.network_info.get(str(season), {}).get("teams_playing", default)
+        else:
+            return self.network_info.get(league, {}).get(str(season), {}).get("teams_playing", default)
+
+    def get_current_league(self, season, team_id):
+        for league, seasons in self.network_info.items():
+            season_info = seasons.get(str(season), {})
+            if team_id in season_info.get("teams_playing", {}).values():
+                return league
+        return None

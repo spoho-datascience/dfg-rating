@@ -24,23 +24,27 @@ class ELORating(BaseRating):
                 "w": kwargs.get("param_w", 80)
             }
 
-    def init_ratings(self, team, season, n):
+    def init_ratings(self, team, season, n, league=None):
         if season == 0:
             """First season on the simulation, new starting point"""
             starting_point = self.rating_mean
         else:
             """First season in the ratings computation but not in the network. Reading previous season"""
-
-            starting_point = n.data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(
-                season - 1, [self.rating_mean]
-            )[-1]
+            previous_playing_teams = n.get_playing_teams(season - 1, league)
+            if team not in previous_playing_teams.values():
+                starting_point = n.get_mean_rating(self.rating_name, season - 1, league, [self.rating_mean], relegated=True)
+            else:
+                starting_point = n.data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(
+                    season - 1, [self.rating_mean]
+                )[-1]
         return starting_point
 
     def init_season_ratings(self, season, n, ratings):
         init_position = 0
         #n.update_leagues_information()
         for team_i, team in enumerate(n.data.nodes):
-            ratings[team_i, init_position] = self.init_ratings(team, season, n)
+            current_league = n.get_current_league(season, team)
+            ratings[team_i, init_position] = self.init_ratings(team, season, n, current_league)
 
     def compute_expected_values(self, home_value, away_value):
         expected_home = 1.0 / (

@@ -42,15 +42,15 @@ mc = controller.Controller()
 )
 loaded_network = mc.networks["football_national"]"""
 
-loaded_network = LeagueNetwork(
+"""loaded_network = LeagueNetwork(
     teams=30,
     days_between_rounds=3,
     seasons=4,
     league_teams=18,
     league_promotion=2,
     create=True
-)
-"""data_football_national = pd.read_csv(os.path.join('..', '..', '..', 'data', 'real', 'Data_Football_National.csv'),sep = ";")
+)"""
+data_football_national = pd.read_csv(os.path.join('..', '..', '..', 'data', 'real', 'Data_Football_National.csv'),sep = ";")
 loaded_network = WhiteNetwork(
     data=data_football_national,
     #node1 = away
@@ -66,6 +66,7 @@ loaded_network = WhiteNetwork(
         "day": "Date",
         "dayIsTimestamp": True,
         "ts_format": "%d.%m.%Y",
+        "tournament": "Div",
         "season": "Season",
         "winner": {
             "result": "ResultFT",
@@ -90,7 +91,7 @@ loaded_network = WhiteNetwork(
         },
         "bets": {}
     }
-)"""
+)
 
 """loaded_network = ConfigurationModelNetwork(
     teams=20,
@@ -137,12 +138,12 @@ print(loaded_network.data.nodes[2])"""
     variance_matches=15
 )"""
 
-tested_rating = ControlledTrendRating(
+"""tested_rating = ControlledTrendRating(
     starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=200),
     delta=ControlledRandomFunction(distribution='normal', loc=0, scale=3),
     trend=ControlledRandomFunction(distribution='normal', loc=0, scale=75),
     season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
-)
+)"""
 elo_rating = ELORating(trained=True, rating_name="Added_elo_rating")
 loaded_network.add_rating(elo_rating, "Added_elo_rating")
 #loaded_network.add_rating(tested_rating, "Added_true_rating")
