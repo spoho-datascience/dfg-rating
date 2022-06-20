@@ -55,7 +55,7 @@ class NetworkExplorer(BaseWidget):
             {
                 'selector': 'node',
                 'style': {
-                    #'label': 'data(label)',
+                    # 'label': 'data(label)',
                     'background-color': 'gray'
                 }
             },
@@ -90,50 +90,50 @@ class NetworkExplorer(BaseWidget):
                     children=[
                         dbc.Col(
                             children=[
-                                         html.H4("Data Filter"),
-                                     ] + self.data_filter_layout() + [
-                                         html.Hr(),
-                                         html.H4("Network settings"),
-                                         html.P("Drawing options:"),
-                                         dcc.Dropdown(
-                                             id="dropdown-layout",
-                                             options=[
-                                                 {
-                                                     "label": layout_option,
-                                                     "value": layout_option
-                                                 } for layout_option in
-                                                 [
-                                                     'random',
-                                                     'grid',
-                                                     'circle',
-                                                     'concentric',
-                                                     'breadthfirst',
-                                                     'cose',
-                                                     'cose-bilkent',
-                                                     'dagre',
-                                                     'cola',
-                                                     'klay',
-                                                     'spread',
-                                                     'euler'
-                                                 ]
-                                             ],
-                                             value='grid'
-                                         ),
-                                         html.Br(),
-                                         dbc.Button(
-                                             id="btn-download",
-                                             children="Download network as PNG"
-                                         ),
-                                         html.Br(),
-                                         dbc.Row(dbc.Col(daq.ToggleSwitch(
-                                             id="inactive_switch",
-                                             value=False,
-                                             label="Show inactive edges",
-                                             labelPosition="right"
-                                         ))),
-                                         html.Br(),
+                                html.H4("Data Filter"),
+                            ] + self.data_filter_layout() + [
+                                html.Hr(),
+                                html.H4("Network settings"),
+                                html.P("Drawing options:"),
+                                dcc.Dropdown(
+                                    id="dropdown-layout",
+                                    options=[
+                                        {
+                                            "label": layout_option,
+                                            "value": layout_option
+                                        } for layout_option in
+                                        [
+                                            'random',
+                                            'grid',
+                                            'circle',
+                                            'concentric',
+                                            'breadthfirst',
+                                            'cose',
+                                            'cose-bilkent',
+                                            'dagre',
+                                            'cola',
+                                            'klay',
+                                            'spread',
+                                            'euler'
+                                        ]
+                                    ],
+                                    value='grid'
+                                ),
+                                html.Br(),
+                                dbc.Button(
+                                    id="btn-download",
+                                    children="Download network as PNG"
+                                ),
+                                html.Br(),
+                                dbc.Row(dbc.Col(daq.ToggleSwitch(
+                                    id="inactive_switch",
+                                    value=False,
+                                    label="Show inactive edges",
+                                    labelPosition="right"
+                                ))),
+                                html.Br(),
 
-                                     ],
+                            ],
                             width=4
                         ),
                         dbc.Col(
@@ -362,44 +362,44 @@ class NetworkExplorer(BaseWidget):
             ]))
 
         data_layout += [
-                           html.H5("Nodes"),
-                           dbc.Row(
-                               id="nodes_id_row",
-                               children=[
-                                   dbc.Col(html.P("Team id: "), width=2),
-                                   dbc.Col(
-                                       dcc.Dropdown(
-                                           id="nodes_options_id",
-                                           options=[
-                                               {
-                                                   "label": f"Team {v}", "value": v
-                                               } for v in sorted(self.network.data.nodes())
-                                           ],
-                                           multi=True
-                                       ),
-                                   )
-                               ]
-                           )
-                       ] + extra_node_properties + [
-                           html.H5("Edges"),
-                           dbc.Row(
-                               id="season_row",
-                               children=[
-                                   dbc.Col(html.P("Season: "), width=2),
-                                   dbc.Col(
-                                       dcc.Dropdown(
-                                           id=f"edges_options_season",
-                                           options=[
-                                               {
-                                                   "label": f"Season {s}", "value": s
-                                               } for s in sorted(seasons)
-                                           ],
-                                           multi=True
-                                       ),
-                                   )
-                               ]
-                           )
-                       ] + extra_edge_properties
+            html.H5("Nodes"),
+            dbc.Row(
+                id="nodes_id_row",
+                children=[
+                    dbc.Col(html.P("Team id: "), width=2),
+                    dbc.Col(
+                        dcc.Dropdown(
+                            id="nodes_options_id",
+                            options=[
+                                {
+                                    "label": f"Team {v}", "value": v
+                                } for v in sorted(self.network.data.nodes())
+                            ],
+                            multi=True
+                        ),
+                    )
+                ]
+            )
+        ] + extra_node_properties + [
+            html.H5("Edges"),
+            dbc.Row(
+                id="season_row",
+                children=[
+                    dbc.Col(html.P("Season: "), width=2),
+                    dbc.Col(
+                        dcc.Dropdown(
+                            id=f"edges_options_season",
+                            options=[
+                                {
+                                    "label": f"Season {s}", "value": s
+                                } for s in sorted(seasons)
+                            ],
+                            multi=True
+                        ),
+                    )
+                ]
+            )
+        ] + extra_edge_properties
         return data_layout
 
 
@@ -465,9 +465,8 @@ class RatingsExplorer(BaseWidget):
                                         id="from-season-input",
                                         type="number",
                                         debounce=True,
-                                        min=1,
+                                        min=0,
                                         max=max(self.main_network.get_seasons()),
-                                        value=1
                                     ),
                                     " to season ",
                                     dcc.Input(
@@ -475,7 +474,7 @@ class RatingsExplorer(BaseWidget):
                                         type="number",
                                         debounce=True,
                                         min=1,
-                                        max=max(self.main_network.get_seasons()),
+                                        max=max(self.main_network.get_seasons()) + 1,
                                         value=max(self.main_network.get_seasons()),
                                     )
                                 ]
@@ -503,11 +502,11 @@ class RatingsExplorer(BaseWidget):
                         dbc.Col(
                             children=[
                                 dbc.Button(id='print-button', children="Print"),
-                                dcc.Graph(id='ratings_chart_print', config = {
+                                dcc.Graph(id='ratings_chart_print', config={
                                     'toImageButtonOptions': {
-                                        'format': 'svg', # one of png, svg, jpeg, webp
+                                        'format': 'svg',  # one of png, svg, jpeg, webp
                                         'filename': 'rating_chart',
-                                        'scale': 1 # Multiply title/legend/axis/canvas sizes by this factor
+                                        'scale': 1  # Multiply title/legend/axis/canvas sizes by this factor
                                     }
                                 })
                             ],
@@ -699,7 +698,7 @@ class DegreeExplorer(BaseWidget):
             {
                 'selector': 'node',
                 'style': {
-                    #'label': 'data(label)',
+                    # 'label': 'data(label)',
                     "width": "mapData(score, 10, 40, 10, 150)",
                     "height": "mapData(score, 10, 40, 10, 150)",
                     'background-color': 'black'
@@ -726,43 +725,43 @@ class DegreeExplorer(BaseWidget):
             {
                 'selector': '.cluster0',
                 'style': {
-                    'background-color' : 'blue'
+                    'background-color': 'blue'
                 }
             },
             {
                 'selector': '.cluster1',
                 'style': {
-                    'background-color' : 'red'
+                    'background-color': 'red'
                 }
             },
             {
                 'selector': '.cluster2',
                 'style': {
-                    'background-color' : 'yellow'
+                    'background-color': 'yellow'
                 }
             },
             {
                 'selector': '.cluster3',
                 'style': {
-                    'background-color' : 'green'
+                    'background-color': 'green'
                 }
             },
             {
                 'selector': '.cluster4',
                 'style': {
-                    'background-color' : 'gray'
+                    'background-color': 'gray'
                 }
             },
             {
                 'selector': '.cluster5',
                 'style': {
-                    'background-color' : 'brown'
+                    'background-color': 'brown'
                 }
             },
             {
                 'selector': '.cluster6',
                 'style': {
-                    'background-color' : 'purple'
+                    'background-color': 'purple'
                 }
             }
         ]
@@ -778,50 +777,50 @@ class DegreeExplorer(BaseWidget):
                     children=[
                         dbc.Col(
                             children=[
-                                         html.H4("Data Filter"),
-                                     ] + self.data_filter_layout() + [
-                                         html.Hr(),
-                                         html.H4("Network settings"),
-                                         html.P("Drawing options:"),
-                                         dcc.Dropdown(
-                                             id="dropdown-layout",
-                                             options=[
-                                                 {
-                                                     "label": layout_option,
-                                                     "value": layout_option
-                                                 } for layout_option in
-                                                 [
-                                                     'random',
-                                                     'grid',
-                                                     'circle',
-                                                     'concentric',
-                                                     'breadthfirst',
-                                                     'cose',
-                                                     'cose-bilkent',
-                                                     'dagre',
-                                                     'cola',
-                                                     'klay',
-                                                     'spread',
-                                                     'euler'
-                                                 ]
-                                             ],
-                                             value='grid'
-                                         ),
-                                         html.Br(),
-                                         dbc.Button(
-                                             id="btn-download",
-                                             children="Download network as PNG"
-                                         ),
-                                         html.Br(),
-                                         dbc.Row(dbc.Col(daq.ToggleSwitch(
-                                             id="inactive_switch",
-                                             value=False,
-                                             label="Show inactive edges",
-                                             labelPosition="right"
-                                         ))),
-                                         html.Br(),
+                                html.H4("Data Filter"),
+                            ] + self.data_filter_layout() + [
+                                html.Hr(),
+                                html.H4("Network settings"),
+                                html.P("Drawing options:"),
+                                dcc.Dropdown(
+                                    id="dropdown-layout",
+                                    options=[
+                                        {
+                                            "label": layout_option,
+                                            "value": layout_option
+                                        } for layout_option in
+                                        [
+                                            'random',
+                                            'grid',
+                                            'circle',
+                                            'concentric',
+                                            'breadthfirst',
+                                            'cose',
+                                            'cose-bilkent',
+                                            'dagre',
+                                            'cola',
+                                            'klay',
+                                            'spread',
+                                            'euler'
+                                        ]
+                                    ],
+                                    value='grid'
+                                ),
+                                html.Br(),
+                                dbc.Button(
+                                    id="btn-download",
+                                    children="Download network as PNG"
+                                ),
+                                html.Br(),
+                                dbc.Row(dbc.Col(daq.ToggleSwitch(
+                                    id="inactive_switch",
+                                    value=False,
+                                    label="Show inactive edges",
+                                    labelPosition="right"
+                                ))),
+                                html.Br(),
 
-                                     ],
+                            ],
                             width=4
                         ),
                         dbc.Col(
@@ -1044,44 +1043,44 @@ class DegreeExplorer(BaseWidget):
             ]))
 
         data_layout += [
-                           html.H5("Nodes"),
-                           dbc.Row(
-                               id="nodes_id_row",
-                               children=[
-                                   dbc.Col(html.P("Team id: "), width=2),
-                                   dbc.Col(
-                                       dcc.Dropdown(
-                                           id="nodes_options_id",
-                                           options=[
-                                               {
-                                                   "label": f"Team {v}", "value": v
-                                               } for v in sorted(self.network.data.nodes())
-                                           ],
-                                           multi=True
-                                       ),
-                                   )
-                               ]
-                           )
-                       ] + extra_node_properties + [
-                           html.H5("Edges"),
-                           dbc.Row(
-                               id="season_row",
-                               children=[
-                                   dbc.Col(html.P("Season: "), width=2),
-                                   dbc.Col(
-                                       dcc.Dropdown(
-                                           id=f"edges_options_season",
-                                           options=[
-                                               {
-                                                   "label": f"Season {s}", "value": s
-                                               } for s in sorted(seasons)
-                                           ],
-                                           multi=True
-                                       ),
-                                   )
-                               ]
-                           )
-                       ] + extra_edge_properties
+            html.H5("Nodes"),
+            dbc.Row(
+                id="nodes_id_row",
+                children=[
+                    dbc.Col(html.P("Team id: "), width=2),
+                    dbc.Col(
+                        dcc.Dropdown(
+                            id="nodes_options_id",
+                            options=[
+                                {
+                                    "label": f"Team {v}", "value": v
+                                } for v in sorted(self.network.data.nodes())
+                            ],
+                            multi=True
+                        ),
+                    )
+                ]
+            )
+        ] + extra_node_properties + [
+            html.H5("Edges"),
+            dbc.Row(
+                id="season_row",
+                children=[
+                    dbc.Col(html.P("Season: "), width=2),
+                    dbc.Col(
+                        dcc.Dropdown(
+                            id=f"edges_options_season",
+                            options=[
+                                {
+                                    "label": f"Season {s}", "value": s
+                                } for s in sorted(seasons)
+                            ],
+                            multi=True
+                        ),
+                    )
+                ]
+            )
+        ] + extra_edge_properties
         return data_layout
 
 
@@ -1236,42 +1235,42 @@ class ForecastExplorer(BaseWidget):
             ]))
 
         data_layout += [
-                           html.H5("Nodes"),
-                           dbc.Row(
-                               id="nodes_id_row",
-                               children=[
-                                   dbc.Col(html.P("Team id: "), width=2),
-                                   dbc.Col(
-                                       dcc.Dropdown(
-                                           id="nodes_options_id",
-                                           options=[
-                                               {
-                                                   "label": f"Team {v}", "value": v
-                                               } for v in sorted(self.network.data.nodes())
-                                           ],
-                                           multi=True
-                                       ),
-                                   )
-                               ]
-                           )
-                       ] + extra_node_properties + [
-                           html.H5("Edges"),
-                           dbc.Row(
-                               id="season_row",
-                               children=[
-                                   dbc.Col(html.P("Season: "), width=2),
-                                   dbc.Col(
-                                       dcc.Dropdown(
-                                           id=f"edges_options_season",
-                                           options=[
-                                               {
-                                                   "label": f"Season {s}", "value": s
-                                               } for s in sorted(seasons)
-                                           ],
-                                           multi=True
-                                       ),
-                                   )
-                               ]
-                           )
-                       ] + extra_edge_properties
+            html.H5("Nodes"),
+            dbc.Row(
+                id="nodes_id_row",
+                children=[
+                    dbc.Col(html.P("Team id: "), width=2),
+                    dbc.Col(
+                        dcc.Dropdown(
+                            id="nodes_options_id",
+                            options=[
+                                {
+                                    "label": f"Team {v}", "value": v
+                                } for v in sorted(self.network.data.nodes())
+                            ],
+                            multi=True
+                        ),
+                    )
+                ]
+            )
+        ] + extra_node_properties + [
+            html.H5("Edges"),
+            dbc.Row(
+                id="season_row",
+                children=[
+                    dbc.Col(html.P("Season: "), width=2),
+                    dbc.Col(
+                        dcc.Dropdown(
+                            id=f"edges_options_season",
+                            options=[
+                                {
+                                    "label": f"Season {s}", "value": s
+                                } for s in sorted(seasons)
+                            ],
+                            multi=True
+                        ),
+                    )
+                ]
+            )
+        ] + extra_edge_properties
         return data_layout

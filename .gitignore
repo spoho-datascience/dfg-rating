@@ -551,4 +551,5 @@ database.ini
 /experiments/scripts/*.csv
 /experiments/scripts/Final_results/*.csv
 /experiments/notebooks/*.csv
+experiments/notebooks/network_analysis/RealData/results/*
 *.tar.gz

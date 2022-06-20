@@ -444,8 +444,6 @@ class BaseNetwork(ABC):
     def get_current_league(self, season, team_id):
         return None
 
-
-
     def export(self, **kwargs):
         print("Export network")
         network_flat = []

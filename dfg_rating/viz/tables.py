@@ -6,6 +6,7 @@ import numpy as np
 
 import networkx as nx
 from networkx import MultiDiGraph
+from dfg_rating.model import forecast
 
 from dfg_rating.model.evaluators.accuracy import RankProbabilityScore, Likelihood, ForecastError, \
     ExpectedRankProbabilityScore
@@ -64,14 +65,14 @@ def calendar_table(df, forecasts=False):
     return dash_table.DataTable(
         id="kalender-table" + ("full" if forecasts else ""),
         columns=[
-                    {"name": ["Match", "HomeTeam"], "id": "HomeTeam"},
-                    {"name": ["Match", "AwayTeam"], "id": "AwayTeam"},
-                    {"name": ["Match", "Season"], "id": "Season"},
-                    {"name": ["Match", "Round"], "id": "Round"},
-                    {"name": ["Match", "Result"], "id": "Result"},
-                    {"name": ["Match", "State"], "id": "State"},
-                ] + [{"name": ["Match", i], "id": i, 'type': 'numeric', 'format': {'specifier': '.2f'}} for i in
-                     df.columns if '#' in i],
+            {"name": ["Match", "HomeTeam"], "id": "HomeTeam"},
+            {"name": ["Match", "AwayTeam"], "id": "AwayTeam"},
+            {"name": ["Match", "Season"], "id": "Season"},
+            {"name": ["Match", "Round"], "id": "Round"},
+            {"name": ["Match", "Result"], "id": "Result"},
+            {"name": ["Match", "State"], "id": "State"},
+        ] + [{"name": ["Match", i], "id": i, 'type': 'numeric', 'format': {'specifier': '.2f'}} for i in
+             df.columns if '#' in i],
         merge_duplicate_headers=True,
         data=df.to_dict('records'),
         style_header={
@@ -195,54 +196,72 @@ def evaluation_table(df):
     )
 
 
-def get_evaluation(network: BaseNetwork, k, abs=True, evaluators=[], **kwargs):
+def get_evaluation(network: BaseNetwork, k, abs=True, evaluators=[], extra_attributes=[], **kwargs):
     rating_name = f"elo_rating_{k}"
     forecast_name = f"elo_forecast_{k}"
+    print(forecast_name)
     analysis_data = []
+    add_true = kwargs.get("add_true_dimension", True)
+    n_rounds, round_values = network.get_rounds()
+    round_dict = {round_v: round_i for round_i, round_v in enumerate(round_values)}
     for node1, node2, edge_key, edge_info in filter(lambda match: match[3].get('state', 'active') == 'active',
                                                     network.iterate_over_games()):
         if edge_info.get('state', 'active') == 'active':
-            tf = edge_info.get('forecasts', {}).get('true_forecast')
-            tf_tuple = "-".join([f"{outcome:.2f}" for outcome in tf.probabilities])
             cf = edge_info.get('forecasts', {}).get(forecast_name)
             cf_tuple = "-".join([f"{outcome:.2f}" for outcome in cf.probabilities])
-            new_dict = {
-                "HomeTeam": network.data.nodes[node2].get("name", node2),
-                "AwayTeam": network.data.nodes[node1].get("name", node1),
-                "Season": edge_info.get('season', None),
-                "Round": edge_info.get('round', None),
-                "Day": edge_info.get('day', None),
-                "Result": edge_info.get('winner', None),
-                "TrueForecast": tf_tuple,
-                "CalculatedForecast": cf_tuple,
-                "ELO_Rating_K": k,
-            }
+            if add_true:
+                tf = edge_info.get('forecasts', {}).get('true_forecast')
+                tf_tuple = "-".join([f"{outcome:.2f}" for outcome in tf.probabilities])
+                new_dict = {
+                    "HomeTeam": network.data.nodes[node2].get("name", node2),
+                    "AwayTeam": network.data.nodes[node1].get("name", node1),
+                    "Season": edge_info.get('season', None),
+                    "Round": edge_info.get('round', None),
+                    "Day": edge_info.get('day', None),
+                    "Result": edge_info.get('winner', None),
+                    "TrueForecast": tf_tuple,
+                    "CalculatedForecast": cf_tuple,
+                    "ELO_Rating_K": k,
+                }
+            else:
+                new_dict = {
+                    "HomeTeam": network.data.nodes[node2].get("name", node2),
+                    "AwayTeam": network.data.nodes[node1].get("name", node1),
+                    "Season": edge_info.get('season', None),
+                    "Round": edge_info.get('round', None),
+                    "Day": edge_info.get('day', None),
+                    "Result": edge_info.get('winner', None),
+                    "CalculatedForecast": cf_tuple,
+                    "ELO_Rating_K": k,
+                }
+            for extra_key in extra_attributes:
+                new_dict[extra_key] = edge_info.get(extra_key, None)
             for key, value in kwargs.items():
                 new_dict[key] = value
             for e in evaluators:
                 evaluator_name = f"{rating_name}_{e}"
                 new_dict[e] = edge_info.get('metrics', {}).get(evaluator_name, 0)
             if abs:
-                round_pointer = edge_info.get('round', 0)
-                home_true = network.data.nodes[node2].get(
-                    'ratings', {}
-                ).get('true_rating', {}).get(0, [0])[round_pointer]
+                round_pointer = round_dict.get(edge_info.get('round', 0), 0)
+                if add_true:
+                    home_true = network.data.nodes[node2].get(
+                        'ratings', {}
+                    ).get('true_rating', {}).get(0, [0])[round_pointer]
+                    away_true = network.data.nodes[node1].get(
+                        'ratings', {}
+                    ).get('true_rating', {}).get(0, [0])[round_pointer]
+                    new_dict["HomeRating"] = home_true
+                    new_dict['AwayRating'] = away_true
                 home_c = network.data.nodes[node2].get(
                     'ratings', {}
                 ).get(rating_name, {}).get(0, [0])[round_pointer]
-                away_true = network.data.nodes[node1].get(
-                    'ratings', {}
-                ).get('true_rating', {}).get(0, [0])[round_pointer]
                 away_c = network.data.nodes[node1].get(
                     'ratings', {}
                 ).get(rating_name, {}).get(0, [0])[round_pointer]
-                new_dict["HomeRating"] = home_true
-                new_dict['AwayRating'] = away_true
-                new_dict[f"Home_{rating_name[:-3]}"] = home_c
-                new_dict[f"Away_{rating_name[:-3]}"] = away_c
+                new_dict[f"Home_elo_rating"] = home_c
+                new_dict[f"Away_elo_rating"] = away_c
             analysis_data.append(new_dict)
     return analysis_data
-
 
 
 def get_league_rating_values(network: BaseNetwork, rating: str, number_of_leagues: int, **kwargs):
@@ -281,6 +300,10 @@ def get_evaluation_list(rating_name, forecast_name):
         outcomes=['home', 'draw', 'away'],
         forecast_name=forecast_name
     )
+    true_rps = RankProbabilityScore(
+        outcomes=['home', 'draw', 'away'],
+        forecast_name="true_forecast"
+    )
     exp_rps = ExpectedRankProbabilityScore(
         outcomes=['home', 'draw', 'away'],
         forecast_name=forecast_name
@@ -291,6 +314,7 @@ def get_evaluation_list(rating_name, forecast_name):
     )
     evaluation_list = [
         (rps, f"{rating_name}_RPS"),
+        (true_rps, f"{rating_name}_TrueRPS"),
         (likelihood, f"{rating_name}_Likelihood"),
         (forecast_error, f"{rating_name}_ForecastError"),
         (exp_rps, f"{rating_name}_ExpectedRPS"),

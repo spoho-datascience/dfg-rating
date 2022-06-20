@@ -13,10 +13,10 @@ class ELORating(BaseRating):
 
     def __init__(self, **kwargs):
         super().__init__('elo', **kwargs)
-        elo_trained = kwargs.get("trained", False)
+        self.elo_trained = kwargs.get("trained", False)
         self.props = {}
         self.rating_name = kwargs.get('rating_name', 'elo_rating')
-        if elo_trained:
+        if self.elo_trained:
             self.settings = {
                 "c": kwargs.get("param_c", 10.0),
                 "d": kwargs.get("param_d", 400.0),
@@ -41,21 +41,21 @@ class ELORating(BaseRating):
 
     def init_season_ratings(self, season, n, ratings):
         init_position = 0
-        #n.update_leagues_information()
+        # n.update_leagues_information()
         for team_i, team in enumerate(n.data.nodes):
             current_league = n.get_current_league(season, team)
             ratings[team_i, init_position] = self.init_ratings(team, season, n, current_league)
 
     def compute_expected_values(self, home_value, away_value):
         expected_home = 1.0 / (
-                    1.0 + (self.settings['c'] ** ((away_value - home_value - self.settings['w']) / self.settings['d'])))
+            1.0 + (self.settings['c'] ** ((away_value - home_value - self.settings['w']) / self.settings['d'])))
         return expected_home, 1 - expected_home
 
     def compute_scores(self, result):
         home_score = 1.0 if result == 'home' else 0.5 if result == 'draw' else 0.0
         return home_score, 1 - home_score
 
-    def update_elo(self, current, score, expected):
+    def update_elo(self, current, score, expected, match_data):
         return current + (self.settings['k'] * (score - expected))
 
     def end_season_ratings(self, network, ratings):
@@ -95,12 +95,14 @@ class ELORating(BaseRating):
                     ratings[away_team_i, current_position] = self.update_elo(
                         ratings[away_team_i, current_position - 1],
                         away_score,
-                        away_expected
+                        away_expected,
+                        match_data
                     )
                     ratings[home_team_i, current_position] = self.update_elo(
                         ratings[home_team_i, current_position - 1],
                         home_score,
-                        home_expected
+                        home_expected,
+                        match_data
                     )
             # Dealing with teams not playing
             if len(teams_playing) != len(self.teams):
@@ -114,3 +116,17 @@ class ELORating(BaseRating):
 
     def get_ratings(self, n: BaseNetwork, t: [TeamId], edge_filter=None):
         pass
+
+
+class SplitELORating(ELORating):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if self.elo_trained:
+            self.settings["split_k"] = kwargs.get("param_split_k", {})
+
+    def update_elo(self, current, score, expected, match_data):
+        if 'split_k_group' in match_data:
+            k_factor = self.settings.get('split_k', {}).get(match_data['split_k_group'], None)
+            if k_factor is not None:
+                return current + (k_factor * (score - expected))
+        return current + (self.settings['k'] * (score - expected))

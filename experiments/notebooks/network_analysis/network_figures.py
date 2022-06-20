@@ -42,15 +42,15 @@ mc = controller.Controller()
 )
 loaded_network = mc.networks["football_national"]"""
 
-"""loaded_network = LeagueNetwork(
-    teams=30,
+loaded_network = LeagueNetwork(
+    teams=6,
     days_between_rounds=3,
-    seasons=4,
-    league_teams=18,
-    league_promotion=2,
+    seasons=1,
+    league_teams=6,
+    league_promotion=0,
     create=True
-)"""
-data_football_national = pd.read_csv(os.path.join('..', '..', '..', 'data', 'real', 'Data_Football_National.csv'),sep = ";")
+)
+"""data_football_national = pd.read_csv(os.path.join('..', '..', '..', 'data', 'real', 'Data_Football_National.csv'),sep = ";")
 loaded_network = WhiteNetwork(
     data=data_football_national,
     #node1 = away
@@ -91,7 +91,7 @@ loaded_network = WhiteNetwork(
         },
         "bets": {}
     }
-)
+)"""
 
 """loaded_network = ConfigurationModelNetwork(
     teams=20,
@@ -154,7 +154,8 @@ loaded_network.add_forecast(
     base_ranking='Added_elo_rating'
 )
 
-app = DFGWidgets.RatingsExplorer(
+app = DFGWidgets.NetworkExplorer(
     network=loaded_network,
+    edge_props=["round"]
 )
 app.run('internal', debug=True, port=8001)
