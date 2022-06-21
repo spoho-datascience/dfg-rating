@@ -1,0 +1,115 @@
+from dfg_rating.model import factory
+from dfg_rating.model.betting.betting import FixedBetting
+from dfg_rating.model.betting.betting import KellyBetting
+from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
+from dfg_rating.model.evaluators.accuracy import RankProbabilityScore, Likelihood, ProbabilityDifference, ProbabilityPointer, FavouriteProbability
+from dfg_rating.model.evaluators.profitability import BettingReturnsEvaluator
+from dfg_rating.model.evaluators.base_evaluators import BettingActivity
+from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
+from dfg_rating.model.network.base_network import BaseNetwork
+from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
+
+# specify rating error
+from dfg_rating.model.rating.base_rating import RatingFunctionError
+
+from dfg_rating.logic.controller import Controller
+import pandas as pd
+import numpy as np
+import time
+import math
+from tqdm import tqdm
+import itertools as it
+
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+pd.options.display.width = None
+pd.set_option('display.float_format', lambda x: '%.5f' % x)
+
+config = dict(
+    test_name="ExperimentA_Full", create_data=True,
+    bookmaker_error1=0.0, bookmaker_margin1=0.00,
+    bookmaker_error2=0.0, bookmaker_margin2=0.10,
+    bookmaker_error3=0.0, bookmaker_margin3=0.20,
+    betting_bankrole=100,
+    rating_error_loc=0, rating_error_scale=50,
+    bookmaker_rating_error_loc=0, bookmaker_rating_error_scale=25,
+    number_of_leagues=1,
+    # number_of_leagues=1,
+    number_of_teams=4,
+    # number_of_teams=4,
+    number_of_seasons=1,
+    # number_of_seasons=1,
+    true_forecast=dict(
+        coefficients=[-0.9, 0.3],
+        beta=0.006
+    ),
+    bookmaker_forecast=dict(
+        coefficients=[-1.2, 0.0],
+        beta=0.006
+    ),
+    in_sample_maximum=5,
+    number_of_splits=20
+)
+
+network: BaseNetwork = factory.new_network(
+    'multiple-round-robin',
+    teams=config["number_of_teams"],
+    days_between_rounds=7,
+    seasons=config["number_of_seasons"],
+    league_teams=config["number_of_teams"],
+    league_promotion=0,
+    create=True,
+    true_forecast=LogFunctionForecast(
+        outcomes=['home', 'draw', 'away'],
+        coefficients=config["true_forecast"]["coefficients"],
+        beta_parameter=config["true_forecast"]["beta"]
+    ),
+    true_rating=ControlledTrendRating(
+        starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=100),
+        delta=ControlledRandomFunction(distribution='normal', loc=0, scale=3),
+        trend=ControlledRandomFunction(distribution='normal', loc=0, scale=20/365),
+        season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
+    )
+)
+# adding biased bookmaker forecast to the network
+rating_error = RatingFunctionError(error='normal', loc=config["rating_error_loc"], scale=config["rating_error_scale"])
+rating_error_bookmaker = RatingFunctionError(error='normal', loc=config["bookmaker_rating_error_loc"], scale=config["bookmaker_rating_error_scale"])
+network.add_forecast(
+    forecast=LogFunctionForecast(
+        outcomes=['home', 'draw', 'away'],
+        coefficients=config["bookmaker_forecast"]["coefficients"],
+        beta_parameter=config["bookmaker_forecast"]["beta"],
+        home_team_error=rating_error_bookmaker,
+        away_team_error=rating_error_bookmaker
+    ),
+    forecast_name='bookmaker_forecast',
+    base_ranking='true_rating'
+)
+# adding odds
+bookmaker1: BaseBookmaker = factory.new_bookmaker(
+    'simple',
+    error=factory.new_forecast_error(error_type='factor', error=config["bookmaker_error1"], scope='positive'),
+    margin=factory.new_bookmaker_margin('simple', margin=config["bookmaker_margin1"])
+)
+network.add_odds(
+    bookmaker_name="bm1",
+    bookmaker=bookmaker1,
+    base_forecast='bookmaker_forecast'
+)
+network.add_forecast(
+    forecast=LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-1.20, 0.60], beta_parameter=0.006, home_team_error=rating_error, away_team_error=rating_error),
+    forecast_name="bettor_forecast",
+    base_ranking='true_rating'
+)
+bettingKelly = KellyBetting(config["betting_bankrole"])
+network.add_bets(
+    bettor_name="bettor",
+    bookmaker="bm1",
+    betting=bettingKelly,
+    base_forecast="bettor_forecast"
+)
+betting_returns = BettingReturnsEvaluator(outcomes=['home', 'draw', 'away'], player_name="bettor", true_model='true_forecast', bookmaker_name="bm1")
+network.add_evaluation([
+    (betting_returns, 'betting_returns')
+])
+print(betting_returns)

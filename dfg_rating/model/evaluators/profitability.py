@@ -21,13 +21,13 @@ class ProfitabilityEvaluator(Evaluator):
 class BettingReturnsEvaluator(ProfitabilityEvaluator):
 
     def eval(self, match_attributes):
-        ## Should be using the true model forecast for evaluation
+        # Should be using the true model forecast for evaluation
         bets: List[float] = match_attributes['bets'][self.player_name]
         # bettor_predictions: List[float] = match_attributes['forecasts'][self.player_forecast].probabilities
         true_model: List[float] = match_attributes['forecasts'][self.true_model].probabilities
         bookmaker_odds: List[float] = match_attributes['odds'][self.bookmaker_name]
         observed_result = match_attributes.get('winner')
-        
+
         actual_returns = []
         multiplied_returns = []
         expected_returns = []
