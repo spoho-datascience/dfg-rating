@@ -31,10 +31,12 @@ class BettingReturnsEvaluator(ProfitabilityEvaluator):
         actual_returns = []
         multiplied_returns = []
         expected_returns = []
+        expected_multiplied_returns = []
 
         for bet_index, bet in enumerate(bets):
             expected_returns.append(bet * ((true_model[bet_index] * bookmaker_odds[bet_index]) - 1))
             bet_result = 1.0 if self.outcomes[bet_index] == observed_result else 0.0
             actual_returns.append(bet * ((bet_result * bookmaker_odds[bet_index]) - 1))
             multiplied_returns.append(1 + (bet * ((bet_result * bookmaker_odds[bet_index]) - 1)))
-        return 1, [[a, m, e] for a, m, e in zip(actual_returns, multiplied_returns, expected_returns)]
+            expected_multiplied_returns.append(1 + (bet * ((true_model[bet_index] * bookmaker_odds[bet_index]) - 1)))
+        return 1, [[a, m, e, em] for a, m, e, em in zip(actual_returns, multiplied_returns, expected_returns, expected_multiplied_returns)]

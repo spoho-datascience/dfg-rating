@@ -19,6 +19,9 @@ import time
 import math
 from tqdm import tqdm
 import itertools as it
+import random
+random.seed(4231)
+np.random.seed(4231)
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -35,9 +38,9 @@ config = dict(
     bookmaker_rating_error_loc=0, bookmaker_rating_error_scale=25,
     number_of_leagues=1,
     # number_of_leagues=1,
-    number_of_teams=4,
+    number_of_teams=20,
     # number_of_teams=4,
-    number_of_seasons=1,
+    number_of_seasons=10,
     # number_of_seasons=1,
     true_forecast=dict(
         coefficients=[-0.9, 0.3],
@@ -50,66 +53,82 @@ config = dict(
     in_sample_maximum=5,
     number_of_splits=20
 )
-
-network: BaseNetwork = factory.new_network(
-    'multiple-round-robin',
-    teams=config["number_of_teams"],
-    days_between_rounds=7,
-    seasons=config["number_of_seasons"],
-    league_teams=config["number_of_teams"],
-    league_promotion=0,
-    create=True,
-    true_forecast=LogFunctionForecast(
-        outcomes=['home', 'draw', 'away'],
-        coefficients=config["true_forecast"]["coefficients"],
-        beta_parameter=config["true_forecast"]["beta"]
-    ),
-    true_rating=ControlledTrendRating(
-        starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=100),
-        delta=ControlledRandomFunction(distribution='normal', loc=0, scale=3),
-        trend=ControlledRandomFunction(distribution='normal', loc=0, scale=20/365),
-        season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
+list_of_matches = []
+for league in range(config["number_of_leagues"]):
+    network: BaseNetwork = factory.new_network(
+        'multiple-round-robin',
+        teams=config["number_of_teams"],
+        days_between_rounds=7,
+        seasons=config["number_of_seasons"],
+        league_teams=config["number_of_teams"],
+        league_promotion=0,
+        create=True,
+        true_forecast=LogFunctionForecast(
+            outcomes=['home', 'draw', 'away'],
+            coefficients=config["true_forecast"]["coefficients"],
+            beta_parameter=config["true_forecast"]["beta"]
+        ),
+        true_rating=ControlledTrendRating(
+            starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=100),
+            delta=ControlledRandomFunction(distribution='normal', loc=0, scale=3),
+            trend=ControlledRandomFunction(distribution='normal', loc=0, scale=20/365),
+            season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=10)
+        )
     )
-)
-# adding biased bookmaker forecast to the network
-rating_error = RatingFunctionError(error='normal', loc=config["rating_error_loc"], scale=config["rating_error_scale"])
-rating_error_bookmaker = RatingFunctionError(error='normal', loc=config["bookmaker_rating_error_loc"], scale=config["bookmaker_rating_error_scale"])
-network.add_forecast(
-    forecast=LogFunctionForecast(
-        outcomes=['home', 'draw', 'away'],
-        coefficients=config["bookmaker_forecast"]["coefficients"],
-        beta_parameter=config["bookmaker_forecast"]["beta"],
-        home_team_error=rating_error_bookmaker,
-        away_team_error=rating_error_bookmaker
-    ),
-    forecast_name='bookmaker_forecast',
-    base_ranking='true_rating'
-)
-# adding odds
-bookmaker1: BaseBookmaker = factory.new_bookmaker(
-    'simple',
-    error=factory.new_forecast_error(error_type='factor', error=config["bookmaker_error1"], scope='positive'),
-    margin=factory.new_bookmaker_margin('simple', margin=config["bookmaker_margin1"])
-)
-network.add_odds(
-    bookmaker_name="bm1",
-    bookmaker=bookmaker1,
-    base_forecast='bookmaker_forecast'
-)
-network.add_forecast(
-    forecast=LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-1.20, 0.60], beta_parameter=0.006, home_team_error=rating_error, away_team_error=rating_error),
-    forecast_name="bettor_forecast",
-    base_ranking='true_rating'
-)
-bettingKelly = KellyBetting(config["betting_bankrole"])
-network.add_bets(
-    bettor_name="bettor",
-    bookmaker="bm1",
-    betting=bettingKelly,
-    base_forecast="bettor_forecast"
-)
-betting_returns = BettingReturnsEvaluator(outcomes=['home', 'draw', 'away'], player_name="bettor", true_model='true_forecast', bookmaker_name="bm1")
-network.add_evaluation([
-    (betting_returns, 'betting_returns')
-])
+    # adding biased bookmaker forecast to the network
+    rating_error = RatingFunctionError(error='normal', loc=config["rating_error_loc"], scale=config["rating_error_scale"])
+    rating_error_bookmaker = RatingFunctionError(error='normal', loc=config["bookmaker_rating_error_loc"], scale=config["bookmaker_rating_error_scale"])
+    network.add_forecast(
+        forecast=LogFunctionForecast(
+            outcomes=['home', 'draw', 'away'],
+            coefficients=config["bookmaker_forecast"]["coefficients"],
+            beta_parameter=config["bookmaker_forecast"]["beta"],
+            home_team_error=rating_error_bookmaker,
+            away_team_error=rating_error_bookmaker
+        ),
+        forecast_name='bookmaker_forecast',
+        base_ranking='true_rating'
+    )
+    # adding odds
+    bookmaker1: BaseBookmaker = factory.new_bookmaker(
+        'simple',
+        error=factory.new_forecast_error(error_type='factor', error=config["bookmaker_error1"], scope='positive'),
+        margin=factory.new_bookmaker_margin('simple', margin=config["bookmaker_margin1"])
+    )
+    network.add_odds(
+        bookmaker_name="bm1",
+        bookmaker=bookmaker1,
+        base_forecast='bookmaker_forecast'
+    )
+    network.add_forecast(
+        forecast=LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-0.7, 0.5], beta_parameter=0.006, home_team_error=rating_error, away_team_error=rating_error),
+        forecast_name="bettor_forecast",
+        base_ranking='true_rating'
+    )
+    bettingKelly = KellyBetting(config["betting_bankrole"])
+    network.add_bets(
+        bettor_name="bettor",
+        bookmaker="bm1",
+        betting=bettingKelly,
+        base_forecast="bettor_forecast"
+    )
+    betting_returns = BettingReturnsEvaluator(outcomes=['home', 'draw', 'away'], player_name="bettor", true_model='true_forecast', bookmaker_name="bm1")
+    network.add_evaluation([
+        (betting_returns, 'betting_returns')
+    ])
+    list_of_matches += [(a, h, match_id, match_attributes) for a, h, match_id, match_attributes in network.iterate_over_games()]
+measures = {}
+prefix = "test"
+multiple_array = []
+for i_m, m in enumerate(list_of_matches):
+    betting_returns_keys = [k for k in m[3]['metrics'].keys() if k.startswith('betting_returns')]
+    betting_activity_keys = [k for k in m[3]['metrics'].keys() if k.startswith('betting_activity')]
+    for br in betting_returns_keys:
+        measures[f"{prefix}_{br}"] = sum([b[0] for b in m[3]['metrics'][br]]) + measures.get(f"{prefix}_{br}", 0.0)
+        measures[f"{prefix}_{br}_multiplied"] = sum([math.log(b[1]) for b in m[3]['metrics'][br]]) + measures.get(f"{prefix}_{br}_multiplied", 0)
+        measures[f"{prefix}_{br}_multiplied_slow"] = np.prod([b[1] for b in m[3]['metrics'][br]]) * measures.get(f"{prefix}_{br}_multiplied_slow", 1.0)
+        measures[f"{prefix}_{br}_expected"] = sum([b[2] for b in m[3]['metrics'][br]]) + measures.get(f"{prefix}_{br}_expected", 0.0)
+    for ba in betting_activity_keys:
+        measures[f"{prefix}_{ba}_activity"] = m[3]['metrics'][ba]['qty'] + measures.get(f"{prefix}_{ba}_activity", 0.0)
+    multiple_array.append(measures[f"{prefix}_{br}_multiplied"])
 print(betting_returns)
