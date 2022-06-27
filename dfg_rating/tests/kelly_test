@@ -105,11 +105,18 @@ for league in range(config["number_of_leagues"]):
         forecast_name="bettor_forecast",
         base_ranking='true_rating'
     )
+    bettingFixed = FixedBetting(config["betting_bankrole"])
     bettingKelly = KellyBetting(config["betting_bankrole"])
     network.add_bets(
         bettor_name="bettor",
         bookmaker="bm1",
         betting=bettingKelly,
+        base_forecast="true_forecast"
+    )
+    network.add_bets(
+        bettor_name="bettor",
+        bookmaker="bm1",
+        betting=bettingFixed,
         base_forecast="true_forecast"
     )
     betting_returns = BettingReturnsEvaluator(outcomes=['home', 'draw', 'away'], player_name="bettor", true_model='true_forecast', bookmaker_name="bm1")
