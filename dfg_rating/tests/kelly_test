@@ -101,7 +101,7 @@ for league in range(config["number_of_leagues"]):
         base_forecast='bookmaker_forecast'
     )
     network.add_forecast(
-        forecast=LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-0.7, 0.5], beta_parameter=0.006, home_team_error=rating_error, away_team_error=rating_error),
+        forecast=LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-1.2, 0.5], beta_parameter=0.006, home_team_error=rating_error, away_team_error=rating_error),
         forecast_name="bettor_forecast",
         base_ranking='true_rating'
     )
@@ -110,25 +110,27 @@ for league in range(config["number_of_leagues"]):
         bettor_name="bettor",
         bookmaker="bm1",
         betting=bettingKelly,
-        base_forecast="bettor_forecast"
+        base_forecast="true_forecast"
     )
     betting_returns = BettingReturnsEvaluator(outcomes=['home', 'draw', 'away'], player_name="bettor", true_model='true_forecast', bookmaker_name="bm1")
     network.add_evaluation([
         (betting_returns, 'betting_returns')
     ])
     list_of_matches += [(a, h, match_id, match_attributes) for a, h, match_id, match_attributes in network.iterate_over_games()]
-measures = {}
-prefix = "test"
-multiple_array = []
-for i_m, m in enumerate(list_of_matches):
-    betting_returns_keys = [k for k in m[3]['metrics'].keys() if k.startswith('betting_returns')]
-    betting_activity_keys = [k for k in m[3]['metrics'].keys() if k.startswith('betting_activity')]
-    for br in betting_returns_keys:
-        measures[f"{prefix}_{br}"] = sum([b[0] for b in m[3]['metrics'][br]]) + measures.get(f"{prefix}_{br}", 0.0)
-        measures[f"{prefix}_{br}_multiplied"] = sum([math.log(b[1]) for b in m[3]['metrics'][br]]) + measures.get(f"{prefix}_{br}_multiplied", 0)
-        measures[f"{prefix}_{br}_multiplied_slow"] = np.prod([b[1] for b in m[3]['metrics'][br]]) * measures.get(f"{prefix}_{br}_multiplied_slow", 1.0)
-        measures[f"{prefix}_{br}_expected"] = sum([b[2] for b in m[3]['metrics'][br]]) + measures.get(f"{prefix}_{br}_expected", 0.0)
-    for ba in betting_activity_keys:
-        measures[f"{prefix}_{ba}_activity"] = m[3]['metrics'][ba]['qty'] + measures.get(f"{prefix}_{ba}_activity", 0.0)
-    multiple_array.append(measures[f"{prefix}_{br}_multiplied"])
-print(betting_returns)
+    measures = {}
+    prefix = "test"
+    multiple_array = []
+    expected_multiple_array = []
+    for i_m, m in enumerate(list_of_matches):
+        betting_returns_keys = [k for k in m[3]['metrics'].keys() if k.startswith('betting_returns')]
+        betting_activity_keys = [k for k in m[3]['metrics'].keys() if k.startswith('betting_activity')]
+        for br in betting_returns_keys:
+            measures[f"{prefix}_{br}"] = sum([b[0] for b in m[3]['metrics'][br]]) + measures.get(f"{prefix}_{br}", 0.0)
+            measures[f"{prefix}_{br}_multiplied"] = sum([math.log(b[1]) for b in m[3]['metrics'][br]]) + measures.get(f"{prefix}_{br}_multiplied", 0)
+            measures[f"{prefix}_{br}_expected_multiplied"] = sum([math.log(b[3]) for b in m[3]['metrics'][br]]) + measures.get(f"{prefix}_{br}_expected_multiplied", 0)
+            measures[f"{prefix}_{br}_expected"] = sum([b[2] for b in m[3]['metrics'][br]]) + measures.get(f"{prefix}_{br}_expected", 0.0)
+        for ba in betting_activity_keys:
+            measures[f"{prefix}_{ba}_activity"] = m[3]['metrics'][ba]['qty'] + measures.get(f"{prefix}_{ba}_activity", 0.0)
+        multiple_array.append(measures[f"{prefix}_{br}_multiplied"])
+        expected_multiple_array.append(measures[f"{prefix}_{br}_expected_multiplied"])
+    print(betting_returns)
