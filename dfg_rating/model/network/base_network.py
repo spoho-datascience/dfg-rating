@@ -7,6 +7,8 @@ import pandas as pd
 from abc import ABC, abstractmethod
 from typing import NewType, Tuple, List
 
+from operator import indexOf
+
 from numpy import int64
 
 from dfg_rating.model.betting.betting import BaseBetting
@@ -425,14 +427,15 @@ class BaseNetwork(ABC):
         return {t: t for t in range(self.n_teams)}
 
     def get_mean_rating(self, rating_name, season, league, default_rating, **kwargs):
+        season_i = indexOf(self.get_seasons(), season)
         only_relegated = kwargs.get("relegated", False)
         season_teams = self.get_playing_teams(season, league)
         teams_playing = season_teams if not only_relegated else {
-            t: t for t in season_teams.values() if t not in self.get_playing_teams(season + 1, league).values()
+            t: t for t in season_teams.values() if t not in self.get_playing_teams(self.get_seasons()[season_i + 1], league).values()
         }
         ratings_list = []
         for team_i, team in teams_playing.items():
-            current_league = self.get_current_league(season + 1, team)
+            current_league = self.get_current_league(self.get_seasons()[season_i + 1], team)
             if current_league is not None:
                 last_season_rating = self.data.nodes[team].get(
                     'ratings', {}).get(rating_name, {}).get(
@@ -681,10 +684,7 @@ class WhiteNetwork(BaseNetwork):
             self.add_season_rating(rating, rating_name, team_id, season)
         else:
             for s_i, s in enumerate(self.get_seasons()):
-                if isinstance(s, (int, np.integer)):
-                    self.add_season_rating(rating, rating_name, team_id, s)
-                else:
-                    self.add_season_rating(rating, rating_name, team_id, s_i)
+                self.add_season_rating(rating, rating_name, team_id, s)
 
     def add_season_rating(self, rating, rating_name, team_id, season):
         def edge_filter(e):
@@ -701,7 +701,7 @@ class WhiteNetwork(BaseNetwork):
         else:
             ratings, rating_hp = rating.get_all_ratings(self, edge_filter, season)
             for team_i, team in enumerate(self.data.nodes):
-                self._add_rating_to_team(int(team), ratings[team_i], rating_hp, rating_name, season=season)
+                self._add_rating_to_team(team, ratings[team_i], rating_hp, rating_name, season=season)
 
     def add_forecast(self, forecast: BaseForecast, forecast_name, base_ranking='true_rating', season=None):
         for match in self.data.edges(keys=True):

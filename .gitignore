@@ -552,4 +552,6 @@ database.ini
 /experiments/scripts/Final_results/*.csv
 /experiments/notebooks/*.csv
 experiments/notebooks/network_analysis/RealData/results/*
+/data/*
 *.tar.gz
+*.code-workspace

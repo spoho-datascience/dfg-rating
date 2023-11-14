@@ -615,29 +615,17 @@ class RatingsEvaluation(BaseWidget):
                         ),
                         dbc.Col(
                             id="seasons-filter-col",
-                            children=html.Div(
-                                [
-                                    "From season ",
-                                    dcc.Input(
-                                        id="from-season-input",
-                                        type="number",
-                                        debounce=True,
-                                        min=1,
-                                        max=self.main_network.seasons,
-                                        value=1
-                                    ),
-                                    " to season ",
-                                    dcc.Input(
-                                        id="to-season-input",
-                                        type="number",
-                                        debounce=True,
-                                        min=1,
-                                        max=self.main_network.seasons,
-                                        value=self.main_network.seasons
-                                    )
-                                ]
-                            ),
-                            width=6
+                            children=dcc.Dropdown(
+                                id="dropdown-seasons",
+                                placeholder="Seasons",
+                                options=[
+                                    {
+                                        "label": f"Season {r}",
+                                        "value": r
+                                    } for r in self.main_network.get_seasons()
+                                ],
+                                multi=True
+                            ), width=6
                         )
                     ]
                 ),
@@ -666,20 +654,19 @@ class RatingsEvaluation(BaseWidget):
                             Callback.Output('rating_metrics', 'figure')],
                            [Callback.Input('dropdown-teams', 'value'),
                             Callback.Input('dropdown-ratings', 'value'),
-                            Callback.Input('from-season-input', 'value'),
-                            Callback.Input('to-season-input', 'value')])
-        def update_rating_charts(teams, ratings, from_season, to_season):
+                            Callback.Input('dropdown-seasons', 'value')])
+        def update_rating_charts(teams, ratings, seasons):
             ratings = ratings or ['true_rating']
             rating_values_figure = avg_rating_chart(
                 self.main_network,
                 ratings_list=ratings,
-                seasons=[s - 1 for s in range(from_season, to_season + 1)],
+                seasons=seasons,
                 selected_teams=teams
             )
             rating_metrics_figure = rating_metrics_chart(
                 self.main_network,
                 ratings_list=[r for r in ratings if r != 'true_rating'],
-                seasons=[s - 1 for s in range(from_season, to_season + 1)],
+                seasons=seasons,
                 selected_teams=teams
             )
             return rating_values_figure, rating_metrics_figure
