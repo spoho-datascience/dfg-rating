@@ -25,17 +25,19 @@ class ELORating(BaseRating):
             }
 
     def init_ratings(self, team, season, n, league=None):
-        if season == 0:
+        seasons_available = n.get_seasons()
+        season_i = indexOf(seasons_available, season)
+        if season_i == 0:
             """First season on the simulation, new starting point"""
             starting_point = self.rating_mean
         else:
             """First season in the ratings computation but not in the network. Reading previous season"""
-            previous_playing_teams = n.get_playing_teams(season - 1, league)
+            previous_playing_teams = n.get_playing_teams(seasons_available[season_i - 1], league)
             if team not in previous_playing_teams.values():
-                starting_point = n.get_mean_rating(self.rating_name, season - 1, league, [self.rating_mean], relegated=True)
+                starting_point = n.get_mean_rating(self.rating_name, seasons_available[season_i - 1], league, [self.rating_mean], relegated=True)
             else:
                 starting_point = n.data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(
-                    season - 1, [self.rating_mean]
+                    seasons_available[season_i - 1], [self.rating_mean]
                 )[-1]
         return starting_point
 

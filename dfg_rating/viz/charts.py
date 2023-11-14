@@ -54,7 +54,7 @@ def create_ratings_charts(
                 seasons_array = np.concatenate((seasons_array, np.array([season] * len(rating_array))))
                 rating_hp = network.data.nodes[team].get('ratings', {}).get("hyper_parameters", {}).get(rating, {}).get(
                     season, {})
-                trend_x = np.array(range(len(rating_array)), dtype=np.float) + (len(rating_array) * season)
+                trend_x = np.array(range(len(rating_array)), dtype='f') + (len(rating_array) * season)
                 total_trend_x = np.concatenate((total_trend_x, trend_x))
                 to_zero_trend_x = np.array([i for i in range(len(trend_x))])
                 trend_y = to_zero_trend_x * rating_hp.get('trends', [0])[0] * network.days_between_rounds + \
@@ -121,7 +121,7 @@ def publication_chart(
                 total_rating_array = np.concatenate((total_rating_array, np.array(rating_array)))
                 rating_hp = network.data.nodes[team].get('ratings', {}).get("hyper_parameters", {}).get(rating, {}).get(
                     season, {})
-                trend_x = np.array(range(len(rating_array)), dtype=np.float) + (len(rating_array) * season)
+                trend_x = np.array(range(len(rating_array)), dtype='f') + (len(rating_array) * season)
                 total_trend_x = np.concatenate((total_trend_x, trend_x))
                 to_zero_trend_x = np.array([i for i in range(len(trend_x))])
                 trend_y = to_zero_trend_x * rating_hp.get('trends', [0])[0] * network.days_between_rounds + \
@@ -324,7 +324,7 @@ def accumulated_betting_chart(
 def avg_rating_chart(
         network: BaseNetwork,
         ratings_list: [str] = None,
-        seasons: [int] = None,
+        seasons = None,
         selected_teams: [int] = None
 ):
     print(f"Selected teams : {selected_teams}")
@@ -477,7 +477,7 @@ def teams_rating_chart(
                 total_rating_array = np.concatenate((total_rating_array, np.array(rating_array)))
                 rating_hp = network.data.nodes[team].get('ratings', {}).get("hyper_parameters", {}).get(rating, {}).get(
                     season, {})
-                trend_x = np.array(range(len(rating_array)), dtype=np.float) + (len(rating_array) * season)
+                trend_x = np.array(range(len(rating_array)), dtype='f') + (len(rating_array) * season)
                 total_trend_x = np.concatenate((total_trend_x, trend_x))
                 to_zero_trend_x = np.array([i for i in range(len(trend_x))])
                 trend_y = to_zero_trend_x * rating_hp.get('trends', [0])[0] * network.days_between_rounds + \
@@ -565,7 +565,7 @@ def create_rating_traces(network, team, rating, seasons):
         total_rating_array = np.concatenate((total_rating_array, np.array(rating_array)))
         rating_hp = network.data.nodes[team].get('ratings', {}).get("hyper_parameters", {}).get(rating, {}).get(
             season, {})
-        trend_x = np.array(range(len(rating_array)), dtype=np.float) + (len(rating_array) * season)
+        trend_x = np.array(range(len(rating_array)), dtype='f') + (len(rating_array) * season)
         total_trend_x = np.concatenate((total_trend_x, trend_x))
         to_zero_trend_x = np.array([i for i in range(len(trend_x))])
         trend_y = to_zero_trend_x * rating_hp.get('trends', [0])[0] * network.days_between_rounds + \
