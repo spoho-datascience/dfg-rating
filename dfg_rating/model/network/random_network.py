@@ -97,3 +97,16 @@ class ClusteredNetwork(RoundRobinNetwork):
                     edge_probability = self.in_probability if u_cluster == v_cluster else self.out_probability
                     self.data.edges[u, v, 0][
                         'state'] = 'active' if random.random() < edge_probability else 'inactive'
+
+# ### test cluster network
+# import dfg_rating.viz.jupyter_widgets as DFGWidgets
+# loaded_network = ClusteredNetwork(
+#     teams=24,
+#     clusters=3,
+#     out_probability=0.05
+# )
+# app = DFGWidgets.NetworkExplorer(
+#     network=loaded_network,
+#     edge_props=["round"]
+# )
+# app.run('internal', debug=True, port=8001)
