@@ -83,6 +83,28 @@ class ControlledTrendRating(BaseRating):
         self.end_season_ratings(relative_season, n, ratings)
 
         return ratings, self.props
+    
+    def get_cluster_ratings(self, n: BaseNetwork, t: [TeamId], edge_filter=None, season=0):
+        edge_filter = edge_filter or base_edge_filter
+        self.teams = t
+        home_games = list(n.data.in_edges(t, keys=True, data=True))
+        away_games = list(n.data.out_edges(t, keys=True, data=True))
+        n_rounds = len(get_rounds(home_games + away_games))
+        ratings = np.zeros([len(t), n_rounds + 1])
+        self.agg = {}
+        self.init_season_ratings(season, n, ratings)
+        for away_team, home_team, match_key, match_data in sorted(filter(edge_filter, home_games + away_games),
+                                                                  key=lambda x: x[3]['day']):
+            # if match_data.get('season', 0) != current_season:
+            #     current_season = match_data['season']
+            #     agg = {}
+            if home_team in t:
+                i_home_team = indexOf(t, home_team)
+                ratings[i_home_team][match_data['round'] + 1] = ratings[i_home_team][match_data['round']] + self.new_rating_value(home_team, match_data)
+            if away_team in t:
+                i_away_team = indexOf(t, away_team)
+                ratings[i_away_team][match_data['round'] + 1] = ratings[i_away_team][match_data['round']] + self.new_rating_value(away_team, match_data)
+        return ratings, self.props
 
     def init_season_ratings(self, season, n, ratings):
         init_position = 0
