@@ -87,8 +87,8 @@ class ControlledTrendRating(BaseRating):
     def get_cluster_ratings(self, n: BaseNetwork, t: [TeamId], edge_filter=None, season=0):
         edge_filter = edge_filter or base_edge_filter
         self.teams = t
-        home_games = list(n.data.in_edges(t, keys=True, data=True))
-        away_games = list(n.data.out_edges(t, keys=True, data=True))
+        home_games = [(u, v, key, data) for u, v, key, data in n.data.in_edges(t, keys=True, data=True) if data['season'] == season]
+        away_games = [(u, v, key, data) for u, v, key, data in n.data.out_edges(t, keys=True, data=True) if data['season'] == season]
         n_rounds = len(get_rounds(home_games + away_games))
         ratings = np.zeros([len(t), n_rounds + 1])
         self.agg = {}
