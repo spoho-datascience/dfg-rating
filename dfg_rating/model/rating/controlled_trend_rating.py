@@ -127,7 +127,7 @@ class ControlledTrendRating(BaseRating):
 
     def init_ratings(self, team, current_season, n) -> float:
         if current_season == 0:
-            print("first season")
+            # print("first season")
             """First season on the simulation, new starting point"""
             starting_point = self.starting_point.get()[0]
         else:

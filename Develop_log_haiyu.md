@@ -54,3 +54,7 @@ Finish the logic that each rating only matters with each team, doesn't matter wh
 Add multi season, tested multi season promotion and relegation
 One problem existing is when calculate ranking, considered all matches (including national cup)
 International league is gonna based on countryLeague network
+
+### 2024.07.18
+Will change code to function def later
+fixed ranking for each team, only get rank score within their division matches

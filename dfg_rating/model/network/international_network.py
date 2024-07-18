@@ -177,7 +177,7 @@ class CountryLeague(RoundRobinNetwork):
         
     def create_data(self):
         for season in range(self.seasons):
-            print('season:', season)
+            print('--------------- season:', season, '----------------')
             # season = 0
             
             # fill the country graph
@@ -205,23 +205,31 @@ class CountryLeague(RoundRobinNetwork):
             # play this season
             season_games = list(filter(lambda match: match[3].get('season', -1) == season, self.iterate_over_games()))
             self.play_sub_network(season_games)
-
+            print('********** playing season:', season, '*********')
             # based on the reslut of game, give ranking
-            self.add_rating(self.ranking_rating, 'ranking', season=season)
+            for level in ['level1','level2','level3']:
+                print('*******', level)
+                ratings, rating_hp = self.ranking_rating.get_cluster_ratings(self, getattr(self, f'teams_{level}'), season=season)
+                for team in getattr(self, f'teams_{level}'):
+                    index_of_team = getattr(self,f'teams_{level}').index(team)
+                    self._add_rating_to_team(team, ratings[index_of_team], rating_hp, 'ranking', season=season)
+                    print('team:',team, 'ranking_end_season:',ratings[index_of_team][-1])
+                # self.add_rating(self.ranking_rating, 'ranking', getattr(self, f'teams_{level}'), season=season)
 
+            # get promoted and relegated teams based on ranking
             for level in ['level1','level2','level3']:
                 season_round = self.n_rounds
                 teams_with_ranking = {}
                 # set_of_nodes = [node for node in self.data.nodes if node in list(self.teams_level1)]
                 for node in getattr(self, f'teams_{level}'):
-                    # for rating in ratings:
                     try:
-                        teams_with_ranking[node]=self.data.nodes[node].get('ratings', {}).get('ranking', {}).get(season, {})[season_round - 1]
+                        # I think should choose the last ranking of the season
+                        teams_with_ranking[node]=self.data.nodes[node].get('ratings', {}).get('ranking', {}).get(season, {})[-1]
                     except KeyError as K:
                         pass
                 sorted_teams = sorted(teams_with_ranking.items(), key=lambda item: item[1])
-                top_ranking = [key for key, value in sorted_teams[-2:]]
-                tail_ranking = [key for key, value in sorted_teams[:2]]
+                top_ranking = [key for key, value in sorted_teams[-self.promotion_number:]]
+                tail_ranking = [key for key, value in sorted_teams[:self.promotion_number]]
                 setattr(self, f'promoted_teams_{level}', top_ranking)
                 setattr(self, f'relegated_teams_{level}', tail_ranking)
 
