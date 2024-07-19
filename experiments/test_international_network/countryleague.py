@@ -34,7 +34,7 @@ forecast_test = LogFunctionForecast(
 )
 
 test_network = CountryLeague(
-    # teams=10,
+    teams=16,
     level1_teams=4,
     level2_teams=4,
     level3_teams=4,
@@ -45,7 +45,6 @@ test_network = CountryLeague(
     prob_level1_level2=0.05,
     prob_level1_level3=0.05,
     prob_level2_level3=0.05,
-    oneleg=False,
     true_rating_level1=rating_level1,
     true_rating_level2=rating_level2,
     true_rating_level3=rating_level3,
@@ -55,39 +54,39 @@ test_network = CountryLeague(
 )
 
 
-countries_config = {
-    0:{
-        'teams': 10,
-        'level1_teams': 4,
-        'level2_teams': 4,
-        'level3_teams': 2,
-        'prob_within_level1': 1.0,
-        'prob_within_level2': 1.0,
-        'prob_within_level3': 1.0,
-        'prob_level1_level2': 0.00,
-        'prob_level1_level3': 0.00,
-        'prob_level2_level3': 0.00,
-        'oneleg': True
-    },
-    1:{
-        'teams': 6,
-        'level1_teams': 3,
-        'level2_teams': 3,
-        'level3_teams': 0,
-        'prob_within_level1': 1.0,
-        'prob_within_level2': 1.0,
-        'prob_within_level3': 1.0,
-        'prob_level1_level2': 0.00,
-        'prob_level1_level3': 0.00,
-        'prob_level2_level3': 0.00,
-        'oneleg': True
-    }
-}
+# countries_config = {
+#     0:{
+#         'level1_teams': 4,
+#         'level2_teams': 4,
+#         'level3_teams': 2,
+#         'promotion_number': 1,
+#         'prob_within_level1': 1.0,
+#         'prob_within_level2': 1.0,
+#         'prob_within_level3': 1.0,
+#         'prob_level1_level2': 0.05,
+#         'prob_level1_level3': 0.05,
+#         'prob_level2_level3': 0.05,
+#         'oneleg': True,
+#     },
+#     1:{
+#         'level1_teams': 3,
+#         'level2_teams': 3,
+#         'level3_teams': 0,
+#         'prob_within_level1': 1.0,
+#         'prob_within_level2': 1.0,
+#         'prob_within_level3': 1.0,
+#         'prob_level1_level2': 0.00,
+#         'prob_level1_level3': 0.00,
+#         'prob_level2_level3': 0.00,
+#         'oneleg': True,
+#     }
+# }
 
 # test_network = InternationalCompetition(
 #     countries_configs=countries_config,
 #     teams_per_country=3,
-#     match_prob=0.5
+#     match_prob=0.5,
+#     seasons=5,
 # )
 
 # display network explorer

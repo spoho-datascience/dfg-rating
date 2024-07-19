@@ -63,11 +63,15 @@ class LeagueRating(BaseRankingRating):
 
         return ratings, self.points_system
 
-    def get_cluster_ratings(self, league_network: BaseNetwork, team: [TeamId], edge_filter=None, season=0):
+    def get_cluster_ratings(self, league_network: BaseNetwork, team: [TeamId], edge_filter=None, season=0, level=0):
         edge_filter = edge_filter or base_edge_filter
         # home_games = list(league_network.data.in_edges(team, keys=True, data=True))
         # away_games = list(league_network.data.out_edges(team, keys=True, data=True))
-        season_games = [(u, v, key, data) for u, v, key, data in league_network.data.in_edges(team, keys=True, data=True) if data['season'] == season and 'state' not in data]
+        if level=='level4':
+            season_games = [(u, v, key, data) for u, v, key, data in league_network.data.in_edges(team, keys=True, data=True) if data['season'] == season]
+        else:
+            season_games = [(u, v, key, data) for u, v, key, data in league_network.data.in_edges(team, keys=True, data=True) if data['season'] == season and 'state' not in data]
+        
 
         # n_rounds = len(get_rounds(season_games))
         n_rounds, round_value = league_network.get_rounds()

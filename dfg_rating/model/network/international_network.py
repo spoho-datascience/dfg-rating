@@ -5,6 +5,7 @@ from networkx import DiGraph
 from dfg_rating.model.network.simple_network import RoundRobinNetwork
 from dfg_rating.model.network.base_network import BaseNetwork
 import math
+import copy
 from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
 from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
 from dfg_rating.model.rating.base_rating import BaseRating
@@ -13,20 +14,21 @@ from dfg_rating.model.rating.ranking_rating import LeagueRating
 
 class CountryLeague(RoundRobinNetwork):
     def __init__(self, **kwargs):
-        # self.num_teams = kwargs.get('teams', 24)
-        self.oneleg = kwargs.get('oneleg', False)
-        self.num_teams_level1 = kwargs.get('level1_teams', 10)
-        self.num_teams_level2 = kwargs.get('level2_teams', 8)
-        self.num_teams_level3 = kwargs.get('level3_teams', 6)
-        self.n_teams = self.num_teams_level1 + self.num_teams_level2 + self.num_teams_level3
+        self.oneleg = kwargs.get('oneleg', True)
+        self.num_teams_level1 = kwargs.get('level1_teams', 12)
+        self.num_teams_level2 = kwargs.get('level2_teams', 12)
+        self.num_teams_level3 = kwargs.get('level3_teams', 12)
+        self.promotion_number = kwargs.get('promotion_number', 2)
+        self.n_teams = kwargs.get('teams', 0)
+        self.n_playing = self.num_teams_level1 + self.num_teams_level2 + self.num_teams_level3
         kwargs['teams'] = self.n_teams
         kwargs['play'] = False
         
-        self.promotion_number = kwargs.get('promotion_number', 2)
+        
 
-        self.prob_within_level1 = kwargs.get('prob_within_level1', 0.7)
-        self.prob_within_level2 = kwargs.get('prob_within_level2', 0.6)
-        self.prob_within_level3 = kwargs.get('prob_within_level3', 0.5)
+        # self.prob_within_level1 = kwargs.get('prob_within_level1', 0.7)
+        # self.prob_within_level2 = kwargs.get('prob_within_level2', 0.6)
+        # self.prob_within_level3 = kwargs.get('prob_within_level3', 0.5)
         
         self.prob_level1_level2 = kwargs.get('prob_level1_level2', 0.4)
         self.prob_level1_level3 = kwargs.get('prob_level1_level3', 0.3)
@@ -67,6 +69,8 @@ class CountryLeague(RoundRobinNetwork):
             )
         )
 
+        self.true_rating_level4 = copy.deepcopy(self.true_rating_level3)
+
         self.true_forecast = kwargs.get(
             'true_forecast',
             LogFunctionForecast(
@@ -80,7 +84,49 @@ class CountryLeague(RoundRobinNetwork):
 
         super().__init__(**kwargs)
     
+    def select_teams(self, cluster_1, cluster_2, prob, season, select_n_teams=None, set_edge_state=False):
+        selected_teams_1 = random.sample(cluster_1, select_n_teams) if select_n_teams else cluster_1
+        selected_teams_2 = random.sample(cluster_2, select_n_teams) if select_n_teams else cluster_2
 
+        if set_edge_state:
+            for team1 in selected_teams_1:
+                for team2 in selected_teams_2:
+                    self.set_edge_state(team1, team2, prob, season)
+
+        else:
+            return selected_teams_1, selected_teams_2
+    
+    def initiate_3_levels(self, team_list, n_teams_level1, n_teams_level2, n_teams_level3):
+        teams_level1 = random.sample(team_list, n_teams_level1)
+        teams_list = [t for t in team_list if t not in teams_level1]
+        teams_level2 = random.sample(teams_list, n_teams_level2)
+        teams_list = [t for t in teams_list if t not in teams_level2]
+        teams_level3 = random.sample(teams_list, n_teams_level3)
+        teams_level4 = [t for t in teams_list if t not in teams_level3]
+        return teams_level1, teams_level2, teams_level3, teams_level4
+    
+    def set_edge_state(self, team1, team2, prob, season):
+        def search_edge(team1, team2, season):
+            return next(((u, v, key) for u, v, key, data in self.data.edges(keys=True, data=True) if data['season'] == season and u == team1 and v == team2), None)
+
+        edges_team1_2 = search_edge(team1, team2, season)
+        if edges_team1_2:
+            u, v, key = edges_team1_2
+            if not self.oneleg:
+                state = 'active' if random.random() < prob else 'inactive'
+                self.data.edges[u, v, key]['state'] = state
+                self.data.edges[v, u, key]['state'] = state
+
+            else:
+                if random.random() < 0.5: # choose direction randomly
+                    self.data.edges[u, v, key]['state'] = 'active' if random.random() < prob else 'inactive'
+                    self.data.edges[v, u, key]['state'] = 'inactive'
+
+                else:
+                    self.data.edges[v, u, key]['state'] = 'active' if random.random() < prob else 'inactive'
+                    self.data.edges[u, v, key]['state'] = 'inactive'
+
+    
     def fill_graph(self, season=0):
 
         if self.team_labels is not None:
@@ -97,84 +143,31 @@ class CountryLeague(RoundRobinNetwork):
         
         # get 3 level's team idx
         if season == 0:
-            self.teams_level1 = random.sample(teams_list, self.num_teams_level1)
-            teams_list = [t for t in teams_list if t not in self.teams_level1]
-            self.teams_level2 = random.sample(teams_list, self.num_teams_level2)
-            teams_list = [t for t in teams_list if t not in self.teams_level2]
-            self.teams_level3 = teams_list
-            # teams rating only matters with teams rating level
+            self.teams_level1, self.teams_level2, self.teams_level3, self.teams_level4 = self.initiate_3_levels(teams_list, self.num_teams_level1, self.num_teams_level2, self.num_teams_level3)
             self.teams_rating_level1 = self.teams_level1.copy()
             self.teams_rating_level2 = self.teams_level2.copy()
             self.teams_rating_level3 = self.teams_level3.copy()
+            self.teams_rating_level4 = self.teams_level4.copy()
 
         print('level1:',self.teams_level1)
         print('level2:',self.teams_level2)
         print('level3:',self.teams_level3)
 
 
-        def set_edge_state(team1, team2, prob, season):
-            def search_edge(team1, team2, season):
-                return next(((u, v, key) for u, v, key, data in self.data.edges(keys=True, data=True) if data['season'] == season and u == team1 and v == team2), None)
 
-            edges_team1_2 = search_edge(team1, team2, season)
-            if edges_team1_2:
-                u, v, key = edges_team1_2
-                if not self.oneleg:
-                    self.data.edges[u, v, key]['state'] = 'active' if random.random() < prob else 'inactive'
-                    self.data.edges[v, u, key]['state'] = 'active' if random.random() < prob else 'inactive'
-                    # self.data.edges[team2, team1, 0]['state'] = 'active' if random.random() < prob else 'inactive'
-                    # self.data.edges[team1, team2, 0]['state'] = 'active' if random.random() < prob else 'inactive'
-                else:
-                    if random.random() < 0.5: # choose direction randomly
-                        self.data.edges[u, v, key]['state'] = 'active' if random.random() < prob else 'inactive'
-                        self.data.edges[v, u, key]['state'] = 'inactive'
-                        # self.data.edges[team1, team2, 0]['state'] = 'active' if random.random() < prob else 'inactive'
-                        # self.data.edges[team2, team1, 0]['state'] = 'inactive'
-                    else:
-                        self.data.edges[v, u, key]['state'] = 'active' if random.random() < prob else 'inactive'
-                        self.data.edges[u, v, key]['state'] = 'inactive'
-                        # self.data.edges[team2, team1, 0]['state'] = 'active' if random.random() < prob else 'inactive'
-                        # self.data.edges[team1, team2, 0]['state'] = 'inactive'
+        for i in [1,2,3]:
+            for j in [2,3]:
+                if i != j and i<j:
+                    cluster_1 = getattr(self, f'teams_level{i}')
+                    cluster_2 = getattr(self, f'teams_level{j}')
+                    prob = getattr(self, f'prob_level{i}_level{j}')
+                    self.select_teams(cluster_1, cluster_2, prob, season, set_edge_state=True)
+            cluster_1 = getattr(self, f'teams_level{i}')
+            cluster_2 = getattr(self, 'teams_level4')
+            self.select_teams(cluster_1, cluster_2, 0, season, set_edge_state=True)
         
-        # # Generate matches within each level
-        # for level in ['level1','level2','level3']:
-        #     for team1 in getattr(self, f'teams_{level}'):
-        #         for team2 in getattr(self, f'teams_{level}'):
-        #             if team1 != team2:
-        #                 self.data.edges[team1,team2,0]['state'] = 'active' if random.random() < getattr(self, f'prob_within_{level}') else 'inactive'
-        #                 # if not self.oneleg: # league cup is two leg
-        #                 self.data.edges[team2,team1,0]['state'] = 'active' if random.random() < getattr(self, f'prob_within_{level}') else 'inactive'
+        self.select_teams(self.teams_level4, self.teams_level4, 0, season, set_edge_state=True)
 
-        # Generate matches between different levels
-        for team1 in self.teams_level1:
-            for team2 in self.teams_level2:
-                set_edge_state(team1,team2,self.prob_level1_level2,season)
-
-        for team1 in self.teams_level1:
-            for team2 in self.teams_level3:
-                set_edge_state(team1,team2,self.prob_level1_level3,season)
-
-        for team1 in self.teams_level2:
-            for team2 in self.teams_level3:
-                set_edge_state(team1,team2,self.prob_level2_level3,season)
-    
-    # def add_season_rating(self, rating, rating_name, season):
-    #     def edge_filter(e):
-    #         return e[3]['season'] == season
-        
-    #     # add rating to all teams
-
-    #     rating_values, rating_hp = rating.get_cluster_ratings(
-    #         self, getattr(self, f'teams_{level}'), edge_filter
-    #     )
-    #     for team in getattr(self, f'teams_{level}'):
-    #         # rating_values, rating_hp = rating.get_cluster_ratings(
-    #         #     self, [team], edge_filter
-    #         # ) # can give a list of teams
-    #         index_of_team = getattr(self,f'teams_{level}').index(team)
-    #         self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, rating_name, season=season) # only one by one
-    #         print('team:',team, 'rating_start:',rating_values[index_of_team][0])
-        
     def create_data(self):
         for season in range(self.seasons):
             print('--------------- season:', season, '----------------')
@@ -184,21 +177,17 @@ class CountryLeague(RoundRobinNetwork):
             self.fill_graph(season=season)
 
             # add each level's rating
-            for level in ['level1','level2','level3']:
+            for level in ['level1','level2','level3', 'level4']:
                 def edge_filter(e):
                     return e[3]['season'] == season
                 rating_values, rating_hp = getattr(self, f'true_rating_{level}').get_cluster_ratings(
                 self, getattr(self, f'teams_rating_{level}'), edge_filter, season
                 )
                 for team in getattr(self, f'teams_rating_{level}'):
-                    # rating_values, rating_hp = rating.get_cluster_ratings(
-                    #     self, [team], edge_filter
-                    # ) # can give a list of teams
                     index_of_team = getattr(self,f'teams_rating_{level}').index(team)
                     self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, 'true_rating', season=season) # only one by one
                     print('team:',team, 'rating_start:',rating_values[index_of_team][0])
             
-                # self.add_season_rating(getattr(self, f'true_rating_{level}'), f'true_rating', season=0)
             
             # add forecast to all games
             super().add_forecast(self.true_forecast, 'true_forecast', season=season)
@@ -207,9 +196,9 @@ class CountryLeague(RoundRobinNetwork):
             self.play_sub_network(season_games)
             print('********** playing season:', season, '*********')
             # based on the reslut of game, give ranking
-            for level in ['level1','level2','level3']:
+            for level in ['level1','level2','level3', 'level4']:
                 print('*******', level)
-                ratings, rating_hp = self.ranking_rating.get_cluster_ratings(self, getattr(self, f'teams_{level}'), season=season)
+                ratings, rating_hp = self.ranking_rating.get_cluster_ratings(self, getattr(self, f'teams_{level}'), season=season, level=level)
                 for team in getattr(self, f'teams_{level}'):
                     index_of_team = getattr(self,f'teams_{level}').index(team)
                     self._add_rating_to_team(team, ratings[index_of_team], rating_hp, 'ranking', season=season)
@@ -217,7 +206,7 @@ class CountryLeague(RoundRobinNetwork):
                 # self.add_rating(self.ranking_rating, 'ranking', getattr(self, f'teams_{level}'), season=season)
 
             # get promoted and relegated teams based on ranking
-            for level in ['level1','level2','level3']:
+            for level in ['level1','level2','level3','level4']:
                 season_round = self.n_rounds
                 teams_with_ranking = {}
                 # set_of_nodes = [node for node in self.data.nodes if node in list(self.teams_level1)]
@@ -245,10 +234,17 @@ class CountryLeague(RoundRobinNetwork):
             for team in self.relegated_teams_level2:
                 self.teams_level2.remove(team)
                 self.teams_level3.append(team)
+            for team in self.relegated_teams_level3:
+                self.teams_level3.remove(team)
+                self.teams_level4.append(team)
+            for team in self.promoted_teams_level4:
+                self.teams_level3.append(team)
+                self.teams_level4.remove(team)
         
         return True
-        
-class InternationalCompetition:
+
+
+class InternationalCompetition_Combine:
     def __init__(self, **kwargs):
         """
         InternationalCompetition class
@@ -323,3 +319,163 @@ class InternationalCompetition:
         self.merge_country_leagues()
         self.generate_international_matches()
 
+class InternationalCompetition(RoundRobinNetwork):
+    def __init__(self, **kwargs):
+        """
+        InternationalCompetition class
+        """
+        self.countries_configs = kwargs.get('countries_configs', {})
+        self.international_prob = kwargs.get('international_prob', 0.1)
+        self.oneleg_international = kwargs.get('oneleg', False)
+        self.teams_per_country = kwargs.get('teams_per_country', 3)
+        self.countries_leagues = {}
+        self.n_teams = 0
+        for country_idx, country_config in self.countries_configs.items():
+            self.countries_leagues[country_idx] = country_config
+            setattr(self, f'oneleg_{country_idx}', country_config.get('oneleg', False))
+            setattr(self, f'number_teams_level1_{country_idx}', country_config.get('level1_teams', 0))
+            setattr(self, f'number_teams_level2_{country_idx}', country_config.get('level2_teams', 0))
+            setattr(self, f'number_teams_level3_{country_idx}', country_config.get('level3_teams', 0))
+            setattr(self, f'n_teams_{country_idx}', getattr(self, f'number_teams_level1_{country_idx}') + getattr(self, f'number_teams_level2_{country_idx}') + getattr(self, f'number_teams_level3_{country_idx}'))
+            self.n_teams += getattr(self, f'n_teams_{country_idx}')
+            
+            setattr(self, f'promotion_number_{country_idx}', country_config.get('promotion_number', 1))
+            setattr(self, f'prob_within_level1_{country_idx}', country_config.get('prob_within_level1', 0.7))
+            setattr(self, f'prob_within_level2_{country_idx}', country_config.get('prob_within_level2', 0.6))
+            setattr(self, f'prob_within_level3_{country_idx}', country_config.get('prob_within_level3', 0.5))
+            setattr(self, f'prob_level1_level2_{country_idx}', country_config.get('prob_level1_level2', 0.4))
+            setattr(self, f'prob_level1_level3_{country_idx}', country_config.get('prob_level1_level3', 0.3))
+            setattr(self, f'prob_level2_level3_{country_idx}', country_config.get('prob_level2_level3', 0.2))
+            setattr(self, f'team_labels_{country_idx}', country_config.get('team_labels', None))
+            
+            setattr(self,f'true_rating_level1_{country_idx}', kwargs.get(
+                'true_rating_level1',
+                ControlledTrendRating(
+                    starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=50),
+                    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
+                    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
+                    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
+                    rating_name='true_rating'
+                )
+            )
+            )
+
+            setattr(self,f'true_rating_level2_{country_idx}', kwargs.get(
+                'true_rating_level2',
+                ControlledTrendRating(
+                    starting_point=ControlledRandomFunction(distribution='normal', loc=800, scale=50),
+                    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
+                    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
+                    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
+                    rating_name='true_rating'
+                )
+            )
+            )
+
+            setattr(self,f'true_rating_level3_{country_idx}', kwargs.get(
+                'true_rating_level3',
+                ControlledTrendRating(
+                    starting_point=ControlledRandomFunction(distribution='normal', loc=500, scale=50),
+                    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
+                    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
+                    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
+                    rating_name='true_rating'
+                )
+            )
+            )
+            
+            setattr(self,f'true_forecast_{country_idx}', kwargs.get(
+                'true_forecast',
+                LogFunctionForecast(
+                    outcomes=['home', 'draw', 'away'],
+                    coefficients=[-0.9, 0.3],
+                    beta_parameter=0.006
+                )
+            )
+            )
+
+            setattr(self,f'ranking_rating_{country_idx}', kwargs.get('ranking_rating', LeagueRating()))
+
+        kwargs['teams'] = self.n_teams
+        kwargs['play'] = False
+
+        super().__init__(**kwargs)
+    
+    def fill_graph(self, season=0):
+        teams_list = list(range(0, self.n_teams))
+        self.team_labels = {i: i for i in range(self.n_teams)}
+        if self.data is None:
+            graph = nx.MultiDiGraph()
+            graph.add_nodes_from([t for t in teams_list])
+            self.data = graph
+        super().fill_graph(self.team_labels, season)
+
+        team_idx = 0
+        for country_idx in range(self.countries_configs):
+            teams_list_country = random.sample(teams_list, getattr(self, f'n_teams_{country_idx}'))
+            if season == 0:
+                setattr(self, f'teams_level1_{country_idx}', random.sample(teams_list_country, getattr(self, f'number_teams_level1_{country_idx}')))
+                teams_list_country = [t for t in teams_list_country if t not in getattr(self, f'teams_level1_{country_idx}')]
+                setattr(self, f'teams_level2_{country_idx}', random.sample(teams_list_country, getattr(self, f'number_teams_level2_{country_idx}')))
+                teams_list_country = [t for t in teams_list_country if t not in getattr(self, f'teams_level2_{country_idx}')]
+                setattr(self, f'teams_level3_{country_idx}', teams_list_country)
+
+                setattr(self, f'teams_rating_level1_{country_idx}', getattr(self, f'teams_level1_{country_idx}').copy())
+                setattr(self, f'teams_rating_level2_{country_idx}', getattr(self, f'teams_level2_{country_idx}').copy())
+                setattr(self, f'teams_rating_level3_{country_idx}', getattr(self, f'teams_level3_{country_idx}').copy())
+            print('country:', country_idx)
+            print('level1:',getattr(self, f'teams_level1_{country_idx}'))
+            print('level2:',getattr(self, f'teams_level2_{country_idx}'))
+            print('level3:',getattr(self, f'teams_level3_{country_idx}'))
+
+        def set_edge_state(team1, team2, prob, season):
+            def search_edge(team1, team2, season):
+                return next(((u, v, key) for u, v, key, data in self.data.edges(keys=True, data=True) if data['season'] == season and u == team1 and v == team2), None)
+
+            edges_team1_2 = search_edge(team1, team2, season)
+            if edges_team1_2:
+                u, v, key = edges_team1_2
+                if not self.oneleg:
+                    self.data.edges[u, v, key]['state'] = 'active' if random.random() < prob else 'inactive'
+                    self.data.edges[v, u, key]['state'] = 'active' if random.random() < prob else 'inactive'
+                else:
+                    if random.random() < 0.5:
+                        self.data.edges[u, v, key]['state'] = 'active' if random.random() < prob else 'inactive'
+                        self.data.edges[v, u, key]['state'] = 'inactive'
+                    else:
+                        self.data.edges[v, u, key]['state'] = 'active' if random.random() < prob else 'inactive'
+                        self.data.edges[u, v, key]['state'] = 'inactive'
+        
+        for team1 in getattr(self, f'teams_level1_{country_idx}'):
+            for team2 in getattr(self, f'teams_level2_{country_idx}'):
+                set_edge_state(team1,team2,getattr(self, f'prob_level1_level2_{country_idx}'),season)
+        
+        for team1 in getattr(self, f'teams_level1_{country_idx}'):
+            for team2 in getattr(self, f'teams_level3_{country_idx}'):
+                set_edge_state(team1,team2,getattr(self, f'prob_level1_level3_{country_idx}'),season)
+        
+        for team1 in getattr(self, f'teams_level2_{country_idx}'):
+            for team2 in getattr(self, f'teams_level3_{country_idx}'):
+                set_edge_state(team1,team2,getattr(self, f'prob_level2_level3_{country_idx}'),season)
+
+    def create_data(self):
+        for season in range(self.seasons):
+            self.fill_graph(season)
+            for country_idx in range(self.countries_configs):
+                print('--------------- country:', country_idx, '----------------')
+                # add each level's rating
+                for level in ['level1','level2','level3']:
+                    def edge_filter(e):
+                        return e[3]['season'] == season
+                    rating_values, rating_hp = getattr(self, f'true_rating_{level}_{country_idx}').get_cluster_ratings(
+                    self, getattr(self, f'teams_rating_{level}_{country_idx}'), edge_filter, season
+                    )
+                    for team in getattr(self, f'teams_rating_{level}_{country_idx}'):
+                        # rating_values, rating_hp = rating.get_cluster_ratings(
+                        #     self, [team], edge_filter
+                        # ) # can give a list of teams
+                        index_of_team = getattr(self,f'teams_rating_{level}_{country_idx}').index(team)
+                        self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, 'true_rating', season=season)
+                        print('team:',team, 'rating_start:',rating_values[index_of_team][0])
+                self.add_forcast(getattr(self, f'true_forecast_{country_idx}'), 'true_forecast', season=season)
+                season_games = list(filter(lambda match: match[3].get('season', -1) == season, self.iterate_over_games()))
