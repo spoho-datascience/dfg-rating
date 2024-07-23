@@ -1,0 +1,256 @@
+setting:
+rating_level1 = ControlledTrendRating(
+    starting_point=ControlledRandomFunction(distribution='normal', loc=800, scale=100),
+    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
+    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
+    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
+    rating_name='true_rating'
+)
+
+rating_level2 = ControlledTrendRating(
+    starting_point=ControlledRandomFunction(distribution='normal', loc=500, scale=100),
+    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
+    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
+    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
+    rating_name='true_rating'
+)
+
+rating_level3 = ControlledTrendRating(
+    starting_point=ControlledRandomFunction(distribution='normal', loc=200, scale=100),
+    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
+    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
+    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
+    rating_name='true_rating'
+)
+
+forecast_test = LogFunctionForecast(
+    outcomes=['home', 'draw', 'away'],
+    coefficients=[-0.9, 0.3],
+    beta_parameter=0.006
+)
+
+test_network = CountryLeague(
+    teams=16,
+    level1_teams=4,
+    level2_teams=4,
+    level3_teams=4,
+    promotion_number=1,
+    prob_within_level1=1.0,
+    prob_within_level2=1.0,
+    prob_within_level3=1.0,
+    prob_level1_level2=0.05,
+    prob_level1_level3=0.05,
+    prob_level2_level3=0.05,
+    true_rating_level1=rating_level1,
+    true_rating_level2=rating_level2,
+    true_rating_level3=rating_level3,
+    true_forecast=forecast_test,
+    seasons=5,
+)
+
+--------------- season: 0 ----------------
+level1: [10, 11, 5, 8]
+level2: [13, 7, 0, 3]
+level3: [1, 14, 4, 15]
+team: 10 rating_start: 830.2546518359799
+team: 11 rating_start: 663.6737156878646
+team: 5 rating_start: 765.9644309049633
+team: 8 rating_start: 577.4334249093204
+team: 13 rating_start: 347.3216160401408
+team: 7 rating_start: 607.6234715809243
+team: 0 rating_start: 704.0151312252074
+team: 3 rating_start: 327.7197905635211
+team: 1 rating_start: 228.70636915582045
+team: 14 rating_start: 185.39229116830967
+team: 4 rating_start: 215.17620249514587
+team: 15 rating_start: 157.67536950591654
+team: 2 rating_start: 274.9820169235993
+team: 6 rating_start: 272.2906221643454
+team: 9 rating_start: 349.9192429147482
+team: 12 rating_start: 187.68083006067582
+********** playing season: 0 *********
+******* level1
+team: 10 ranking_end_season: 13.0
+team: 11 ranking_end_season: 2.0
+team: 5 ranking_end_season: 14.0
+team: 8 ranking_end_season: 4.0
+******* level2
+team: 13 ranking_end_season: 4.0
+team: 7 ranking_end_season: 12.0
+team: 0 ranking_end_season: 13.0
+team: 3 ranking_end_season: 6.0
+******* level3
+team: 1 ranking_end_season: 7.0
+team: 14 ranking_end_season: 8.0
+team: 4 ranking_end_season: 13.0
+team: 15 ranking_end_season: 3.0
+******* level4
+team: 2 ranking_end_season: 27.0
+team: 6 ranking_end_season: 20.0
+team: 9 ranking_end_season: 28.0
+team: 12 ranking_end_season: 20.0
+--------------- season: 1 ----------------
+level1: [10, 5, 8, 0]
+level2: [7, 3, 11, 4]
+level3: [1, 14, 13, 9]
+team: 10 rating_start: 873.0290297348943
+team: 11 rating_start: 677.1640814242836
+team: 5 rating_start: 771.789381702323
+team: 8 rating_start: 590.2317435686541
+team: 13 rating_start: 317.5338403838251
+team: 7 rating_start: 623.9854280743006
+team: 0 rating_start: 746.7419380548658
+team: 3 rating_start: 299.8277535443138
+team: 1 rating_start: 270.63161161237065
+team: 14 rating_start: 177.4279183047198
+team: 4 rating_start: 205.68010985257797
+team: 15 rating_start: 137.25167631592925
+team: 2 rating_start: 303.01813248523246
+team: 6 rating_start: 281.0538992824758
+team: 9 rating_start: 299.336638894188
+team: 12 rating_start: 203.41071228182435
+********** playing season: 1 *********
+******* level1
+team: 10 ranking_end_season: 13.0
+team: 5 ranking_end_season: 7.0
+team: 8 ranking_end_season: 7.0
+team: 0 ranking_end_season: 7.0
+******* level2
+team: 7 ranking_end_season: 16.0
+team: 3 ranking_end_season: 4.0
+team: 11 ranking_end_season: 12.0
+team: 4 ranking_end_season: 2.0
+******* level3
+team: 1 ranking_end_season: 10.0
+team: 14 ranking_end_season: 5.0
+team: 13 ranking_end_season: 8.0
+team: 9 ranking_end_season: 9.0
+******* level4
+team: 2 ranking_end_season: 23.0
+team: 6 ranking_end_season: 16.0
+team: 12 ranking_end_season: 15.0
+team: 15 ranking_end_season: 9.0
+--------------- season: 2 ----------------
+level1: [10, 8, 0, 7]
+level2: [3, 11, 5, 1]
+level3: [13, 9, 4, 2]
+team: 10 rating_start: 852.6217618685087
+team: 11 rating_start: 677.4022889502565
+team: 5 rating_start: 800.9785361446164
+team: 8 rating_start: 566.8736380978144
+team: 13 rating_start: 311.63140511011864
+team: 7 rating_start: 686.5306885689228
+team: 0 rating_start: 777.7046115617424
+team: 3 rating_start: 274.25360737131393
+team: 1 rating_start: 234.57877343796613
+team: 14 rating_start: 185.9242337448976
+team: 4 rating_start: 228.92042423103072
+team: 15 rating_start: 155.2119751768532
+team: 2 rating_start: 292.1092269303635
+team: 6 rating_start: 237.2777913373165
+team: 9 rating_start: 272.5439782245303
+team: 12 rating_start: 231.5584484913118
+********** playing season: 2 *********
+******* level1
+team: 10 ranking_end_season: 16.0
+team: 8 ranking_end_season: 1.0
+team: 0 ranking_end_season: 13.0
+team: 7 ranking_end_season: 4.0
+******* level2
+team: 3 ranking_end_season: 4.0
+team: 11 ranking_end_season: 12.0
+team: 5 ranking_end_season: 18.0
+team: 1 ranking_end_season: 1.0
+******* level3
+team: 13 ranking_end_season: 8.0
+team: 9 ranking_end_season: 8.0
+team: 4 ranking_end_season: 7.0
+team: 2 ranking_end_season: 10.0
+******* level4
+team: 6 ranking_end_season: 20.0
+team: 12 ranking_end_season: 16.0
+team: 15 ranking_end_season: 20.0
+team: 14 ranking_end_season: 11.0
+--------------- season: 3 ----------------
+level1: [10, 0, 7, 5]
+level2: [3, 11, 8, 2]
+level3: [13, 9, 1, 15]
+team: 10 rating_start: 868.2133471311737
+team: 11 rating_start: 692.9506109190982
+team: 5 rating_start: 838.6574753227187
+team: 8 rating_start: 559.858065156872
+team: 13 rating_start: 300.91773078871057
+team: 7 rating_start: 669.7560165517638
+team: 0 rating_start: 760.1783802983261
+team: 3 rating_start: 301.39038906662046
+team: 1 rating_start: 225.52609736108207
+team: 14 rating_start: 190.25227157803621
+team: 4 rating_start: 266.6380456500146
+team: 15 rating_start: 205.2765780633661
+team: 2 rating_start: 331.8340492136111
+team: 6 rating_start: 226.2238672950311
+team: 9 rating_start: 322.1499510924553
+team: 12 rating_start: 260.01737041396143
+********** playing season: 3 *********
+******* level1
+team: 10 ranking_end_season: 13.0
+team: 0 ranking_end_season: 12.0
+team: 7 ranking_end_season: 0.0
+team: 5 ranking_end_season: 10.0
+******* level2
+team: 3 ranking_end_season: 4.0
+team: 11 ranking_end_season: 16.0
+team: 8 ranking_end_season: 6.0
+team: 2 ranking_end_season: 7.0
+******* level3
+team: 13 ranking_end_season: 3.0
+team: 9 ranking_end_season: 9.0
+team: 1 ranking_end_season: 7.0
+team: 15 ranking_end_season: 12.0
+******* level4
+team: 6 ranking_end_season: 13.0
+team: 12 ranking_end_season: 16.0
+team: 14 ranking_end_season: 24.0
+team: 4 ranking_end_season: 26.0
+--------------- season: 4 ----------------
+level1: [10, 0, 5, 11]
+level2: [8, 2, 7, 15]
+level3: [9, 1, 3, 4]
+team: 10 rating_start: 849.8416402248931
+team: 11 rating_start: 692.620698876588
+team: 5 rating_start: 840.7417144518873
+team: 8 rating_start: 484.5370115927369
+team: 13 rating_start: 304.2699606827241
+team: 7 rating_start: 679.3489210874063
+team: 0 rating_start: 762.5920080998179
+team: 3 rating_start: 284.8232617957847
+team: 1 rating_start: 157.29488723192873
+team: 14 rating_start: 158.28123019349616
+team: 4 rating_start: 260.5292968632124
+team: 15 rating_start: 156.14777111157142
+team: 2 rating_start: 346.7914823507698
+team: 6 rating_start: 211.8098081765828
+team: 9 rating_start: 298.45968538281653
+team: 12 rating_start: 244.0489322743733
+********** playing season: 4 *********
+******* level1
+team: 10 ranking_end_season: 10.0
+team: 0 ranking_end_season: 8.0
+team: 5 ranking_end_season: 16.0
+team: 11 ranking_end_season: 0.0
+******* level2
+team: 8 ranking_end_season: 9.0
+team: 2 ranking_end_season: 9.0
+team: 7 ranking_end_season: 15.0
+team: 15 ranking_end_season: 3.0
+******* level3
+team: 9 ranking_end_season: 8.0
+team: 1 ranking_end_season: 2.0
+team: 3 ranking_end_season: 13.0
+team: 4 ranking_end_season: 10.0
+******* level4
+team: 6 ranking_end_season: 17.0
+team: 12 ranking_end_season: 17.0
+team: 14 ranking_end_season: 16.0
+team: 13 ranking_end_season: 17.0
+Export network

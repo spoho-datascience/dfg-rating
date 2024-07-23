@@ -67,11 +67,12 @@ class LeagueRating(BaseRankingRating):
         edge_filter = edge_filter or base_edge_filter
         # home_games = list(league_network.data.in_edges(team, keys=True, data=True))
         # away_games = list(league_network.data.out_edges(team, keys=True, data=True))
-        if level=='level4':
-            season_games = [(u, v, key, data) for u, v, key, data in league_network.data.in_edges(team, keys=True, data=True) if data['season'] == season]
-        else:
-            season_games = [(u, v, key, data) for u, v, key, data in league_network.data.in_edges(team, keys=True, data=True) if data['season'] == season and 'state' not in data]
-        
+        # if level=='level4':
+        #     season_games = [(u, v, key, data) for u, v, key, data in league_network.data.in_edges(team, keys=True, data=True) if data['season'] == season]
+        # else:
+        #     season_games = [(u, v, key, data) for u, v, key, data in league_network.data.in_edges(team, keys=True, data=True) if data['season'] == season and 'state' not in data]
+        # only get in level edges
+        season_games = [(u, v, key, data) for u, v, key, data in league_network.data.edges(keys=True, data=True) if u in team and v in team and data['season'] == season]
 
         # n_rounds = len(get_rounds(season_games))
         n_rounds, round_value = league_network.get_rounds()

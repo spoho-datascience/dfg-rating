@@ -89,6 +89,8 @@ test_network = CountryLeague(
 #     seasons=5,
 # )
 
+# test_network.export()
+
 # display network explorer
 app = DFGWidgets.NetworkExplorer(
     network=test_network,

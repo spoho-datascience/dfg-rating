@@ -24,12 +24,7 @@ class CountryLeague(RoundRobinNetwork):
         kwargs['teams'] = self.n_teams
         kwargs['play'] = False
         
-        
 
-        # self.prob_within_level1 = kwargs.get('prob_within_level1', 0.7)
-        # self.prob_within_level2 = kwargs.get('prob_within_level2', 0.6)
-        # self.prob_within_level3 = kwargs.get('prob_within_level3', 0.5)
-        
         self.prob_level1_level2 = kwargs.get('prob_level1_level2', 0.4)
         self.prob_level1_level3 = kwargs.get('prob_level1_level3', 0.3)
         self.prob_level2_level3 = kwargs.get('prob_level2_level3', 0.2)
@@ -84,17 +79,36 @@ class CountryLeague(RoundRobinNetwork):
 
         super().__init__(**kwargs)
     
-    def select_teams(self, cluster_1, cluster_2, prob, season, select_n_teams=None, set_edge_state=False):
-        selected_teams_1 = random.sample(cluster_1, select_n_teams) if select_n_teams else cluster_1
-        selected_teams_2 = random.sample(cluster_2, select_n_teams) if select_n_teams else cluster_2
-
-        if set_edge_state:
-            for team1 in selected_teams_1:
-                for team2 in selected_teams_2:
-                    self.set_edge_state(team1, team2, prob, season)
-
+    # def select_teams(self, cluster_1, cluster_2, prob, season, select_n_teams=None, set_edge_state=False):
+    def select_teams(self, clusters, select_n_teams=None, season=0, selection_strategy='random'):
+        def select_from_cluster(cluster, n, strategy):
+            if strategy == 'random':
+                return random.sample(cluster, n) if n else cluster
+            elif strategy == 'top':
+                return sorted(cluster, key=lambda team: self.data.nodes[team].get('ratings', {}).get('ranking', {}).get(season, {})[-1], reverse=True)[:n]
+            elif strategy == 'bottom':
+                return sorted(cluster, key=lambda team: self.data.nodes[team].get('ratings', {}).get('ranking', {}).get(season, {})[-1])[:n]
+            else:
+                raise ValueError(f"Unknown selection strategy: {strategy}")
+        if isinstance(clusters[0], list):
+            selected_teams = [select_from_cluster(cluster, select_n_teams, selection_strategy) for cluster in clusters]
         else:
-            return selected_teams_1, selected_teams_2
+            selected_teams = select_from_cluster(clusters, select_n_teams, selection_strategy)
+        # selected_teams_1 = random.sample(cluster_1, select_n_teams) if select_n_teams else cluster_1
+        # selected_teams_2 = random.sample(cluster_2, select_n_teams) if select_n_teams else cluster_2
+
+        # if set_edge_state:
+        #     for i, cluster_1 in enumerate(selected_teams):
+        #         for cluster_2 in selected_teams[i+1:]:
+        #             for team1 in cluster_1:
+        #                 for team2 in cluster_2:
+        #                     self.set_edge_state(team1, team2, prob, season)
+            # for team1 in selected_teams_1:
+            #     for team2 in selected_teams_2:
+            #         self.set_edge_state(team1, team2, prob, season)
+
+        # else:
+        return selected_teams
     
     def initiate_3_levels(self, team_list, n_teams_level1, n_teams_level2, n_teams_level3):
         teams_level1 = random.sample(team_list, n_teams_level1)
@@ -143,7 +157,8 @@ class CountryLeague(RoundRobinNetwork):
         
         # get 3 level's team idx
         if season == 0:
-            self.teams_level1, self.teams_level2, self.teams_level3, self.teams_level4 = self.initiate_3_levels(teams_list, self.num_teams_level1, self.num_teams_level2, self.num_teams_level3)
+            self.teams_level1, self.teams_level2, self.teams_level3, self.teams_level4 = teams_list[:self.num_teams_level1], teams_list[self.num_teams_level1:self.num_teams_level1+self.num_teams_level2], teams_list[self.num_teams_level1+self.num_teams_level2:self.num_teams_level1+self.num_teams_level2+self.num_teams_level3], teams_list[self.num_teams_level1+self.num_teams_level2+self.num_teams_level3:]
+            # self.teams_level1, self.teams_level2, self.teams_level3, self.teams_level4 = self.initiate_3_levels(teams_list, self.num_teams_level1, self.num_teams_level2, self.num_teams_level3)
             self.teams_rating_level1 = self.teams_level1.copy()
             self.teams_rating_level2 = self.teams_level2.copy()
             self.teams_rating_level3 = self.teams_level3.copy()
@@ -154,19 +169,36 @@ class CountryLeague(RoundRobinNetwork):
         print('level3:',self.teams_level3)
 
 
+        clusters_probabilities = [
+            (self.teams_level1, self.teams_level2, self.prob_level1_level2),
+            (self.teams_level1, self.teams_level3, self.prob_level1_level3),
+            (self.teams_level2, self.teams_level3, self.prob_level2_level3),
+            (self.teams_level1, self.teams_level4, 0),
+            (self.teams_level2, self.teams_level4, 0),
+            (self.teams_level3, self.teams_level4, 0),
+            (self.teams_level4, self.teams_level4, 0)
+        ]
 
-        for i in [1,2,3]:
-            for j in [2,3]:
-                if i != j and i<j:
-                    cluster_1 = getattr(self, f'teams_level{i}')
-                    cluster_2 = getattr(self, f'teams_level{j}')
-                    prob = getattr(self, f'prob_level{i}_level{j}')
-                    self.select_teams(cluster_1, cluster_2, prob, season, set_edge_state=True)
-            cluster_1 = getattr(self, f'teams_level{i}')
-            cluster_2 = getattr(self, 'teams_level4')
-            self.select_teams(cluster_1, cluster_2, 0, season, set_edge_state=True)
+        for cluster1, cluster2, prob in clusters_probabilities:
+            # selected_teams = self.select_teams([cluster1, cluster2], season)
+            selected_teams = [cluster1, cluster2] # dont need select
+            for team1 in selected_teams[0]:
+                for team2 in selected_teams[1]:
+                    self.set_edge_state(team1, team2, prob, season)
         
-        self.select_teams(self.teams_level4, self.teams_level4, 0, season, set_edge_state=True)
+
+        # for i in [1,2,3]:
+        #     for j in [2,3]:
+        #         if i != j and i<j:
+        #             cluster_1 = getattr(self, f'teams_level{i}')
+        #             cluster_2 = getattr(self, f'teams_level{j}')
+        #             prob = getattr(self, f'prob_level{i}_level{j}')
+        #             self.select_teams(cluster_1, cluster_2, prob, season, set_edge_state=True)
+        #     cluster_1 = getattr(self, f'teams_level{i}')
+        #     cluster_2 = getattr(self, 'teams_level4')
+        #     self.select_teams(cluster_1, cluster_2, 0, season, set_edge_state=True)
+        
+        # self.select_teams(self.teams_level4, self.teams_level4, 0, season, set_edge_state=True)
 
     def create_data(self):
         for season in range(self.seasons):
@@ -207,20 +239,25 @@ class CountryLeague(RoundRobinNetwork):
 
             # get promoted and relegated teams based on ranking
             for level in ['level1','level2','level3','level4']:
-                season_round = self.n_rounds
-                teams_with_ranking = {}
-                # set_of_nodes = [node for node in self.data.nodes if node in list(self.teams_level1)]
-                for node in getattr(self, f'teams_{level}'):
-                    try:
-                        # I think should choose the last ranking of the season
-                        teams_with_ranking[node]=self.data.nodes[node].get('ratings', {}).get('ranking', {}).get(season, {})[-1]
-                    except KeyError as K:
-                        pass
-                sorted_teams = sorted(teams_with_ranking.items(), key=lambda item: item[1])
-                top_ranking = [key for key, value in sorted_teams[-self.promotion_number:]]
-                tail_ranking = [key for key, value in sorted_teams[:self.promotion_number]]
-                setattr(self, f'promoted_teams_{level}', top_ranking)
-                setattr(self, f'relegated_teams_{level}', tail_ranking)
+                promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
+                relegate = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='bottom')
+                setattr(self, f'promoted_teams_{level}', promote)
+                setattr(self, f'relegated_teams_{level}', relegate)
+
+                # season_round = self.n_rounds
+                # teams_with_ranking = {}
+                # # set_of_nodes = [node for node in self.data.nodes if node in list(self.teams_level1)]
+                # for node in getattr(self, f'teams_{level}'):
+                #     try:
+                #         # I think should choose the last ranking of the season
+                #         teams_with_ranking[node]=self.data.nodes[node].get('ratings', {}).get('ranking', {}).get(season, {})[-1]
+                #     except KeyError as K:
+                #         pass
+                # sorted_teams = sorted(teams_with_ranking.items(), key=lambda item: item[1])
+                # top_ranking = [key for key, value in sorted_teams[-self.promotion_number:]]
+                # tail_ranking = [key for key, value in sorted_teams[:self.promotion_number]]
+                # setattr(self, f'promoted_teams_{level}', top_ranking)
+                # setattr(self, f'relegated_teams_{level}', tail_ranking)
 
             for team in self.promoted_teams_level2:
                 self.teams_level1.append(team)
