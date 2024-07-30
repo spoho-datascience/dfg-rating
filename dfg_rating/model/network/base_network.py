@@ -463,6 +463,8 @@ class BaseNetwork(ABC):
                 "Round": edge_attributes.get('round', -1),
                 "Day": edge_attributes.get('day', -1),
                 "Result": edge_attributes.get('winner', 'none'),
+                "state": edge_attributes.get('state', 'active'),
+                'competition_type': edge_attributes.get('competition_type', 'League')
             }
             for f in printing_forecasts:
                 forecast_object: BaseForecast = edge_attributes.get('forecasts', {}).get(f, None)

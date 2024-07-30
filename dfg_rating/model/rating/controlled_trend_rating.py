@@ -84,15 +84,19 @@ class ControlledTrendRating(BaseRating):
 
         return ratings, self.props
     
-    def get_cluster_ratings(self, n: BaseNetwork, t: [TeamId], edge_filter=None, season=0):
+    def get_cluster_ratings(self, n: BaseNetwork, level=None, edge_filter=None, season=0):
         edge_filter = edge_filter or base_edge_filter
-        self.teams = t
+        if n.rating_mode == 'keep':
+            self.teams = getattr(n, f'teams_rating_{level}')
+        elif n.rating_mode == 'mix':
+            self.teams = getattr(n, f'teams_{level}')
+        t = self.teams
         home_games = [(u, v, key, data) for u, v, key, data in n.data.in_edges(t, keys=True, data=True) if data['season'] == season]
         away_games = [(u, v, key, data) for u, v, key, data in n.data.out_edges(t, keys=True, data=True) if data['season'] == season]
         n_rounds = len(get_rounds(home_games + away_games))
         ratings = np.zeros([len(t), n_rounds + 1])
         self.agg = {}
-        self.init_season_ratings(season, n, ratings)
+        self.init_season_cluster_ratings(season, n, ratings)
         for away_team, home_team, match_key, match_data in sorted(filter(edge_filter, home_games + away_games),
                                                                   key=lambda x: x[3]['day']):
             # if match_data.get('season', 0) != current_season:
@@ -105,6 +109,25 @@ class ControlledTrendRating(BaseRating):
                 i_away_team = indexOf(t, away_team)
                 ratings[i_away_team][match_data['round'] + 1] = ratings[i_away_team][match_data['round']] + self.new_rating_value(away_team, match_data)
         return ratings, self.props
+
+    def init_season_cluster_ratings(self, season, n, ratings):
+        init_position = 0
+        for team_i, team in enumerate(self.teams):
+            self.agg.setdefault(
+                team, {}
+            )['trend'] = self.trend.get()[0]
+            self.props.setdefault(
+                team, {}
+            ).setdefault(
+                'trends', []
+            ).append(self.agg[team]['trend'])
+            team_starting = self.init_cluster_ratings(team, season, n)
+            self.props.setdefault(
+                team, {}
+            ).setdefault(
+                'starting_points', []
+            ).append(team_starting)
+            ratings[team_i, init_position] = team_starting
 
     def init_season_ratings(self, season, n, ratings):
         init_position = 0
@@ -125,6 +148,36 @@ class ControlledTrendRating(BaseRating):
             ).append(team_starting)
             ratings[team_i, init_position] = team_starting
 
+    def init_cluster_ratings(self, team, current_season, n) -> float:
+        if current_season == 0:
+            """First season on the simulation, new starting point"""
+            starting_point = self.starting_point.get()[0]
+        else:
+            """First season in the ratings computation but not in the network. Reading previous season"""
+            rating_mode = n.rating_mode
+            if rating_mode == 'keep':
+                starting_point = n.data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(
+                        current_season - 1, self.starting_point.get()
+                    )[-1] + self.season_delta.get()[0]
+            elif rating_mode == 'mix':
+                last_season_level = n.teams_level[team][current_season - 1]
+                current_season_level = n.teams_level[team][current_season]
+                if last_season_level == current_season_level:
+                    starting_point = n.data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(
+                        current_season - 1, self.starting_point.get()
+                    )[-1] + self.season_delta.get()[0]
+                else:
+                    # keep mean rating in a level the same
+                    last_season_rating = n.data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(
+                        current_season - 1, self.starting_point.get()
+                    )[-1]
+                    default_rating = self.starting_point.get()
+                    mean_rating_last_level = n.get_mean_rating(self.rating_name, current_season - 1, last_season_level, default_rating)
+                    mean_rating_current_level = n.get_mean_rating(self.rating_name, current_season - 1, level=current_season_level, default_rating=default_rating)
+                    rating_diff = mean_rating_current_level - mean_rating_last_level
+                    # rating_diff = getattr(n, f'true_rating_{last_season_level}').rating_mean - getattr(n, f'true_rating_{current_season_level}').rating_mean
+                    starting_point = last_season_rating + rating_diff+ self.season_delta.get()[0]
+        return starting_point
     def init_ratings(self, team, current_season, n) -> float:
         if current_season == 0:
             # print("first season")

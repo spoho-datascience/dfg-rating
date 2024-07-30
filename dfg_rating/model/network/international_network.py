@@ -23,6 +23,7 @@ class CountryLeague(RoundRobinNetwork):
         self.n_playing = self.num_teams_level1 + self.num_teams_level2 + self.num_teams_level3
         kwargs['teams'] = self.n_teams
         kwargs['play'] = False
+        self.rating_mode = kwargs.get('rating_mode', 'keep')
         
 
         self.prob_level1_level2 = kwargs.get('prob_level1_level2', 0.4)
@@ -94,38 +95,21 @@ class CountryLeague(RoundRobinNetwork):
             selected_teams = [select_from_cluster(cluster, select_n_teams, selection_strategy) for cluster in clusters]
         else:
             selected_teams = select_from_cluster(clusters, select_n_teams, selection_strategy)
-        # selected_teams_1 = random.sample(cluster_1, select_n_teams) if select_n_teams else cluster_1
-        # selected_teams_2 = random.sample(cluster_2, select_n_teams) if select_n_teams else cluster_2
 
-        # if set_edge_state:
-        #     for i, cluster_1 in enumerate(selected_teams):
-        #         for cluster_2 in selected_teams[i+1:]:
-        #             for team1 in cluster_1:
-        #                 for team2 in cluster_2:
-        #                     self.set_edge_state(team1, team2, prob, season)
-            # for team1 in selected_teams_1:
-            #     for team2 in selected_teams_2:
-            #         self.set_edge_state(team1, team2, prob, season)
-
-        # else:
         return selected_teams
+
+    def get_promoted_teams(self, level, season):
+        return getattr(self, f'promoted_teams_{level}', [])
     
-    def initiate_3_levels(self, team_list, n_teams_level1, n_teams_level2, n_teams_level3):
-        teams_level1 = random.sample(team_list, n_teams_level1)
-        teams_list = [t for t in team_list if t not in teams_level1]
-        teams_level2 = random.sample(teams_list, n_teams_level2)
-        teams_list = [t for t in teams_list if t not in teams_level2]
-        teams_level3 = random.sample(teams_list, n_teams_level3)
-        teams_level4 = [t for t in teams_list if t not in teams_level3]
-        return teams_level1, teams_level2, teams_level3, teams_level4
-    
-    def set_edge_state(self, team1, team2, prob, season):
+    def set_edge_state(self, team1, team2, prob, season, type=''):
         def search_edge(team1, team2, season):
             return next(((u, v, key) for u, v, key, data in self.data.edges(keys=True, data=True) if data['season'] == season and u == team1 and v == team2), None)
 
         edges_team1_2 = search_edge(team1, team2, season)
         if edges_team1_2:
             u, v, key = edges_team1_2
+            self.data.edges[u, v, key]['competition_type'] = type
+            self.data.edges[v, u, key]['competition_type'] = type
             if not self.oneleg:
                 state = 'active' if random.random() < prob else 'inactive'
                 self.data.edges[u, v, key]['state'] = state
@@ -158,11 +142,14 @@ class CountryLeague(RoundRobinNetwork):
         # get 3 level's team idx
         if season == 0:
             self.teams_level1, self.teams_level2, self.teams_level3, self.teams_level4 = teams_list[:self.num_teams_level1], teams_list[self.num_teams_level1:self.num_teams_level1+self.num_teams_level2], teams_list[self.num_teams_level1+self.num_teams_level2:self.num_teams_level1+self.num_teams_level2+self.num_teams_level3], teams_list[self.num_teams_level1+self.num_teams_level2+self.num_teams_level3:]
-            # self.teams_level1, self.teams_level2, self.teams_level3, self.teams_level4 = self.initiate_3_levels(teams_list, self.num_teams_level1, self.num_teams_level2, self.num_teams_level3)
             self.teams_rating_level1 = self.teams_level1.copy()
             self.teams_rating_level2 = self.teams_level2.copy()
             self.teams_rating_level3 = self.teams_level3.copy()
             self.teams_rating_level4 = self.teams_level4.copy()
+            self.teams_level = {}
+            for team in self.team_labels:
+                self.teams_level[team] = {}
+                self.teams_level[team][season] = 'level1' if team in self.teams_level1 else 'level2' if team in self.teams_level2 else 'level3' if team in self.teams_level3 else 'level4'
 
         print('level1:',self.teams_level1)
         print('level2:',self.teams_level2)
@@ -170,35 +157,50 @@ class CountryLeague(RoundRobinNetwork):
 
 
         clusters_probabilities = [
-            (self.teams_level1, self.teams_level2, self.prob_level1_level2),
-            (self.teams_level1, self.teams_level3, self.prob_level1_level3),
-            (self.teams_level2, self.teams_level3, self.prob_level2_level3),
-            (self.teams_level1, self.teams_level4, 0),
-            (self.teams_level2, self.teams_level4, 0),
-            (self.teams_level3, self.teams_level4, 0),
-            (self.teams_level4, self.teams_level4, 0)
+            (self.teams_level1, self.teams_level2, self.prob_level1_level2, 'National'),
+            (self.teams_level1, self.teams_level3, self.prob_level1_level3, 'National'),
+            (self.teams_level2, self.teams_level3, self.prob_level2_level3, 'National'),
+            (self.teams_level1, self.teams_level4, 0, 'National'),
+            (self.teams_level2, self.teams_level4, 0, 'National'),
+            (self.teams_level3, self.teams_level4, 0, 'National'),
+            (self.teams_level4, self.teams_level4, 0, 'League')
         ]
 
-        for cluster1, cluster2, prob in clusters_probabilities:
+        for cluster1, cluster2, prob, type in clusters_probabilities:
             # selected_teams = self.select_teams([cluster1, cluster2], season)
             selected_teams = [cluster1, cluster2] # dont need select
             for team1 in selected_teams[0]:
                 for team2 in selected_teams[1]:
-                    self.set_edge_state(team1, team2, prob, season)
-        
+                    self.set_edge_state(team1, team2, prob, season, type)
+    
 
-        # for i in [1,2,3]:
-        #     for j in [2,3]:
-        #         if i != j and i<j:
-        #             cluster_1 = getattr(self, f'teams_level{i}')
-        #             cluster_2 = getattr(self, f'teams_level{j}')
-        #             prob = getattr(self, f'prob_level{i}_level{j}')
-        #             self.select_teams(cluster_1, cluster_2, prob, season, set_edge_state=True)
-        #     cluster_1 = getattr(self, f'teams_level{i}')
-        #     cluster_2 = getattr(self, 'teams_level4')
-        #     self.select_teams(cluster_1, cluster_2, 0, season, set_edge_state=True)
+    def add_rating(self, rating_name='true_rating', mode='keep', season=0):
+        def edge_filter(e):
+            return e[3]['season'] == season
+        """
+        for each level, add rating to each team
         
-        # self.select_teams(self.teams_level4, self.teams_level4, 0, season, set_edge_state=True)
+        mode: 'keep', 'inherit' or 'mix'
+        - keep mode will keep the rating of the team when team get promoted or relegated
+        - inherit mode will let promoted / relegated team inherit the rating of the team in the new level
+        - mix mode will mix the rating of the team in the old level with the mean and variance of the new level
+
+        """
+        for level in ['level1', 'level2', 'level3', 'level4']:
+            if rating_name=='true_rating':
+                rating_values, rating_hp = getattr(self, f'true_rating_{level}').get_cluster_ratings(
+                    self, level, edge_filter, season
+                )
+                if mode == 'keep':
+                    for team in getattr(self, f'teams_rating_{level}'):
+                        index_of_team = getattr(self,f'teams_rating_{level}').index(team)
+                        self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, rating_name, season=season)
+                        print('team:',team, 'rating_start:',rating_values[index_of_team][0])
+                elif mode == 'mix':
+                    for team in getattr(self, f'teams_{level}'):
+                        index_of_team = getattr(self,f'teams_{level}').index(team)
+                        self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, rating_name, season=season)
+                        print('team:',team, 'rating_start:',rating_values[index_of_team][0])
 
     def create_data(self):
         for season in range(self.seasons):
@@ -207,79 +209,92 @@ class CountryLeague(RoundRobinNetwork):
             
             # fill the country graph
             self.fill_graph(season=season)
-
-            # add each level's rating
-            for level in ['level1','level2','level3', 'level4']:
-                def edge_filter(e):
-                    return e[3]['season'] == season
-                rating_values, rating_hp = getattr(self, f'true_rating_{level}').get_cluster_ratings(
-                self, getattr(self, f'teams_rating_{level}'), edge_filter, season
-                )
-                for team in getattr(self, f'teams_rating_{level}'):
-                    index_of_team = getattr(self,f'teams_rating_{level}').index(team)
-                    self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, 'true_rating', season=season) # only one by one
-                    print('team:',team, 'rating_start:',rating_values[index_of_team][0])
+            
+            self.add_rating(rating_name='true_rating', mode=self.rating_mode, season=season)
+            levels = ['level1', 'level2', 'level3', 'level4']
+            # # add each level's rating
+            # for level in levels:
+            #     def edge_filter(e):
+            #         return e[3]['season'] == season
+            #     rating_values, rating_hp = getattr(self, f'true_rating_{level}').get_cluster_ratings(
+            #     self, getattr(self, f'teams_rating_{level}'), edge_filter, season
+            #     )
+            #     for team in getattr(self, f'teams_rating_{level}'):
+            #         index_of_team = getattr(self,f'teams_rating_{level}').index(team)
+            #         self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, 'true_rating', season=season) # only one by one
+            #         print('team:',team, 'rating_start:',rating_values[index_of_team][0])
             
             
             # add forecast to all games
             super().add_forecast(self.true_forecast, 'true_forecast', season=season)
+            
             # play this season
             season_games = list(filter(lambda match: match[3].get('season', -1) == season, self.iterate_over_games()))
             self.play_sub_network(season_games)
             print('********** playing season:', season, '*********')
+            
             # based on the reslut of game, give ranking
-            for level in ['level1','level2','level3', 'level4']:
+            for level in levels:
                 print('*******', level)
                 ratings, rating_hp = self.ranking_rating.get_cluster_ratings(self, getattr(self, f'teams_{level}'), season=season, level=level)
                 for team in getattr(self, f'teams_{level}'):
                     index_of_team = getattr(self,f'teams_{level}').index(team)
                     self._add_rating_to_team(team, ratings[index_of_team], rating_hp, 'ranking', season=season)
                     print('team:',team, 'ranking_end_season:',ratings[index_of_team][-1])
-                # self.add_rating(self.ranking_rating, 'ranking', getattr(self, f'teams_{level}'), season=season)
-
+            promoted_teams = []
+            relegated_teams = []
             # get promoted and relegated teams based on ranking
-            for level in ['level1','level2','level3','level4']:
+            for level in levels:
                 promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
                 relegate = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='bottom')
+                promoted_teams.extend(promote)
+                relegated_teams.extend(relegate)
                 setattr(self, f'promoted_teams_{level}', promote)
                 setattr(self, f'relegated_teams_{level}', relegate)
 
-                # season_round = self.n_rounds
-                # teams_with_ranking = {}
-                # # set_of_nodes = [node for node in self.data.nodes if node in list(self.teams_level1)]
-                # for node in getattr(self, f'teams_{level}'):
-                #     try:
-                #         # I think should choose the last ranking of the season
-                #         teams_with_ranking[node]=self.data.nodes[node].get('ratings', {}).get('ranking', {}).get(season, {})[-1]
-                #     except KeyError as K:
-                #         pass
-                # sorted_teams = sorted(teams_with_ranking.items(), key=lambda item: item[1])
-                # top_ranking = [key for key, value in sorted_teams[-self.promotion_number:]]
-                # tail_ranking = [key for key, value in sorted_teams[:self.promotion_number]]
-                # setattr(self, f'promoted_teams_{level}', top_ranking)
-                # setattr(self, f'relegated_teams_{level}', tail_ranking)
+            for team in promoted_teams:
+                current_level = self.teams_level[team][season]
+                next_level = f'level{int(current_level[-1]) - 1}' if current_level != 'level1' else 'level1'
+                self.teams_level[team][season + 1] = next_level
 
-            for team in self.promoted_teams_level2:
-                self.teams_level1.append(team)
-                self.teams_level2.remove(team)
-            for team in self.relegated_teams_level1:
-                self.teams_level1.remove(team)
-                self.teams_level2.append(team)
-            for team in self.promoted_teams_level3:
-                self.teams_level2.append(team)
-                self.teams_level3.remove(team)
-            for team in self.relegated_teams_level2:
-                self.teams_level2.remove(team)
-                self.teams_level3.append(team)
-            for team in self.relegated_teams_level3:
-                self.teams_level3.remove(team)
-                self.teams_level4.append(team)
-            for team in self.promoted_teams_level4:
-                self.teams_level3.append(team)
-                self.teams_level4.remove(team)
+            for team in relegated_teams:
+                current_level = self.teams_level[team][season]
+                next_level = f'level{int(current_level[-1]) + 1}' if current_level != 'level4' else 'level4'
+                self.teams_level[team][season + 1] = next_level
+            for team, seasons in self.teams_level.items():
+                if season + 1 not in seasons:
+                    seasons[season + 1] = seasons[season]
+            for level in levels:
+                setattr(self, f'teams_{level}', [team for team in self.teams_level.keys() if self.teams_level[team][season + 1] == level])
+
+            # for team in self.promoted_teams_level2:
+            #     self.teams_level1.append(team)
+            #     self.teams_level2.remove(team)
+            # for team in self.relegated_teams_level1:
+            #     self.teams_level1.remove(team)
+            #     self.teams_level2.append(team)
+            # for team in self.promoted_teams_level3:
+            #     self.teams_level2.append(team)
+            #     self.teams_level3.remove(team)
+            # for team in self.relegated_teams_level2:
+            #     self.teams_level2.remove(team)
+            #     self.teams_level3.append(team)
+            # for team in self.relegated_teams_level3:
+            #     self.teams_level3.remove(team)
+            #     self.teams_level4.append(team)
+            # for team in self.promoted_teams_level4:
+            #     self.teams_level3.append(team)
+            #     self.teams_level4.remove(team)
         
         return True
 
+    def get_mean_rating(self, rating_name, season, level, default_rating):
+        ratings_list = []
+        team_ids = [team_id for team_id, seasons in self.teams_level.items() if season in seasons.keys() and seasons[season]== level]
+        for t in team_ids:
+            last_season_rating = self.data.nodes[t].get('ratings', {}).get(rating_name, {}).get(season, 0)[-1]
+            ratings_list.append(last_season_rating)
+        return default_rating[0] if len(ratings_list) == 0 else np.mean(ratings_list)
 
 class InternationalCompetition_Combine:
     def __init__(self, **kwargs):
