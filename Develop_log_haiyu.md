@@ -58,3 +58,16 @@ International league is gonna based on countryLeague network
 ### 2024.07.18
 Will change code to function def later
 fixed ranking for each team, only get rank score within their division matches
+rating follow with teams promotion and relegation
+
+### 2024.07.24
+change code to function: select_teams(), set_edge_state(), initiate_levels()
+simplify logic to initiate different levels
+
+### 2024.07.25
+Based on the talk with Fabian, add a relegation for 3rd division league
+
+### 2024.07.30
+added add_rating function, modify init_cluster_ratings()
+add two modes in add_rating(), can choose team keep it's rating when promoted/relegated, or use 'mix' mode, that will calculate the mean rating_diff at the end of last season, and add this diff into the promoted/relegated team
+simple promotion and relegation logic
