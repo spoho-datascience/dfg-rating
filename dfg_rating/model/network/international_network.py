@@ -20,7 +20,7 @@ class CountryLeague(RoundRobinNetwork):
         self.num_teams_level3 = kwargs.get('level3_teams', 12)
         self.promotion_number = kwargs.get('promotion_number', 2)
         self.n_teams = kwargs.get('teams', 0)
-        self.n_playing = self.num_teams_level1 + self.num_teams_level2 + self.num_teams_level3
+        # self.n_playing = self.num_teams_level1 + self.num_teams_level2 + self.num_teams_level3
         kwargs['teams'] = self.n_teams
         kwargs['play'] = False
         self.rating_mode = kwargs.get('rating_mode', 'keep')
@@ -91,7 +91,9 @@ class CountryLeague(RoundRobinNetwork):
                 return sorted(cluster, key=lambda team: self.data.nodes[team].get('ratings', {}).get('ranking', {}).get(season, {})[-1])[:n]
             else:
                 raise ValueError(f"Unknown selection strategy: {strategy}")
-        if isinstance(clusters[0], list):
+        if clusters == []:
+            return []
+        elif isinstance(clusters[0], list):
             selected_teams = [select_from_cluster(cluster, select_n_teams, selection_strategy) for cluster in clusters]
         else:
             selected_teams = select_from_cluster(clusters, select_n_teams, selection_strategy)
@@ -245,8 +247,13 @@ class CountryLeague(RoundRobinNetwork):
             relegated_teams = []
             # get promoted and relegated teams based on ranking
             for level in levels:
-                promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
-                relegate = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='bottom')
+                if self.promotion_number <= len(getattr(self, f'teams_{level}'))/2:
+                    promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
+                    relegate = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='bottom')
+                else:
+                    promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
+                    remaining_teams = [team for team in getattr(self, f'teams_{level}') if team not in promote]
+                    relegate = self.select_teams(remaining_teams, self.promotion_number, season=season, selection_strategy='bottom')
                 promoted_teams.extend(promote)
                 relegated_teams.extend(relegate)
                 setattr(self, f'promoted_teams_{level}', promote)
@@ -259,7 +266,10 @@ class CountryLeague(RoundRobinNetwork):
 
             for team in relegated_teams:
                 current_level = self.teams_level[team][season]
-                next_level = f'level{int(current_level[-1]) + 1}' if current_level != 'level4' else 'level4'
+                if self.teams_level4 != []:
+                    next_level = f'level{int(current_level[-1]) + 1}' if current_level != 'level4' else 'level4'
+                else:
+                    next_level = f'level{int(current_level[-1]) + 1}' if current_level != 'level3' else 'level3'
                 self.teams_level[team][season + 1] = next_level
             for team, seasons in self.teams_level.items():
                 if season + 1 not in seasons:
@@ -302,21 +312,25 @@ class InternationalCompetition_Combine:
         InternationalCompetition class
         """
         self.countries_configs = kwargs.get('countries_configs', {})
-        self.international_prob = kwargs.get('international_prob', 0.1)
-        self.oneleg = kwargs.get('oneleg', True)
+        self.international_prob = kwargs.get('match_prob', 0.1)
+        self.oneleg = kwargs.get('oneleg', False)
         self.teams_per_country = kwargs.get('teams_per_country', 3)
         self.countries_leagues = {}
+        self.seasons = kwargs.get('seasons', 1)
         
         self.team_id_map = {}  # map from original team id to new unique team id
         self.selected_teams_list = []
         self.team_level_map = {}
+        
         # generate all countries data
         self.total_teams = 0
         for country_idx, country_config in self.countries_configs.items():
+            print('country:', country_idx)
+            country_config['seasons'] = self.seasons
             country_league = CountryLeague(**country_config)
             # self.data = nx.compose(self.data, country_league.data)
             self.countries_leagues[country_idx] = country_league
-            self.team_level_map[country_idx] = {'level1': country_league.teams_level1, 'level2': country_league.teams_level2, 'level3': country_league.teams_level3}
+            # self.team_level_map[country_idx] = {'level1': country_league.teams_level1, 'level2': country_league.teams_level2, 'level3': country_league.teams_level3}
             
             self.total_teams+=country_config.get('teams', 0)
         
@@ -335,41 +349,69 @@ class InternationalCompetition_Combine:
             merged_graph = nx.compose(merged_graph, relabeled_graph)
         self.data = merged_graph
 
-        # update level information and random select teams
-        for country_idx, levels in self.team_level_map.items():
-            for level, teams in levels.items():
-                self.team_level_map[country_idx][level] = [country_node_mapping[country_idx][t] for t in teams]
-                if level == 'level1':
-                    self.selected_teams_list.append(random.sample(self.team_level_map[country_idx][level], self.teams_per_country))
-        
-        # edges between countries
-        for u in self.selected_teams_list:
-            for v in self.selected_teams_list:
-                if u != v and not from_same_country(u,v):
-                    self.data.add_edge(u, v, round=0, state='active' if random.random() < self.international_prob else 'inactive')
-                    if not self.oneleg:
-                        self.data.add_edge(v, u, round=0, state='active' if random.random() < self.international_prob else 'inactive')
-            
-        def from_same_country(u,v):
-            for country_idx, teams in self.team_level_map.items():
-                if u in teams['level1'] and v in teams['level1']:
-                    return True
-            return False
 
-    def select_from_1level(self, country_index, n):
-        country = self.countries[country_index]
-        return random.sample(country.teams_level1, n)
-    
-    def generate_country_leagues(self):
-        pass
-    def merge_country_leagues(self):
-        pass
-    def generate_international_matches(self):
-        pass
-    def fill_graph(self, team_labels=None, season=0):
-        self.generate_country_leagues()
-        self.merge_country_leagues()
-        self.generate_international_matches()
+        # add edges at end of each season
+        for season in range(self.seasons):
+            # choose each country's teams
+            international_teams_list = []
+            for country_idx, country_league in self.countries_leagues.items():
+                clusters = [team for team,seasons in country_league.teams_level.items() if seasons[season] == 'level1']
+                selected_teams = country_league.select_teams(clusters, self.teams_per_country, season, 'random')
+                for t in selected_teams:
+                    international_teams_list.append(country_node_mapping[t])
+            ###### fill graph
+            number_of_teams = len(international_teams_list)
+            n_games_per_round = int(math.ceil(number_of_teams / 2))
+            number_of_rounds = number_of_teams - 1 + number_of_teams % 2
+            teams_list = international_teams_list
+            team_labels = {i:i for i in international_teams_list}
+
+            graph = self.data
+
+            if number_of_teams % 2 != 0:
+                teams_list.append(-1)
+            slice_a = teams_list[0:n_games_per_round]
+            slice_b = teams_list[n_games_per_round:]
+            fixed = teams_list[0]
+            day = 1
+            for season_round in range(0, number_of_rounds):
+                for game in range(0, n_games_per_round):
+                    if (slice_a[game] != -1) and (slice_b[game] != -1):
+                        if season_round % 2 == 0:
+                            graph.add_edge(
+                                team_labels.get(slice_a[game], slice_a[game]),
+                                team_labels.get(slice_b[game], slice_b[game]),
+                                season=season, round=season_round, day=day
+                            )
+                            graph.add_edge(
+                                team_labels.get(slice_b[game], slice_b[game]),
+                                team_labels.get(slice_a[game], slice_a[game]),
+                                season=season, round=season_round + number_of_rounds,
+                                day=day + (number_of_rounds * self.days_between_rounds)
+                            )
+                        else:
+                            graph.add_edge(
+                                team_labels.get(slice_b[game], slice_b[game]),
+                                team_labels.get(slice_a[game], slice_a[game]),
+                                season=season, round=season_round, day=day
+                            )
+                            graph.add_edge(
+                                team_labels.get(slice_a[game], slice_a[game]),
+                                team_labels.get(slice_b[game], slice_b[game]),
+                                season=season, round=season_round + number_of_rounds,
+                                day=day + (number_of_rounds * self.days_between_rounds)
+                            )
+
+                day += self.days_between_rounds
+                rotate = slice_a[-1]
+                slice_a = [fixed, slice_b[0]] + slice_a[1:-1]
+                slice_b = slice_b[1:] + [rotate]
+        
+        ### add_rating
+
+
+
+
 
 class InternationalCompetition(RoundRobinNetwork):
     def __init__(self, **kwargs):

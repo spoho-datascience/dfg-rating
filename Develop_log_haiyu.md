@@ -71,3 +71,8 @@ Based on the talk with Fabian, add a relegation for 3rd division league
 added add_rating function, modify init_cluster_ratings()
 add two modes in add_rating(), can choose team keep it's rating when promoted/relegated, or use 'mix' mode, that will calculate the mean rating_diff at the end of last season, and add this diff into the promoted/relegated team
 simple promotion and relegation logic
+
+
+### 2024.07.31
+tested international graph generate and graph combine
+* can extend the round in national league to have rating of each team during the international competition

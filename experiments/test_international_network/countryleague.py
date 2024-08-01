@@ -1,4 +1,4 @@
-from dfg_rating.model.network.international_network import CountryLeague, InternationalCompetition
+from dfg_rating.model.network.international_network import CountryLeague, InternationalCompetition_Combine
 from dfg_rating.model.rating.controlled_trend_rating import ControlledRandomFunction, ControlledTrendRating
 from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
 import dfg_rating.viz.jupyter_widgets as DFGWidgets
@@ -33,58 +33,56 @@ forecast_test = LogFunctionForecast(
     beta_parameter=0.006
 )
 
-test_network = CountryLeague(
-    teams=20,
-    level1_teams=5,
-    level2_teams=5,
-    level3_teams=5,
-    promotion_number=2,
-    prob_level1_level2=0.10,
-    prob_level1_level3=0.05,
-    prob_level2_level3=0.00,
-    true_rating_level1=rating_level1,
-    true_rating_level2=rating_level2,
-    true_rating_level3=rating_level3,
-    true_forecast=forecast_test,
-    seasons=5,
-    rating_mode='mix'
-)
-
-
-# countries_config = {
-#     0:{
-#         'level1_teams': 4,
-#         'level2_teams': 4,
-#         'level3_teams': 2,
-#         'promotion_number': 1,
-#         'prob_within_level1': 1.0,
-#         'prob_within_level2': 1.0,
-#         'prob_within_level3': 1.0,
-#         'prob_level1_level2': 0.05,
-#         'prob_level1_level3': 0.05,
-#         'prob_level2_level3': 0.05,
-#         'oneleg': True,
-#     },
-#     1:{
-#         'level1_teams': 3,
-#         'level2_teams': 3,
-#         'level3_teams': 0,
-#         'prob_within_level1': 1.0,
-#         'prob_within_level2': 1.0,
-#         'prob_within_level3': 1.0,
-#         'prob_level1_level2': 0.00,
-#         'prob_level1_level3': 0.00,
-#         'prob_level2_level3': 0.00,
-#         'oneleg': True,
-#     }
-# }
-
-# test_network = InternationalCompetition(
-#     countries_configs=countries_config,
-#     teams_per_country=3,
-#     match_prob=0.5,
+# test_network = CountryLeague(
+#     teams=20,
+#     level1_teams=5,
+#     level2_teams=5,
+#     level3_teams=5,
+#     promotion_number=2,
+#     prob_level1_level2=0.10,
+#     prob_level1_level3=0.05,
+#     prob_level2_level3=0.00,
+#     true_rating_level1=rating_level1,
+#     true_rating_level2=rating_level2,
+#     true_rating_level3=rating_level3,
+#     true_forecast=forecast_test,
 #     seasons=5,
+#     rating_mode='mix'
 # )
+
+
+countries_config = {
+    0:{
+        'teams':10,
+        'level1_teams': 3,
+        'level2_teams': 3,
+        'level3_teams': 3,
+        'promotion_number': 1,
+        'prob_level1_level2': 0.05,
+        'prob_level1_level3': 0.05,
+        'prob_level2_level3': 0.05,
+        'rating_mode': 'mix',
+    },
+    1:{
+        'teams':8,
+        'level1_teams': 3,
+        'level2_teams': 3,
+        'level3_teams': 2,
+        'promotion_number': 1,
+        'prob_level1_level2': 0.00,
+        'prob_level1_level3': 0.00,
+        'prob_level2_level3': 0.00,
+        'rating_mode': 'keep',
+    }
+}
+
+test_network = InternationalCompetition_Combine(
+    countries_configs=countries_config,
+    teams_per_country=2,
+    match_prob=0.5,
+    seasons=2,
+    oneleg=False,
+)
 
 # test_network.export(ratings=['true_rating','ranking'],filename='test_countryLeague_network.csv')
 
