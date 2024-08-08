@@ -80,11 +80,10 @@ test_network = InternationalCompetition_Combine(
     countries_configs=countries_config,
     teams_per_country=2,
     match_prob=0.5,
-    seasons=2,
-    oneleg=False,
+    seasons=3,
 )
 
-# test_network.export(ratings=['true_rating','ranking'],filename='test_countryLeague_network.csv')
+test_network.export(ratings=['true_rating','ranking'],filename='test_InternationalLeague_network.csv')
 
 # # display network explorer
 # app = DFGWidgets.NetworkExplorer(

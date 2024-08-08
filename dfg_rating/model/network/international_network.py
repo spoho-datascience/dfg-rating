@@ -1,3 +1,5 @@
+import numpy as np
+import pandas as pd
 import random
 import networkx as nx
 import numpy as np
@@ -10,6 +12,9 @@ from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
 from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
 from dfg_rating.model.rating.base_rating import BaseRating
 from dfg_rating.model.rating.ranking_rating import LeagueRating
+from dfg_rating.model.forecast.base_forecast import BaseForecast
+from copy import deepcopy
+
 
 
 class CountryLeague(RoundRobinNetwork):
@@ -159,6 +164,9 @@ class CountryLeague(RoundRobinNetwork):
 
 
         clusters_probabilities = [
+            (self.teams_level1, self.teams_level1, 1, 'League'),
+            (self.teams_level2, self.teams_level2, 1, 'League'),
+            (self.teams_level3, self.teams_level3, 1, 'League'),
             (self.teams_level1, self.teams_level2, self.prob_level1_level2, 'National'),
             (self.teams_level1, self.teams_level3, self.prob_level1_level3, 'National'),
             (self.teams_level2, self.teams_level3, self.prob_level2_level3, 'National'),
@@ -321,7 +329,14 @@ class InternationalCompetition_Combine:
         self.team_id_map = {}  # map from original team id to new unique team id
         self.selected_teams_list = []
         self.team_level_map = {}
-        
+        self.true_forecast = kwargs.get(
+            'true_forecast',
+            LogFunctionForecast(
+                outcomes=['home', 'draw', 'away'],
+                coefficients=[-0.9, 0.3],
+                beta_parameter=0.006
+            )
+        )
         # generate all countries data
         self.total_teams = 0
         for country_idx, country_config in self.countries_configs.items():
@@ -349,22 +364,30 @@ class InternationalCompetition_Combine:
             merged_graph = nx.compose(merged_graph, relabeled_graph)
         self.data = merged_graph
 
-
-        # add edges at end of each season
+        self.international_teams_list = {}
+        
+        # add international competition at next of each season
         for season in range(self.seasons):
+            print('international competitinon after season: ', season)
+            
             # choose each country's teams
-            international_teams_list = []
+            self.international_teams_list[season] = []
             for country_idx, country_league in self.countries_leagues.items():
                 clusters = [team for team,seasons in country_league.teams_level.items() if seasons[season] == 'level1']
                 selected_teams = country_league.select_teams(clusters, self.teams_per_country, season, 'random')
                 for t in selected_teams:
-                    international_teams_list.append(country_node_mapping[t])
-            ###### fill graph
-            number_of_teams = len(international_teams_list)
+                    self.international_teams_list[season].append(country_node_mapping[country_idx][t])
+                print(f'teams from country {country_idx}: {selected_teams} \t mapping: {country_node_mapping[country_idx]}')
+            
+            ###### add edges between selected teams
+            if season == 0:
+                continue
+            teams_list = self.international_teams_list[season-1]
+            number_of_teams = len(teams_list)
             n_games_per_round = int(math.ceil(number_of_teams / 2))
             number_of_rounds = number_of_teams - 1 + number_of_teams % 2
-            teams_list = international_teams_list
-            team_labels = {i:i for i in international_teams_list}
+            
+            team_labels = {i:i for i in teams_list}
 
             graph = self.data
 
@@ -374,6 +397,7 @@ class InternationalCompetition_Combine:
             slice_b = teams_list[n_games_per_round:]
             fixed = teams_list[0]
             day = 1
+            self.days_between_rounds = 1
             for season_round in range(0, number_of_rounds):
                 for game in range(0, n_games_per_round):
                     if (slice_a[game] != -1) and (slice_b[game] != -1):
@@ -381,36 +405,175 @@ class InternationalCompetition_Combine:
                             graph.add_edge(
                                 team_labels.get(slice_a[game], slice_a[game]),
                                 team_labels.get(slice_b[game], slice_b[game]),
-                                season=season, round=season_round, day=day
+                                season=season, round=season_round, day=day, competition_type='international'
                             )
                             graph.add_edge(
                                 team_labels.get(slice_b[game], slice_b[game]),
                                 team_labels.get(slice_a[game], slice_a[game]),
                                 season=season, round=season_round + number_of_rounds,
-                                day=day + (number_of_rounds * self.days_between_rounds)
+                                day=day + (number_of_rounds * self.days_between_rounds),
+                                competition_type='international'
                             )
                         else:
                             graph.add_edge(
                                 team_labels.get(slice_b[game], slice_b[game]),
                                 team_labels.get(slice_a[game], slice_a[game]),
-                                season=season, round=season_round, day=day
+                                season=season, round=season_round, day=day, competition_type='international'
                             )
                             graph.add_edge(
                                 team_labels.get(slice_a[game], slice_a[game]),
                                 team_labels.get(slice_b[game], slice_b[game]),
                                 season=season, round=season_round + number_of_rounds,
-                                day=day + (number_of_rounds * self.days_between_rounds)
+                                day=day + (number_of_rounds * self.days_between_rounds), 
+                                competition_type='international'
                             )
 
                 day += self.days_between_rounds
                 rotate = slice_a[-1]
                 slice_a = [fixed, slice_b[0]] + slice_a[1:-1]
                 slice_b = slice_b[1:] + [rotate]
+
+            for t1 in teams_list:
+                for t2 in teams_list:
+                    if t1 != t2:
+                        edges_team1_2 = [(u, v, key) for u, v, key, data in self.data.edges(keys=True, data=True) if data['season'] == season and ((u == t1 and v == t2) or (u==t2 and v==t1)) and data.get('competition_type','')=='international']
+                        if edges_team1_2 and not self.oneleg:
+                            if random.random() < self.international_prob:
+                                for match in edges_team1_2:
+                                    u, v, key = match
+                                    self.data.edges[u, v, key]['state'] = 'active'
+                                    self.data.edges[v, u, key]['state'] = 'active'
+                            else:
+                                for match in edges_team1_2:
+                                    u, v, key = match
+                                    self.data.edges[u, v, key]['state'] = 'inactive'
+                                    self.data.edges[v, u, key]['state'] = 'inactive'
+            
+            print(f'play International Competition Season {season-1}')
+
+            def find_team_id_in_country(country_node_mapping, team_id):
+                for country_id, teams in country_node_mapping.items():
+                    for original_id, mapped_id in teams.items():
+                        if mapped_id == team_id:
+                            return country_id, original_id
+                return None, None
+            # add forecast
+            international_match_list = [(u,v,k) for u,v,k,data in self.data.edges(keys=True, data=True) if data['season'] == season and data.get('competition_type','')=='international']
+            for match in international_match_list:
+                round_pointer = self.data.edges[match].get('round', 0)
+                home_team_country, home_team_origin = find_team_id_in_country(country_node_mapping, match[0])
+                away_team_country, away_team_origin = find_team_id_in_country(country_node_mapping, match[1])
+                home_rating = self.countries_leagues[home_team_country].data.nodes[home_team_origin].get('ratings', {}).get('true_rating', {}).get(season, 0)[round_pointer+1]
+                away_rating = self.countries_leagues[away_team_country].data.nodes[away_team_origin].get('ratings', {}).get('true_rating', {}).get(season, 0)[round_pointer+1]
+                forecast_object = deepcopy(self.true_forecast)
+                diff = forecast_object.home_error.apply(home_rating) - forecast_object.away_error.apply(away_rating)
+                for i in range(len(forecast_object.outcomes)):
+                    n = len(forecast_object.outcomes)
+                    j = i+1
+                    forecast_object.probabilities[i]=forecast_object.logit_link_function(n-j+1,diff)-forecast_object.logit_link_function(n-j,diff)
+                forecast_object.computed = True
+                self.data.edges[match].setdefault('forecasts', {})['true_forecast'] = forecast_object
+
+            # play international games
+            international_games = [(u,v,k,data) for u,v,k,data in self.data.edges(keys=True, data=True) if data['season'] == season and data.get('competition_type','')=='international']
+            international_games_sorted = sorted(international_games, key=lambda x: x[3]['day'])
+            for away_team, home_team, edge_key, edge_attributes in international_games_sorted:
+                f = abs(edge_attributes['forecasts']['true_forecast'].probabilities)
+                weights = f.cumsum()
+                x = np.random.default_rng().uniform(0, 1)
+                for i in range(len(weights)):
+                    if x < weights[i]:
+                        winner = self.true_forecast.outcomes[i]
+                        self.data.edges[away_team, home_team, edge_key]['winner'] = winner
+                        break
+    
+    def export(self, **kwargs):
+        print("Export network")
+        network_flat = []
+        printing_forecasts = kwargs.get("forecasts", ['true_forecast'])
+        printing_ratings = kwargs.get("ratings", ['true_rating'])
+        printing_odds = kwargs.get("odds", [])
+        printing_bets = kwargs.get("bets", [])
+        printing_metrics = kwargs.get("metrics", [])
+        for away_team, home_team, edge_key, edge_attributes in self.data.edges(keys=True, data=True):
+            match_dict = {
+                "Home": home_team,
+                "Away": away_team,
+                "Season": edge_attributes.get('season', 0),
+                "Round": edge_attributes.get('round', -1),
+                "Day": edge_attributes.get('day', -1),
+                "Result": edge_attributes.get('winner', 'none'),
+                "state": edge_attributes.get('state', 'active'),
+                'competition_type': edge_attributes.get('competition_type', 'League')
+            }
+            for f in printing_forecasts:
+                forecast_object: BaseForecast = edge_attributes.get('forecasts', {}).get(f, None)
+                if forecast_object is not None:
+                    for i, outcome in enumerate(forecast_object.outcomes):
+                        match_dict[f"{f}#{outcome}"] = forecast_object.probabilities[i]
+            for r in printing_ratings:
+                for team, name in [(home_team, 'Home'), (away_team, 'Away')]:
+                    rating_dict = self.data.nodes[team].get('ratings', {}).get(r)
+                    match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0))[
+                        edge_attributes.get('round', 0)]
+            for o in printing_odds:
+                for i, value in enumerate(edge_attributes.get('odds', {}).get(o, [])):
+                    match_dict[f"{o}#odds#{i}"] = value
+            for b in printing_bets:
+                for i, value in enumerate(edge_attributes.get('bets', {}).get(b, [])):
+                    match_dict[f"{b}#bets#{i}"] = value
+            for m in printing_metrics:
+                match_dict[f"{m}#metric"] = edge_attributes.get('metrics', {}).get(m, -1)
+            network_flat.append(match_dict)
+        file_name = kwargs.get('filename', 'network.csv')
+        df = pd.DataFrame(network_flat)
+        df.to_csv(file_name, index=False)
+
+
+class InternationalNetwork_small:
+    def __init__(self, **kwargs):
+        """
+        InternationalCompetition class
+        """
+        self.countries_configs = kwargs.get('countries_configs', {})
+        self.international_prob = kwargs.get('match_prob', 0.1)
+        self.oneleg = kwargs.get('oneleg', False)
+        self.teams_per_country = kwargs.get('teams_per_country', 3)
+        self.countries_leagues = {}
+        self.seasons = kwargs.get('seasons', 1)
         
-        ### add_rating
+        self.team_id_map = {}  # map from original team id to new unique team id
+        self.selected_teams_list = []
+        self.team_level_map = {}
+        
+        # generate all countries data
+        for country_idx, country_config in self.countries_configs.items():
+            print('country:', country_idx)
+            country_config['seasons'] = self.seasons
+            country_league = CountryLeague(**country_config)
+            self.countries_leagues[country_idx] = country_league
 
+        self.international_teams = {}
+        for season in range(self.seasons):
+            # choose each country's teams
+            self.international_teams[season] = []
+            for country_idx, country_league in self.countries_leagues.items():
+                clusters = [team for team,seasons in country_league.teams_level.items() if seasons[season] == 'level1']
+                selected_teams = country_league.select_teams(clusters, self.teams_per_country, season, 'random')
+                self.international_teams[season].extend(selected_teams)
 
+            ###### fill graph
+            self.International_graph = nx.MultiDiGraph()
+            for season, teams in self.international_teams.items():
+                self.International_graph.add_nodes_from(teams)
+                for i, team1 in enumerate(teams):
+                    for team2 in teams[i+1:]:
+                        if nx.utils.uniform() < self.international_prob:
+                            self.International_graph.add_edge(team1, team2, season=season)
+                            if not self.oneleg:
+                                self.International_graph.add_edge(team2, team1, season=season)
 
+        Internationa_graph = nx.MultiDiGraph()
 
 
 class InternationalCompetition(RoundRobinNetwork):

@@ -33,7 +33,6 @@ dash-table==4.11.3
 debugpy==1.8.1
 decorator==4.4.2
 defusedxml==0.7.1
-dfg-rating==0.1
 entrypoints==0.3
 et-xmlfile==1.0.1
 exceptiongroup==1.2.1
