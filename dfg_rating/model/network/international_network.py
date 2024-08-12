@@ -190,10 +190,11 @@ class CountryLeague(RoundRobinNetwork):
         """
         for each level, add rating to each team
         
-        mode: 'keep', 'inherit' or 'mix'
+        mode: 'keep', 'mix', 'interchange'
         - keep mode will keep the rating of the team when team get promoted or relegated
-        - inherit mode will let promoted / relegated team inherit the rating of the team in the new level
-        - mix mode will mix the rating of the team in the old level with the mean and variance of the new level
+        - mix mode will Same ratings + season delta + division mean difference
+        - Interchange of ratings between promoted and relegated teams but keeping the original difference between teams. For example:
+        A, B, and C will relegate with ratings 8, 4, and 2, respectively. X, Y, Z will promote with ratings 1, 2, 3. A, B, C they will get values that have an average of 2, but keep that C = 2B = 4A
 
         """
         for level in ['level1', 'level2', 'level3', 'level4']:
@@ -206,11 +207,12 @@ class CountryLeague(RoundRobinNetwork):
                         index_of_team = getattr(self,f'teams_rating_{level}').index(team)
                         self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, rating_name, season=season)
                         print('team:',team, 'rating_start:',rating_values[index_of_team][0])
-                elif mode == 'mix':
+                elif mode == 'mix' or mode == 'interchange':
                     for team in getattr(self, f'teams_{level}'):
                         index_of_team = getattr(self,f'teams_{level}').index(team)
                         self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, rating_name, season=season)
                         print('team:',team, 'rating_start:',rating_values[index_of_team][0])
+
 
     def create_data(self):
         for season in range(self.seasons):

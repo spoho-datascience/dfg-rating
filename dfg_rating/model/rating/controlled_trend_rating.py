@@ -88,7 +88,7 @@ class ControlledTrendRating(BaseRating):
         edge_filter = edge_filter or base_edge_filter
         if n.rating_mode == 'keep':
             self.teams = getattr(n, f'teams_rating_{level}')
-        elif n.rating_mode == 'mix':
+        elif n.rating_mode == 'mix' or n.rating_mode == 'interchange':
             self.teams = getattr(n, f'teams_{level}')
         t = self.teams
         home_games = [(u, v, key, data) for u, v, key, data in n.data.in_edges(t, keys=True, data=True) if data['season'] == season]
@@ -177,6 +177,21 @@ class ControlledTrendRating(BaseRating):
                     rating_diff = mean_rating_current_level - mean_rating_last_level
                     # rating_diff = getattr(n, f'true_rating_{last_season_level}').rating_mean - getattr(n, f'true_rating_{current_season_level}').rating_mean
                     starting_point = last_season_rating + rating_diff+ self.season_delta.get()[0]
+            elif rating_mode == 'interchange':
+                last_season_level = n.teams_level[team][current_season - 1]
+                current_season_level = n.teams_level[team][current_season]
+                
+                team_in = [t for t, l in n.teams_level.items() if l[current_season - 1] == last_season_level and l[current_season] == current_season_level]
+                team_out = [t for t, l in n.teams_level.items() if l[current_season] == last_season_level and l[current_season - 1] == current_season_level]
+
+                mean_team_in = np.mean([(n.data.nodes[t].get('ratings', {}).get(self.rating_name, {}).get(
+                        current_season - 1, self.starting_point.get())[-1]) for t in team_in])
+                mean_team_out = np.mean([(n.data.nodes[t].get('ratings', {}).get(self.rating_name, {}).get(
+                        current_season - 1, self.starting_point.get())[-1]) for t in team_out])
+                
+                starting_point = n.data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(
+                        current_season - 1, self.starting_point.get())[-1] + (mean_team_out - mean_team_in) + self.season_delta.get()[0]
+                
         return starting_point
     def init_ratings(self, team, current_season, n) -> float:
         if current_season == 0:
