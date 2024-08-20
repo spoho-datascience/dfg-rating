@@ -85,3 +85,9 @@ talked with Marc, the NationalNetwork and InternationalNetwork can be generated 
 finished international graph with forecast adding and play network
 tested international network
 - [] visualization InternationalNetwork, need adaptation to baseNetwork
+
+### 2024.08.12
+finish the interchange rating mode
+
+### 2024.08.13
+fix interchange rating mode

@@ -51,7 +51,7 @@ class CountryLeague(RoundRobinNetwork):
         self.true_rating_level2 = kwargs.get(
             'true_rating_level2',
             ControlledTrendRating(
-                starting_point=ControlledRandomFunction(distribution='normal', loc=800, scale=50),
+                starting_point=ControlledRandomFunction(distribution='normal', loc=600, scale=50),
                 delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
                 trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
                 season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
@@ -62,7 +62,7 @@ class CountryLeague(RoundRobinNetwork):
         self.true_rating_level3 = kwargs.get(
             'true_rating_level3',
             ControlledTrendRating(
-                starting_point=ControlledRandomFunction(distribution='normal', loc=500, scale=50),
+                starting_point=ControlledRandomFunction(distribution='normal', loc=300, scale=50),
                 delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
                 trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
                 season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
@@ -366,6 +366,12 @@ class InternationalCompetition_Combine:
             merged_graph = nx.compose(merged_graph, relabeled_graph)
         self.data = merged_graph
 
+        for country_idx, country_league in country_node_mapping.items():
+            print('country:', country_idx)
+            for node in country_league:
+                print('node:', node, 'mapped:', country_league[node])
+                
+
         self.international_teams_list = {}
         
         # add international competition at next of each season
@@ -379,7 +385,7 @@ class InternationalCompetition_Combine:
                 selected_teams = country_league.select_teams(clusters, self.teams_per_country, season, 'random')
                 for t in selected_teams:
                     self.international_teams_list[season].append(country_node_mapping[country_idx][t])
-                print(f'teams from country {country_idx}: {selected_teams} \t mapping: {country_node_mapping[country_idx]}')
+                print(f'teams from country {country_idx}: {selected_teams}')
             
             ###### add edges between selected teams
             if season == 0:
