@@ -24,6 +24,7 @@ class CountryLeague(RoundRobinNetwork):
         self.num_teams_level2 = kwargs.get('level2_teams', 12)
         self.num_teams_level3 = kwargs.get('level3_teams', 12)
         self.promotion_number = kwargs.get('promotion_number', 2)
+        self.days_between_rounds = kwargs.get('days_between_rounds', 1)
         self.n_teams = kwargs.get('teams', 0)
         # self.n_playing = self.num_teams_level1 + self.num_teams_level2 + self.num_teams_level3
         kwargs['teams'] = self.n_teams
@@ -405,7 +406,7 @@ class InternationalCompetition_Combine:
             slice_b = teams_list[n_games_per_round:]
             fixed = teams_list[0]
             day = 1
-            self.days_between_rounds = 1
+            self.days_between_rounds = kwargs.get('days_between_rounds', 1)
             for season_round in range(0, number_of_rounds):
                 for game in range(0, n_games_per_round):
                     if (slice_a[game] != -1) and (slice_b[game] != -1):
@@ -471,8 +472,18 @@ class InternationalCompetition_Combine:
                 round_pointer = self.data.edges[match].get('round', 0)
                 home_team_country, home_team_origin = find_team_id_in_country(country_node_mapping, match[0])
                 away_team_country, away_team_origin = find_team_id_in_country(country_node_mapping, match[1])
-                home_rating = self.countries_leagues[home_team_country].data.nodes[home_team_origin].get('ratings', {}).get('true_rating', {}).get(season, 0)[round_pointer+1]
-                away_rating = self.countries_leagues[away_team_country].data.nodes[away_team_origin].get('ratings', {}).get('true_rating', {}).get(season, 0)[round_pointer+1]
+                
+                home_ratings = self.countries_leagues[home_team_country].data.nodes[home_team_origin].get('ratings', {}).get('true_rating', {}).get(season, 0) # get all ratings of home team in country
+                international_match_day = self.data.edges[match].get('day', 1) # get the date when the match is played
+                
+                days_between_rounds_home = self.countries_leagues[home_team_country].days_between_rounds # get the days between rounds of origin country
+                # date = 1 + round * days_between_rounds, then the round of the match is (date-1)/days_between_rounds, and the rating of the match is round_pointer+1
+                home_rating = home_ratings[int((international_match_day-1)/days_between_rounds_home)+1]
+                away_ratings = self.countries_leagues[away_team_country].data.nodes[away_team_origin].get('ratings', {}).get('true_rating', {}).get(season, 0)
+                days_between_rounds_away = self.countries_leagues[away_team_country].days_between_rounds
+                away_rating = away_ratings[int((international_match_day-1)/days_between_rounds_away)+1]
+                # list(filter(lambda match: match[3].get('season', -1) == season, self.countries_leagues[away_team_country].iterate_over_games()))
+
                 forecast_object = deepcopy(self.true_forecast)
                 diff = forecast_object.home_error.apply(home_rating) - forecast_object.away_error.apply(away_rating)
                 for i in range(len(forecast_object.outcomes)):

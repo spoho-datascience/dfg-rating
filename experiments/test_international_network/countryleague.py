@@ -62,6 +62,7 @@ countries_config = {
         'prob_level1_level3': 0.05,
         'prob_level2_level3': 0.05,
         'rating_mode': 'keep',
+        'days_between_rounds': 7
     },
     1:{
         'teams':22,
@@ -73,6 +74,7 @@ countries_config = {
         'prob_level1_level3': 0.00,
         'prob_level2_level3': 0.00,
         'rating_mode': 'mix',
+        'days_between_rounds': 6
     },
     2:{
         'teams':20,
@@ -84,6 +86,7 @@ countries_config = {
         'prob_level1_level3': 1.00,
         'prob_level2_level3': 0.00,
         'rating_mode': 'interchange',
+        'days_between_rounds': 8
     }
 }
 
@@ -92,6 +95,7 @@ test_network = InternationalCompetition_Combine(
     teams_per_country=2,
     match_prob=0.5,
     seasons=3,
+    days_between_rounds=7
 )
 
 test_network.export(ratings=['true_rating','ranking'],filename='test_InternationalLeague_network.csv')
