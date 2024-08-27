@@ -192,7 +192,7 @@ class ControlledTrendRating(BaseRating):
                 team_last_rating = n.data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(
                         current_season - 1, self.starting_point.get())[-1]
                 
-                starting_point =  team_last_rating/mean_team_in * mean_team_out # + self.season_delta.get()[0]
+                starting_point =  team_last_rating/mean_team_in * mean_team_out + self.season_delta.get()[0]
                 
         return starting_point
     def init_ratings(self, team, current_season, n) -> float:
