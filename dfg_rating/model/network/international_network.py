@@ -118,19 +118,23 @@ class CountryLeague(RoundRobinNetwork):
             u, v, key = edges_team1_2
             self.data.edges[u, v, key]['competition_type'] = type
             self.data.edges[v, u, key]['competition_type'] = type
-            if not self.oneleg:
-                state = 'active' if random.random() < prob else 'inactive'
-                self.data.edges[u, v, key]['state'] = state
-                self.data.edges[v, u, key]['state'] = state
-
-            else:
-                if random.random() < 0.5: # choose direction randomly
-                    self.data.edges[u, v, key]['state'] = 'active' if random.random() < prob else 'inactive'
-                    self.data.edges[v, u, key]['state'] = 'inactive'
+            if type != 'League': # international and national both have inactive, national is oneleg, international is two leg
+                if not self.oneleg:
+                    state = 'active' if random.random() < prob else 'inactive'
+                    self.data.edges[u, v, key]['state'] = state
+                    self.data.edges[v, u, key]['state'] = state
 
                 else:
-                    self.data.edges[v, u, key]['state'] = 'active' if random.random() < prob else 'inactive'
-                    self.data.edges[u, v, key]['state'] = 'inactive'
+                    if random.random() < 0.5: # choose direction randomly
+                        self.data.edges[u, v, key]['state'] = 'active' if random.random() < prob else 'inactive'
+                        self.data.edges[v, u, key]['state'] = 'inactive'
+
+                    else:
+                        self.data.edges[v, u, key]['state'] = 'active' if random.random() < prob else 'inactive'
+                        self.data.edges[u, v, key]['state'] = 'inactive'
+            else: # League is always two leg active
+                self.data.edges[u, v, key]['state'] = 'active'
+                self.data.edges[v, u, key]['state'] = 'active'
 
     
     def fill_graph(self, season=0):
