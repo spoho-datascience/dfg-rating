@@ -53,23 +53,26 @@ forecast_test = LogFunctionForecast(
 
 countries_config = {
     0:{
-        'teams':20,
-        'level1_teams': 6,
-        'level2_teams': 6,
-        'level3_teams': 6,
-        'promotion_number': 2,
+        'teams':8,
+        'level1_teams': 2,
+        'level2_teams': 2,
+        'level3_teams': 2,
+        'promotion_number': 1,
         'prob_level1_level2': 0.05,
         'prob_level1_level3': 0.05,
         'prob_level2_level3': 0.05,
         'rating_mode': 'keep',
-        'days_between_rounds': 7
+        'days_between_rounds': 7,
+        'true_rating_level1':rating_level1,
+        'true_rating_level2':rating_level2,
+        'true_rating_level3':rating_level3,
     },
     1:{
-        'teams':22,
-        'level1_teams': 6,
-        'level2_teams': 6,
-        'level3_teams': 6,
-        'promotion_number': 2,
+        'teams':10,
+        'level1_teams': 2,
+        'level2_teams': 2,
+        'level3_teams': 2,
+        'promotion_number': 1,
         'prob_level1_level2': 1.00,
         'prob_level1_level3': 0.00,
         'prob_level2_level3': 0.00,
@@ -77,10 +80,10 @@ countries_config = {
         'days_between_rounds': 6
     },
     2:{
-        'teams':20,
-        'level1_teams': 6,
-        'level2_teams': 6,
-        'level3_teams': 6,
+        'teams':8,
+        'level1_teams': 2,
+        'level2_teams': 2,
+        'level3_teams': 2,
         'promotion_number': 1,
         'prob_level1_level2': 0.00,
         'prob_level1_level3': 1.00,
@@ -95,7 +98,10 @@ test_network = InternationalCompetition_Combine(
     teams_per_country=2,
     match_prob=0.5,
     seasons=3,
-    days_between_rounds=7
+    days_between_rounds=7,
+    choose_mode='top',
+    create_country_network=True,
+
 )
 
 test_network.export(ratings=['true_rating','ranking'],filename='test_InternationalLeague_network.csv')
