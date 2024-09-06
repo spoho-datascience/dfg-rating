@@ -229,19 +229,7 @@ class CountryLeague(RoundRobinNetwork):
             
             self.add_rating(rating_name='true_rating', mode=self.rating_mode, season=season)
             levels = ['level1', 'level2', 'level3', 'level4']
-            # # add each level's rating
-            # for level in levels:
-            #     def edge_filter(e):
-            #         return e[3]['season'] == season
-            #     rating_values, rating_hp = getattr(self, f'true_rating_{level}').get_cluster_ratings(
-            #     self, getattr(self, f'teams_rating_{level}'), edge_filter, season
-            #     )
-            #     for team in getattr(self, f'teams_rating_{level}'):
-            #         index_of_team = getattr(self,f'teams_rating_{level}').index(team)
-            #         self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, 'true_rating', season=season) # only one by one
-            #         print('team:',team, 'rating_start:',rating_values[index_of_team][0])
-            
-            
+
             # add forecast to all games
             super().add_forecast(self.true_forecast, 'true_forecast', season=season)
             
@@ -326,6 +314,7 @@ class InternationalCompetition_Combine(BaseNetwork):
         """
         InternationalCompetition class
         """
+        self.type='international'
         self.countries_configs = kwargs.get('countries_configs', {})
         self.international_prob = kwargs.get('match_prob', 0.1)
         self.oneleg = kwargs.get('oneleg', False)
@@ -358,6 +347,8 @@ class InternationalCompetition_Combine(BaseNetwork):
                 # self.team_level_map[country_idx] = {'level1': country_league.teams_level1, 'level2': country_league.teams_level2, 'level3': country_league.teams_level3}
                 
                 self.total_teams+=country_config.get('teams', 0)
+            self.n_teams = self.total_teams
+            self.n_rounds = kwargs.get('rounds', self.n_teams - 1 + self.n_teams % 2)
         self.create_data()
     
     def add_bets(self):
@@ -543,48 +534,48 @@ class InternationalCompetition_Combine(BaseNetwork):
             self.add_forecast(country_node_mapping, season)
             self.play_sub_network(season)
     
-    def export(self, **kwargs):
-        print("Export network")
-        network_flat = []
-        printing_forecasts = kwargs.get("forecasts", ['true_forecast'])
-        printing_ratings = kwargs.get("ratings", ['true_rating'])
-        printing_odds = kwargs.get("odds", [])
-        printing_bets = kwargs.get("bets", [])
-        printing_metrics = kwargs.get("metrics", [])
-        for away_team, home_team, edge_key, edge_attributes in self.data.edges(keys=True, data=True):
-            match_dict = {
-                "Home": home_team,
-                "Away": away_team,
-                "Season": edge_attributes.get('season', 0),
-                "Round": edge_attributes.get('round', -1),
-                "Day": edge_attributes.get('day', -1),
-                "Result": edge_attributes.get('winner', 'none'),
-                "state": edge_attributes.get('state', 'active'),
-                'competition_type': edge_attributes.get('competition_type', 'League')
-            }
-            for f in printing_forecasts:
-                forecast_object: BaseForecast = edge_attributes.get('forecasts', {}).get(f, None)
-                if forecast_object is not None:
-                    for i, outcome in enumerate(forecast_object.outcomes):
-                        match_dict[f"{f}#{outcome}"] = forecast_object.probabilities[i]
-            for r in printing_ratings:
-                for team, name in [(home_team, 'Home'), (away_team, 'Away')]:
-                    rating_dict = self.data.nodes[team].get('ratings', {}).get(r)
-                    match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0))[
-                        edge_attributes.get('round', 0)]
-            for o in printing_odds:
-                for i, value in enumerate(edge_attributes.get('odds', {}).get(o, [])):
-                    match_dict[f"{o}#odds#{i}"] = value
-            for b in printing_bets:
-                for i, value in enumerate(edge_attributes.get('bets', {}).get(b, [])):
-                    match_dict[f"{b}#bets#{i}"] = value
-            for m in printing_metrics:
-                match_dict[f"{m}#metric"] = edge_attributes.get('metrics', {}).get(m, -1)
-            network_flat.append(match_dict)
-        file_name = kwargs.get('filename', 'network.csv')
-        df = pd.DataFrame(network_flat)
-        df.to_csv(file_name, index=False)
-        print(file_name+' saved')
+    # def export(self, **kwargs):
+    #     print("Export network")
+    #     network_flat = []
+    #     printing_forecasts = kwargs.get("forecasts", ['true_forecast'])
+    #     printing_ratings = kwargs.get("ratings", ['true_rating'])
+    #     printing_odds = kwargs.get("odds", [])
+    #     printing_bets = kwargs.get("bets", [])
+    #     printing_metrics = kwargs.get("metrics", [])
+    #     for away_team, home_team, edge_key, edge_attributes in self.data.edges(keys=True, data=True):
+    #         match_dict = {
+    #             "Home": home_team,
+    #             "Away": away_team,
+    #             "Season": edge_attributes.get('season', 0),
+    #             "Round": edge_attributes.get('round', -1),
+    #             "Day": edge_attributes.get('day', -1),
+    #             "Result": edge_attributes.get('winner', 'none'),
+    #             "state": edge_attributes.get('state', 'active'),
+    #             'competition_type': edge_attributes.get('competition_type', 'League')
+    #         }
+    #         for f in printing_forecasts:
+    #             forecast_object: BaseForecast = edge_attributes.get('forecasts', {}).get(f, None)
+    #             if forecast_object is not None:
+    #                 for i, outcome in enumerate(forecast_object.outcomes):
+    #                     match_dict[f"{f}#{outcome}"] = forecast_object.probabilities[i]
+    #         for r in printing_ratings:
+    #             for team, name in [(home_team, 'Home'), (away_team, 'Away')]:
+    #                 rating_dict = self.data.nodes[team].get('ratings', {}).get(r)
+    #                 match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0))[
+    #                     edge_attributes.get('round', 0)]
+    #         for o in printing_odds:
+    #             for i, value in enumerate(edge_attributes.get('odds', {}).get(o, [])):
+    #                 match_dict[f"{o}#odds#{i}"] = value
+    #         for b in printing_bets:
+    #             for i, value in enumerate(edge_attributes.get('bets', {}).get(b, [])):
+    #                 match_dict[f"{b}#bets#{i}"] = value
+    #         for m in printing_metrics:
+    #             match_dict[f"{m}#metric"] = edge_attributes.get('metrics', {}).get(m, -1)
+    #         network_flat.append(match_dict)
+    #     file_name = kwargs.get('filename', 'network.csv')
+    #     df = pd.DataFrame(network_flat)
+    #     df.to_csv(file_name, index=False)
+    #     print(file_name+' saved')
 
 
 class InternationalCompetition(RoundRobinNetwork):

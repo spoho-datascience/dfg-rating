@@ -96,6 +96,8 @@ class BaseNetwork(ABC):
             ):
                 print(
                     f"({home_team} vs. {away_team} at season {edge_attributes['season']} round {edge_attributes['round']}, day {edge_attributes['day']})")
+                if (print_kwargs.get('type', False)) and ('competition_type' in edge_attributes):
+                    print(f"match type: {edge_attributes.get('competition_type', 'League')}")
                 if (print_kwargs.get('winner', False)) & ('winner' in edge_attributes):
                     print(f"Result: {edge_attributes['winner']}")
                 if (print_kwargs.get('forecasts', False)) & ('forecasts' in edge_attributes):
