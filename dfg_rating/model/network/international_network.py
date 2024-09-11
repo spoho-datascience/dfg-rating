@@ -118,7 +118,7 @@ class CountryLeague(RoundRobinNetwork):
             u, v, key = edges_team1_2
             self.data.edges[u, v, key]['competition_type'] = type
             self.data.edges[v, u, key]['competition_type'] = type
-            if type != 'League': # international and national both have inactive, national is oneleg, international is two leg
+            if type != 'League' or prob==0: # international and national both have inactive, national is oneleg, international is two leg
                 if not self.oneleg:
                     state = 'active' if random.random() < prob else 'inactive'
                     self.data.edges[u, v, key]['state'] = state
@@ -326,6 +326,7 @@ class InternationalCompetition_Combine(BaseNetwork):
         self.team_id_map = {}  # map from original team id to new unique team id
         self.selected_teams_list = []
         self.team_level_map = {}
+        self.number_of_clusters = kwargs.get('clusters', 1) # for visualization
         self.true_forecast = kwargs.get(
             'true_forecast',
             LogFunctionForecast(
