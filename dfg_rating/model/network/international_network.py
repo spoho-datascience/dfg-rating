@@ -520,9 +520,51 @@ class InternationalCompetition_Combine(BaseNetwork):
                 print('node:', node, 'mapped:', country_league[node])
         return country_node_mapping
 
+    def check_data(self, country_node_mapping):
+        print('check data')
+        competition_type_colors={
+            'League': 'blue',
+            'National': 'green',
+            'international': 'red'
+        }
+        node_type_colors = {
+            'level1': 'blue',
+            'level2': 'green',
+            'level3': 'red',
+            'level4': 'yellow'
+        }
+        def find_team_id_in_country(country_node_mapping, team_id):
+            for country_id, teams in country_node_mapping.items():
+                for original_id, mapped_id in teams.items():
+                    if mapped_id == team_id:
+                        return country_id, original_id
+            return None, None
+        import matplotlib.pyplot as plt
+        for season in range(self.seasons):
+            plt.figure(figsize=(10,10))
+            pos=nx.spring_layout(self.data, k=1.0)
+            edges = [(u, v, k) for u, v, k, d in self.data.edges(keys=True, data=True) if d['season'] == season and d['state']=='active']
+            edge_colors = [competition_type_colors[self.data.edges[u,v,k]['competition_type']] for u, v, k in edges]
+
+            node_colors = []
+            labels = {}
+            for n in self.data.nodes:
+                country, original_id = find_team_id_in_country(country_node_mapping, n)
+                level = self.countries_leagues[country].teams_level[original_id][season]
+                node_colors.append(node_type_colors[level])
+                labels[n] = f'{n}:{original_id}'
+            nx.draw_networkx_nodes(self.data, pos,node_color=node_colors, node_size=500)
+            nx.draw_networkx_edges(self.data, pos, edgelist=edges, edge_color=edge_colors)
+            nx.draw_networkx_labels(self.data, pos, labels,font_color='black')
+            plt.title(f'Season {season}')
+            plt.show()
+            plt.savefig(f'season_{season}.png')
+                
+
     def create_data(self):
         # # merge country graphs merge_graph()
         country_node_mapping = self.merge_graph()
+        self.check_data(country_node_mapping)
         self.select_teams(country_node_mapping)
         
         for season in range(1, self.seasons):
@@ -534,49 +576,8 @@ class InternationalCompetition_Combine(BaseNetwork):
             print(f'play International Competition Season {season-1}')
             self.add_forecast(country_node_mapping, season)
             self.play_sub_network(season)
-    
-    # def export(self, **kwargs):
-    #     print("Export network")
-    #     network_flat = []
-    #     printing_forecasts = kwargs.get("forecasts", ['true_forecast'])
-    #     printing_ratings = kwargs.get("ratings", ['true_rating'])
-    #     printing_odds = kwargs.get("odds", [])
-    #     printing_bets = kwargs.get("bets", [])
-    #     printing_metrics = kwargs.get("metrics", [])
-    #     for away_team, home_team, edge_key, edge_attributes in self.data.edges(keys=True, data=True):
-    #         match_dict = {
-    #             "Home": home_team,
-    #             "Away": away_team,
-    #             "Season": edge_attributes.get('season', 0),
-    #             "Round": edge_attributes.get('round', -1),
-    #             "Day": edge_attributes.get('day', -1),
-    #             "Result": edge_attributes.get('winner', 'none'),
-    #             "state": edge_attributes.get('state', 'active'),
-    #             'competition_type': edge_attributes.get('competition_type', 'League')
-    #         }
-    #         for f in printing_forecasts:
-    #             forecast_object: BaseForecast = edge_attributes.get('forecasts', {}).get(f, None)
-    #             if forecast_object is not None:
-    #                 for i, outcome in enumerate(forecast_object.outcomes):
-    #                     match_dict[f"{f}#{outcome}"] = forecast_object.probabilities[i]
-    #         for r in printing_ratings:
-    #             for team, name in [(home_team, 'Home'), (away_team, 'Away')]:
-    #                 rating_dict = self.data.nodes[team].get('ratings', {}).get(r)
-    #                 match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0))[
-    #                     edge_attributes.get('round', 0)]
-    #         for o in printing_odds:
-    #             for i, value in enumerate(edge_attributes.get('odds', {}).get(o, [])):
-    #                 match_dict[f"{o}#odds#{i}"] = value
-    #         for b in printing_bets:
-    #             for i, value in enumerate(edge_attributes.get('bets', {}).get(b, [])):
-    #                 match_dict[f"{b}#bets#{i}"] = value
-    #         for m in printing_metrics:
-    #             match_dict[f"{m}#metric"] = edge_attributes.get('metrics', {}).get(m, -1)
-    #         network_flat.append(match_dict)
-    #     file_name = kwargs.get('filename', 'network.csv')
-    #     df = pd.DataFrame(network_flat)
-    #     df.to_csv(file_name, index=False)
-    #     print(file_name+' saved')
+            
+            
 
 
 class InternationalCompetition(RoundRobinNetwork):

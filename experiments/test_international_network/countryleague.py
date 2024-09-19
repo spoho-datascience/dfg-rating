@@ -53,11 +53,11 @@ forecast_test = LogFunctionForecast(
 
 countries_config = {
     0:{
-        'teams':10,
-        'level1_teams': 3,
-        'level2_teams': 3,
-        'level3_teams': 2,
-        'promotion_number': 1,
+        'teams':20,
+        'level1_teams': 6,
+        'level2_teams': 6,
+        'level3_teams': 6,
+        'promotion_number': 2,
         'prob_level1_level2': 0.05,
         'prob_level1_level3': 0.05,
         'prob_level2_level3': 0.05,
@@ -68,12 +68,12 @@ countries_config = {
         'true_rating_level3':rating_level3,
     },
     1:{
-        'teams':10,
+        'teams':8,
         'level1_teams': 2,
         'level2_teams': 2,
         'level3_teams': 2,
         'promotion_number': 1,
-        'prob_level1_level2': 1.00,
+        'prob_level1_level2': 0.00,
         'prob_level1_level3': 0.00,
         'prob_level2_level3': 0.00,
         'rating_mode': 'mix',
@@ -86,7 +86,7 @@ countries_config = {
         'level3_teams': 2,
         'promotion_number': 1,
         'prob_level1_level2': 0.00,
-        'prob_level1_level3': 1.00,
+        'prob_level1_level3': 0.00,
         'prob_level2_level3': 0.00,
         'rating_mode': 'interchange',
         'days_between_rounds': 8
