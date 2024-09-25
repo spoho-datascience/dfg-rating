@@ -18,9 +18,10 @@ rating = 'ELO odds'  # 'ELO goals'
 league_average = True  # False
 # If true, use a different parameter for inter-league matches
 param_adjust = True  # False
-data_path = os.path.join("..", "..", "data", "real", "league_comparability", "all_data_filtered_new.xlsx")
+data_path = os.path.join("data", "real", "league_comparability", "all_data_filtered_new.xlsx")
 
 all_data = pd.read_excel(data_path)
+print("Data loaded")
 
 # Convert the 'date' column to datetime format
 all_data['date'] = pd.to_datetime(all_data['date'], format='%d.%m.%Y %H:%M')
@@ -69,7 +70,7 @@ elif rating == 'ELO goals':
             # elo = ELORating(trained=False, param_k=20)
             # real_data_network.add_rating(rating=elo, rating_name="test_elo_rating")
 
-elo = ELORating(trained=True, param_k=20)
+elo = ELORating(trained=True, param_k=20, rating_name="test_elo_rating")
 training_data_network.add_rating(rating=elo, rating_name="test_elo_rating")
 
 # network = pd.DataFrame()
