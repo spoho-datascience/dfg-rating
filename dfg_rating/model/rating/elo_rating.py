@@ -21,7 +21,8 @@ class ELORating(BaseRating):
                 "c": kwargs.get("param_c", 10.0),
                 "d": kwargs.get("param_d", 400.0),
                 "k": kwargs.get("param_k", 14.0),
-                "w": kwargs.get("param_w", 80)
+                "w": kwargs.get("param_w", 80),
+                "lam": kwargs.get("param_lam", 0.4)
             }
 
     def init_ratings(self, team, season, n, league=None):
@@ -56,9 +57,12 @@ class ELORating(BaseRating):
     def compute_scores(self, result):
         home_score = 1.0 if result == 'home' else 0.5 if result == 'draw' else 0.0
         return home_score, 1 - home_score
+    
+    def get_adjusted_k(self, match_data):
+        return self.settings['k']
 
-    def update_elo(self, current, score, expected, match_data):
-        return current + (self.settings['k'] * (score - expected))
+    def update_elo(self, current, score, expected, adjusted_k, match_data):
+        return current + (adjusted_k * (score - expected))
 
     def end_season_ratings(self, network, ratings):
         end_position = (self.rounds_per_season + 2) - 1
@@ -94,16 +98,19 @@ class ELORating(BaseRating):
                         ratings[away_team_i, current_position - 1]
                     )
                     home_score, away_score = self.compute_scores(match_data['winner'])
+                    adjusted_k = self.get_adjusted_k(match_data)
                     ratings[away_team_i, current_position] = self.update_elo(
                         ratings[away_team_i, current_position - 1],
                         away_score,
                         away_expected,
+                        adjusted_k
                         match_data
                     )
                     ratings[home_team_i, current_position] = self.update_elo(
                         ratings[home_team_i, current_position - 1],
                         home_score,
                         home_expected,
+                        adjusted_k
                         match_data
                     )
             # Dealing with teams not playing
@@ -132,3 +139,15 @@ class SplitELORating(ELORating):
             if k_factor is not None:
                 return current + (k_factor * (score - expected))
         return current + (self.settings['k'] * (score - expected))
+
+class GoalsELORating(ELORating):
+
+    def __init__(self, **kwargs):
+        self.home_score_key = kwargs.get('home_score_key', 'home_score')
+        self.away_score_key = kwargs.get('away_score_key', 'away_score')
+
+    def get_adjusted_k(self, match_data):
+        home_score = match_data[self.home_score_key]
+        away_score = match_data[self.away_score_key]
+        adjusted_k = self.settings['k'] * (1 + np.absolute(home_score - away_score))**self.settings['lam']
+        return adjusted_k
