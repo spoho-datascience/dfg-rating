@@ -104,14 +104,14 @@ class ELORating(BaseRating):
                         ratings[away_team_i, current_position - 1],
                         away_score,
                         away_expected,
-                        adjusted_k
+                        adjusted_k,
                         match_data
                     )
                     ratings[home_team_i, current_position] = self.update_elo(
                         ratings[home_team_i, current_position - 1],
                         home_score,
                         home_expected,
-                        adjusted_k
+                        adjusted_k,
                         match_data
                     )
             # Dealing with teams not playing
@@ -155,6 +155,12 @@ class GoalsELORating(ELORating):
         return adjusted_k
     
 class OddsELORating(ELORating):
+
+    def __init__(self, **kwargs):
+        self.home_odds_pointer = kwargs.get('home_odds_pointer', 'home_odds')
+        self.draw_odds_pointer = kwargs.get('draw_odds_pointer', 'draw_odds')
+        self.away_odds_pointer = kwargs.get('away_odds_pointer', 'away_odds')
+        super().__init__(**kwargs)
 
     def compute_scores(self, match_data):
         overround = 1/match_data[self.home_odds_pointer] + 1/match_data[self.draw_odds_pointer] + 1/match_data[self.away_odds_pointer]

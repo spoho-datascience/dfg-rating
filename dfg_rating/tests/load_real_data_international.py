@@ -6,7 +6,7 @@ import numpy as np
 import dfg_rating.viz.jupyter_widgets as Widgets
 import dfg_rating.viz.tables as DFGTables
 from dfg_rating.model.network.base_network import WhiteNetwork
-from dfg_rating.model.rating.elo_rating import ELORating
+from dfg_rating.model.rating.elo_rating import ELORating, GoalsELORating, OddsELORating
 
 from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
 from dfg_rating.model.evaluators.accuracy import RankProbabilityScore, Likelihood
@@ -18,7 +18,7 @@ rating = 'ELO odds'  # 'ELO goals'
 league_average = True  # False
 # If true, use a different parameter for inter-league matches
 param_adjust = True  # False
-data_path = os.path.join("data", "real", "league_comparability", "all_data_filtered_new.xlsx")
+data_path = os.path.join("../..", "data", "real", "league_comparability", "all_data_filtered_new.xlsx")
 
 all_data = pd.read_excel(data_path)
 print("Data loaded")
@@ -53,7 +53,17 @@ training_data_network = WhiteNetwork(
                 "away": "away"
             }
         },
-        "round": "day"
+        "round": "day",
+        "home_score": "home_score",
+        "away_score": "away_score",
+        "odds": {
+            "average_odds": {
+                "home": "average_home_odds",
+                "draw": "average_draw_odds",
+                "away": "average_away_odds"
+            }
+        },
+
     },
     days_between_rounds=3
 )
@@ -73,6 +83,22 @@ elif rating == 'ELO goals':
 elo = ELORating(trained=True, param_k=20, rating_name="test_elo_rating")
 training_data_network.add_rating(rating=elo, rating_name="test_elo_rating")
 
+training_data_network.add_rating(
+    rating=GoalsELORating(trained=True, param_k=20, param_lam=0.7, rating_name="test_goals_elo_rating"),
+    rating_name="test_goals_elo_rating"
+)
+
+training_data_network.add_rating(
+    rating=OddsELORating(
+        trained=True, 
+        param_k=20, 
+        home_odds_pointer="average_home_odds", 
+        draw_odds_pointer="average_draw_odds", 
+        away_odds_pointer="average_away_odds", 
+        rating_name="test_goals_elo_rating"
+    ),
+    rating_name="test_goals_elo_rating"
+)
 # network = pd.DataFrame()
 # for match in training_data_network.iterate_over_games():
 #     network.add(match)
