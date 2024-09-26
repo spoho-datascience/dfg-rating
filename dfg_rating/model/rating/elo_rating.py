@@ -145,9 +145,11 @@ class GoalsELORating(ELORating):
     def __init__(self, **kwargs):
         self.home_score_key = kwargs.get('home_score_key', 'home_score')
         self.away_score_key = kwargs.get('away_score_key', 'away_score')
+        super().__init__(**kwargs)
 
     def get_adjusted_k(self, match_data):
         home_score = match_data[self.home_score_key]
         away_score = match_data[self.away_score_key]
         adjusted_k = self.settings['k'] * (1 + np.absolute(home_score - away_score))**self.settings['lam']
         return adjusted_k
+    
