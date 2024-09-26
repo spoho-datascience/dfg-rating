@@ -54,7 +54,8 @@ class ELORating(BaseRating):
             1.0 + (self.settings['c'] ** ((away_value - home_value - self.settings['w']) / self.settings['d'])))
         return expected_home, 1 - expected_home
 
-    def compute_scores(self, result):
+    def compute_scores(self, match_data):
+        result = match_data['winner']
         home_score = 1.0 if result == 'home' else 0.5 if result == 'draw' else 0.0
         return home_score, 1 - home_score
     
@@ -97,7 +98,7 @@ class ELORating(BaseRating):
                         ratings[home_team_i, current_position - 1],
                         ratings[away_team_i, current_position - 1]
                     )
-                    home_score, away_score = self.compute_scores(match_data['winner'])
+                    home_score, away_score = self.compute_scores(match_data)
                     adjusted_k = self.get_adjusted_k(match_data)
                     ratings[away_team_i, current_position] = self.update_elo(
                         ratings[away_team_i, current_position - 1],
@@ -152,4 +153,14 @@ class GoalsELORating(ELORating):
         away_score = match_data[self.away_score_key]
         adjusted_k = self.settings['k'] * (1 + np.absolute(home_score - away_score))**self.settings['lam']
         return adjusted_k
+    
+class OddsELORating(ELORating):
+
+    def compute_scores(self, match_data):
+        overround = 1/match_data[self.home_odds_pointer] + 1/match_data[self.draw_odds_pointer] + 1/match_data[self.away_odds_pointer]
+        home_pred = 1/match_data[self.home_odds_pointer]/overround
+        draw_pred = 1/match_data[self.draw_odds_pointer]/overround
+        home_score = home_pred + 0.5 * draw_pred
+        away_score = 1 - home_score
+        return home_score, away_score
     
