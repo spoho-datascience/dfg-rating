@@ -33,78 +33,98 @@ forecast_test = LogFunctionForecast(
     beta_parameter=0.006
 )
 
-# test_network = CountryLeague(
-#     teams=20,
-#     level1_teams=5,
-#     level2_teams=5,
-#     level3_teams=5,
-#     promotion_number=2,
-#     prob_level1_level2=0.10,
-#     prob_level1_level3=0.05,
-#     prob_level2_level3=0.00,
-#     true_rating_level1=rating_level1,
-#     true_rating_level2=rating_level2,
-#     true_rating_level3=rating_level3,
-#     true_forecast=forecast_test,
-#     seasons=5,
-#     rating_mode='interchange'
-# )
-
-
-countries_config = {
-    0:{
-        'teams':20,
-        'level1_teams': 6,
-        'level2_teams': 6,
-        'level3_teams': 6,
-        'promotion_number': 2,
-        'prob_level1_level2': 0.05,
-        'prob_level1_level3': 0.05,
-        'prob_level2_level3': 0.05,
-        'rating_mode': 'keep',
-        'days_between_rounds': 7,
-        'true_rating_level1':rating_level1,
-        'true_rating_level2':rating_level2,
-        'true_rating_level3':rating_level3,
-    },
-    1:{
-        'teams':8,
-        'level1_teams': 2,
-        'level2_teams': 2,
-        'level3_teams': 2,
-        'promotion_number': 1,
-        'prob_level1_level2': 0.00,
-        'prob_level1_level3': 0.00,
-        'prob_level2_level3': 0.00,
-        'rating_mode': 'mix',
-        'days_between_rounds': 6
-    },
-    2:{
-        'teams':8,
-        'level1_teams': 2,
-        'level2_teams': 2,
-        'level3_teams': 2,
-        'promotion_number': 1,
-        'prob_level1_level2': 0.00,
-        'prob_level1_level3': 0.00,
-        'prob_level2_level3': 0.00,
-        'rating_mode': 'interchange',
-        'days_between_rounds': 8
-    }
-}
-
-test_network = InternationalCompetition_Combine(
-    countries_configs=countries_config,
-    teams_per_country=2,
-    match_prob=0.5,
+test_network1 = CountryLeague(
+    teams=16,
+    level1_teams=6,
+    level2_teams=4,
+    level3_teams=4,
+    promotion_number=1,
+    # prob_level1_level2=0.10,
+    # prob_level1_level3=0.05,
+    # prob_level2_level3=0.00,
+    true_rating_level1=rating_level1,
+    true_rating_level2=rating_level2,
+    true_rating_level3=rating_level3,
+    true_forecast=forecast_test,
     seasons=3,
-    days_between_rounds=7,
-    choose_mode='top',
-    create_country_network=True,
-
+    # days_between_rounds=7,
+    country_id='c1',
+    rating_mode='interchange',
+    min_match_per_team_level1_level2=1,
+    avg_match_per_team_level1_level2=4,
+    min_match_per_team_level2_level3=1,
+    avg_match_per_team_level2_level3=2,
+    min_match_per_team_level3_level1=1,
+    avg_match_per_team_level3_level1=3,
 )
 
-test_network.export(ratings=['true_rating','ranking'],filename='test_InternationalLeague_network.csv')
+test_network2 = CountryLeague(
+    teams=14,
+    level1_teams=4,
+    level2_teams=4,
+    level3_teams=4,
+    promotion_number=1,
+    # prob_level1_level2=0.10,
+    # prob_level1_level3=0.05,
+    # prob_level2_level3=0.00,
+    true_rating_level1=rating_level1,
+    true_rating_level2=rating_level2,
+    true_rating_level3=rating_level3,
+    true_forecast=forecast_test,
+    seasons=3,
+    # days_between_rounds=7,
+    country_id='c2',
+    rating_mode='interchange',
+    min_match_per_team_level1_level2=1,
+    avg_match_per_team_level1_level2=4,
+    min_match_per_team_level2_level3=1,
+    avg_match_per_team_level2_level3=2,
+    min_match_per_team_level3_level1=1,
+    avg_match_per_team_level3_level1=3,
+)
+# countries_config = {
+#     0:{
+#         'teams':30,
+#         'level1_teams': 10,
+#         'level2_teams': 10,
+#         'level3_teams': 8,
+#         'promotion_number': 2,
+#         'prob_level1_level2': 0.05,
+#         'prob_level1_level3': 0.05,
+#         'prob_level2_level3': 0.05,
+#         'rating_mode': 'keep',
+#         'days_between_rounds': 7,
+#         'true_rating_level1':rating_level1,
+#         'true_rating_level2':rating_level2,
+#         'true_rating_level3':rating_level3,
+#     },
+#     1:{
+#         'teams':8,
+#         'level1_teams': 2,
+#         'level2_teams': 2,
+#         'level3_teams': 2,
+#         'promotion_number': 1,
+#         'prob_level1_level2': 0.00,
+#         'prob_level1_level3': 0.00,
+#         'prob_level2_level3': 0.00,
+#         'rating_mode': 'mix',
+#         'days_between_rounds': 6
+#     }
+# }
+
+test_network = InternationalCompetition_Combine(
+    countries_configs={'c1':test_network1, 'c2':test_network2},
+    teams_per_country=2,
+    match_prob=0.0,
+    seasons=3,
+    # days_between_rounds=7,
+    choose_mode='top',
+    create_country_network=False,
+    avg_match_per_team=3,
+    min_match_per_team=1,
+)
+
+# test_network.export(ratings=['true_rating','ranking'],filename='test_InternationalLeague_network.csv')
 # test_network.print_data(schedule=True, winner=True, forecasts=True, attributes=True, ratings=True)
 # seasons = test_network.get_seasons()
 # test_network.iterate_over_games()

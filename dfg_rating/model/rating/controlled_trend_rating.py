@@ -84,20 +84,19 @@ class ControlledTrendRating(BaseRating):
 
         return ratings, self.props
     
-    def get_cluster_ratings(self, n: BaseNetwork, level=None, edge_filter=None, season=0):
-        edge_filter = edge_filter or base_edge_filter
+    def get_cluster_ratings(self, n: BaseNetwork, level=None, season=0):
+        # edge_filter = edge_filter or base_edge_filter
         if n.rating_mode == 'keep':
             self.teams = getattr(n, f'teams_rating_{level}')
         elif n.rating_mode == 'mix' or n.rating_mode == 'interchange':
             self.teams = getattr(n, f'teams_{level}')
         t = self.teams
-        home_games = [(u, v, key, data) for u, v, key, data in n.data.in_edges(t, keys=True, data=True) if data['season'] == season]
-        away_games = [(u, v, key, data) for u, v, key, data in n.data.out_edges(t, keys=True, data=True) if data['season'] == season]
-        n_rounds = len(get_rounds(home_games + away_games))
+        games = [(u, v, key, data) for u, v, key, data in n.data.edges(t, keys=True, data=True) if data['season'] == season and data['competition_type'] == 'League' and u in t and v in t]
+        n_rounds = len(get_rounds(games))
         ratings = np.zeros([len(t), n_rounds + 1])
         self.agg = {}
         self.init_season_cluster_ratings(season, n, ratings)
-        for away_team, home_team, match_key, match_data in sorted(filter(edge_filter, home_games + away_games),
+        for away_team, home_team, match_key, match_data in sorted(games,
                                                                   key=lambda x: x[3]['day']):
             # if match_data.get('season', 0) != current_season:
             #     current_season = match_data['season']

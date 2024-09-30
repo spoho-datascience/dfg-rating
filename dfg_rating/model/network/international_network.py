@@ -19,12 +19,13 @@ from copy import deepcopy
 
 class CountryLeague(RoundRobinNetwork):
     def __init__(self, **kwargs):
+        self.country_id = kwargs.get('country_id', 0)+'_'
         self.oneleg = kwargs.get('oneleg', True)
         self.num_teams_level1 = kwargs.get('level1_teams', 12)
         self.num_teams_level2 = kwargs.get('level2_teams', 12)
         self.num_teams_level3 = kwargs.get('level3_teams', 12)
         self.promotion_number = kwargs.get('promotion_number', 2)
-        self.days_between_rounds = kwargs.get('days_between_rounds', 1)
+        # self.days_between_rounds = kwargs.get('days_between_rounds', 1)
         self.n_teams = kwargs.get('teams', 0)
         # self.n_playing = self.num_teams_level1 + self.num_teams_level2 + self.num_teams_level3
         kwargs['teams'] = self.n_teams
@@ -32,9 +33,15 @@ class CountryLeague(RoundRobinNetwork):
         self.rating_mode = kwargs.get('rating_mode', 'keep')
         
 
-        self.prob_level1_level2 = kwargs.get('prob_level1_level2', 0.4)
-        self.prob_level1_level3 = kwargs.get('prob_level1_level3', 0.3)
-        self.prob_level2_level3 = kwargs.get('prob_level2_level3', 0.2)
+        # self.prob_level1_level2 = kwargs.get('prob_level1_level2', 0.4)
+        # self.prob_level1_level3 = kwargs.get('prob_level1_level3', 0.3)
+        # self.prob_level2_level3 = kwargs.get('prob_level2_level3', 0.2)
+        self.min_match_level1_level2 = kwargs.get('min_match_per_team_level1_level2', 1)
+        self.avg_match_level1_level2 = kwargs.get('avg_match_per_team_level1_level2', 3)
+        self.min_match_level2_level3 = kwargs.get('min_match_per_team_level2_level3', 1)
+        self.avg_match_level2_level3 = kwargs.get('avg_match_per_team_level2_level3', 3)
+        self.min_match_level3_level1 = kwargs.get('min_match_per_team_level3_level1', 1)
+        self.avg_match_level3_level1 = kwargs.get('avg_match_per_team_level3_level1', 3)
         
         self.team_labels = kwargs.get('team_labels', None)
 
@@ -136,6 +143,53 @@ class CountryLeague(RoundRobinNetwork):
                 self.data.edges[u, v, key]['state'] = 'active'
                 self.data.edges[v, u, key]['state'] = 'active'
 
+    def schedule_network(self, teams_level1, teams_level2, avg_match_level1_level2, season):
+        # set national cup match
+        # matches between level1 and level2
+        all_teams = teams_level1 + teams_level2
+        num_teams = len(all_teams)
+        
+        total_matches = math.ceil((num_teams * avg_match_level1_level2) / 2)
+        possible_matches = [(team1, team2) for team1 in all_teams for team2 in all_teams if team1 != team2]
+        random.shuffle(possible_matches)
+        match_pairs = set()
+        used_teams = set()
+        
+        # every team plays at least one game
+        while possible_matches and len(used_teams) < num_teams:
+            match = possible_matches.pop()
+            team1, team2 = match
+            if team1 not in used_teams or team2 not in used_teams:
+                match_pairs.add(match)
+                used_teams.add(team1)
+                used_teams.add(team2)
+        
+        # continue until reaches avg_match_per_team
+        while len(match_pairs) < total_matches and possible_matches!=[]:
+            match = possible_matches.pop()
+            team1, team2 = match
+            match_pairs.add((team1, team2))
+        
+        # random choose day during 365 days
+        match_schedule = []
+        available_days = list(range(1, 366))
+        for match in match_pairs:
+            day = random.choice(available_days)
+            match_schedule.append((match[0], match[1], day))
+        
+        match_schedule.sort(key=lambda x: x[2])  # sort by match day
+        current_round = 0
+        last_day = match_schedule[0][2]
+        for match in match_schedule:
+            if match[2] != last_day:
+                current_round += 1 # keep same day match as one round
+            last_day = match[2]
+            self.data.add_edge(
+                match[0],
+                match[1],
+                season=season, round=current_round, day=match[2], competition_type='National'
+            )
+            print(f"Round {current_round}: {match[0]} vs {match[1]} on Day {match[2]}")
     
     def fill_graph(self, season=0):
 
@@ -144,12 +198,15 @@ class CountryLeague(RoundRobinNetwork):
         else:
             teams_list = list(range(0, self.n_teams))
             self.team_labels = {i: i for i in range(self.n_teams)}
+        
+        # Add country_id prefix node id
+        teams_list = [self.country_id + str(team) for team in teams_list]
+        self.team_labels = {self.country_id + str(k): v for k, v in self.team_labels.items()}
+
         if self.data is None:
             graph = nx.MultiDiGraph()
             graph.add_nodes_from([t for t in teams_list])
             self.data = graph
-        super().fill_graph(self.team_labels, season)
-
         
         # get 3 level's team idx
         if season == 0:
@@ -167,31 +224,85 @@ class CountryLeague(RoundRobinNetwork):
         print('level2:',self.teams_level2)
         print('level3:',self.teams_level3)
 
+        for level in ['level1', 'level2', 'level3', 'level4']:
+            # set league match first
+            number_of_teams = len(getattr(self, f'teams_{level}'))
+            number_of_rounds = number_of_teams - 1 + number_of_teams % 2
+            n_games_per_round = int(math.ceil(number_of_teams / 2))
+            if number_of_teams % 2 != 0:
+                getattr(self, f'teams_{level}').append(-1)
+            slice_a = getattr(self, f'teams_{level}')[0:n_games_per_round]
+            slice_b = getattr(self, f'teams_{level}')[n_games_per_round:]
+            fixed = getattr(self, f'teams_{level}')[0]
+            days_between_rounds = 364 / (number_of_rounds*2 - 1)
+            day = 1
+            for season_round in range(0, number_of_rounds):
+                for game in range(0, n_games_per_round):
+                    if (slice_a[game] != -1) and (slice_b[game] != -1):
+                        if season_round % 2 == 0:
+                            self.data.add_edge(
+                                slice_a[game],
+                                slice_b[game],
+                                season=season, round=season_round, day=int(day), competition_type='League'
+                            )
+                            self.data.add_edge(
+                                slice_b[game],
+                                slice_a[game],
+                                season=season, round=season_round + number_of_rounds,
+                                day=int(day + (number_of_rounds * days_between_rounds)),
+                                competition_type='League'
+                            )
+                        else:
+                            self.data.add_edge(
+                                slice_b[game],
+                                slice_a[game],
+                                season=season, round=season_round, day=int(day), competition_type='League'
+                            )
+                            self.data.add_edge(
+                                slice_a[game],
+                                slice_b[game],
+                                season=season, round=season_round + number_of_rounds,
+                                day=int(day + (number_of_rounds * days_between_rounds)),
+                                competition_type='League'
+                            )
+                day += days_between_rounds
+                rotate = slice_a[-1]
+                slice_a = [fixed, slice_b[0]] + slice_a[1:-1]
+                slice_b = slice_b[1:] + [rotate]
+            try:
+                getattr(self, f'teams_{level}').remove(-1)
+            except ValueError:
+                pass
+        
+        
+        
 
-        clusters_probabilities = [
-            (self.teams_level1, self.teams_level1, 1, 'League'),
-            (self.teams_level2, self.teams_level2, 1, 'League'),
-            (self.teams_level3, self.teams_level3, 1, 'League'),
-            (self.teams_level1, self.teams_level2, self.prob_level1_level2, 'National'),
-            (self.teams_level1, self.teams_level3, self.prob_level1_level3, 'National'),
-            (self.teams_level2, self.teams_level3, self.prob_level2_level3, 'National'),
-            (self.teams_level1, self.teams_level4, 0, 'National'),
-            (self.teams_level2, self.teams_level4, 0, 'National'),
-            (self.teams_level3, self.teams_level4, 0, 'National'),
-            (self.teams_level4, self.teams_level4, 0, 'League')
-        ]
+        
+############################################################################################################
+        # clusters_probabilities = [
+        #     (self.teams_level1, self.teams_level1, 1, 'League'),
+        #     (self.teams_level2, self.teams_level2, 1, 'League'),
+        #     (self.teams_level3, self.teams_level3, 1, 'League'),
+        #     (self.teams_level1, self.teams_level2, self.prob_level1_level2, 'National'),
+        #     (self.teams_level1, self.teams_level3, self.prob_level1_level3, 'National'),
+        #     (self.teams_level2, self.teams_level3, self.prob_level2_level3, 'National'),
+        #     (self.teams_level1, self.teams_level4, 0, 'National'),
+        #     (self.teams_level2, self.teams_level4, 0, 'National'),
+        #     (self.teams_level3, self.teams_level4, 0, 'National'),
+        #     (self.teams_level4, self.teams_level4, 0, 'League')
+        # ]
 
-        for cluster1, cluster2, prob, type in clusters_probabilities:
-            # selected_teams = self.select_teams([cluster1, cluster2], season)
-            selected_teams = [cluster1, cluster2] # dont need select
-            for team1 in selected_teams[0]:
-                for team2 in selected_teams[1]:
-                    self.set_edge_state(team1, team2, prob, season, type)
+        # for cluster1, cluster2, prob, type in clusters_probabilities:
+        #     # selected_teams = self.select_teams([cluster1, cluster2], season)
+        #     selected_teams = [cluster1, cluster2] # dont need select
+        #     for team1 in selected_teams[0]:
+        #         for team2 in selected_teams[1]:
+        #             self.set_edge_state(team1, team2, prob, season, type)
     
 
     def add_rating(self, rating_name='true_rating', mode='keep', season=0):
-        def edge_filter(e):
-            return e[3]['season'] == season
+        # def edge_filter(e):
+        #     return e[3]['season'] == season and e[3]['competition_type'] == 'League'
         """
         for each level, add rating to each team
         
@@ -205,40 +316,127 @@ class CountryLeague(RoundRobinNetwork):
         for level in ['level1', 'level2', 'level3', 'level4']:
             if rating_name=='true_rating':
                 rating_values, rating_hp = getattr(self, f'true_rating_{level}').get_cluster_ratings(
-                    self, level, edge_filter, season
+                    self, level, season
                 )
                 if mode == 'keep':
                     for team in getattr(self, f'teams_rating_{level}'):
                         index_of_team = getattr(self,f'teams_rating_{level}').index(team)
                         self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, rating_name, season=season)
-                        print('team:',team, 'rating_start:',rating_values[index_of_team][0])
+                        print('team:',team, 'rating_start:',rating_values[index_of_team][0], 'rating_end:',rating_values[index_of_team][-1])
                 elif mode == 'mix' or mode == 'interchange':
                     for team in getattr(self, f'teams_{level}'):
                         index_of_team = getattr(self,f'teams_{level}').index(team)
                         self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, rating_name, season=season)
-                        print('team:',team, 'rating_start:',rating_values[index_of_team][0])
+                        print('team:',team, 'rating_start:',rating_values[index_of_team][0], 'rating_end:',rating_values[index_of_team][-1])
 
+    def add_forecast(self, forecast, forecast_name, season=0):
+        for match in self.data.edges(keys=True):
+            if self.data.edges[match].get('season', 0) == season:
+                if self.data.edges[match].get('competition_type', '') == 'League':
+                    super()._add_forecast_to_team(match, deepcopy(forecast), forecast_name, 'true_rating')
+                elif self.data.edges[match].get('competition_type', '') == 'National':
+                    match_day = self.data.edges[match].get('day', 1)
+                    home_league_matches = [
+                        (u, v, data['day'], data['round']) 
+                        for u, v, key, data in self.data.edges(keys=True, data=True) 
+                        if data['season'] == season and data['competition_type'] == 'League' and (u == match[1] or v == match[1])
+                    ]
+                    closest_round = max([(day, round) for _, _, day, round in home_league_matches if day <= match_day], default=None, key=lambda x:x[0])[1]
+                    home_rating = self.data.nodes[match[1]].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
+
+                    away_league_matches = [
+                        (u, v, data['day'], data['round'])
+                        for u, v, key, data in self.data.edges(keys=True, data=True)
+                        if data['season'] == season and data['competition_type'] == 'League' and (u == match[0] or v == match[0])
+                    ]
+                    closest_round = max([(day, round) for _, _, day, round in away_league_matches if day <= match_day], default=None, key=lambda x: x[0])[1]
+                    away_rating = self.data.nodes[match[0]].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
+                    forecast_object = deepcopy(forecast)
+                    diff = forecast_object.home_error.apply(home_rating) - forecast_object.away_error.apply(away_rating)
+                    for i in range(len(forecast_object.outcomes)):
+                        n = len(forecast_object.outcomes)
+                        j = i+1
+                        forecast_object.probabilities[i]=forecast_object.logit_link_function(n-j+1,diff)-forecast_object.logit_link_function(n-j,diff)
+                    forecast_object.computed = True
+                    self.data.edges[match].setdefault('forecasts', {})['true_forecast'] = forecast_object
+
+    def play_sub_network(self, season):
+        season_games = list(filter(lambda match: match[3].get('season', -1) == season, self.iterate_over_games())) # already sorted
+        for away_team, home_team, edge_key, edge_attributes in season_games:
+            f = abs(edge_attributes['forecasts']['true_forecast'].probabilities)
+            weights = f.cumsum()
+            x = np.random.default_rng().uniform(0, 1)
+            for i in range(len(weights)):
+                if x < weights[i]:
+                    winner = self.true_forecast.outcomes[i]
+                    self.data.edges[away_team, home_team, edge_key]['winner'] = winner
+                    break
+
+    def promote_relegate_teams(self, season):
+        levels = ['level1', 'level2', 'level3', 'level4']
+        promoted_teams = []
+        relegated_teams = []
+        # get promoted and relegated teams based on ranking
+        for level in levels:
+            if self.promotion_number < len(getattr(self, f'teams_{level}'))/2:
+                promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
+                relegate = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='bottom')
+            else:
+                promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
+                remaining_teams = [team for team in getattr(self, f'teams_{level}') if team not in promote]
+                relegate = self.select_teams(remaining_teams, self.promotion_number, season=season, selection_strategy='bottom')
+            promoted_teams.extend(promote)
+            relegated_teams.extend(relegate)
+            setattr(self, f'promoted_teams_{level}', promote)
+            setattr(self, f'relegated_teams_{level}', relegate)
+
+        for team in promoted_teams:
+            current_level = self.teams_level[team][season]
+            next_level = f'level{int(current_level[-1]) - 1}' if current_level != 'level1' else 'level1'
+            self.teams_level[team][season + 1] = next_level
+
+        for team in relegated_teams:
+            current_level = self.teams_level[team][season]
+            if self.teams_level4 != []:
+                next_level = f'level{int(current_level[-1]) + 1}' if current_level != 'level4' else 'level4'
+            else:
+                next_level = f'level{int(current_level[-1]) + 1}' if current_level != 'level3' else 'level3'
+            self.teams_level[team][season + 1] = next_level
+        for team, seasons in self.teams_level.items():
+            if season + 1 not in seasons:
+                seasons[season + 1] = seasons[season]
+        for level in levels:
+            setattr(self, f'teams_{level}', [team for team in self.teams_level.keys() if self.teams_level[team][season + 1] == level])
 
     def create_data(self):
         for season in range(self.seasons):
             print('--------------- season:', season, '----------------')
             # season = 0
             
-            # fill the country graph
+            # fill the league graph and add rating
             self.fill_graph(season=season)
-            
             self.add_rating(rating_name='true_rating', mode=self.rating_mode, season=season)
-            levels = ['level1', 'level2', 'level3', 'level4']
+            
+            # schedule the national matches
+            levels = [
+                (self.teams_level1, self.teams_level2, self.avg_match_level1_level2),
+                (self.teams_level1, self.teams_level3, self.avg_match_level3_level1),
+                (self.teams_level2, self.teams_level3, self.avg_match_level2_level3)
+            ]
+            for level1, level2, avg_match in levels:
+                self.schedule_network(level1, level2, avg_match, season)
+            
 
             # add forecast to all games
-            super().add_forecast(self.true_forecast, 'true_forecast', season=season)
+            self.add_forecast(self.true_forecast, 'true_forecast', season=season)
             
             # play this season
-            season_games = list(filter(lambda match: match[3].get('season', -1) == season, self.iterate_over_games()))
-            self.play_sub_network(season_games)
+            
+            self.play_sub_network(season)
             print('********** playing season:', season, '*********')
             
             # based on the reslut of game, give ranking
+            levels = ['level1', 'level2', 'level3', 'level4']
             for level in levels:
                 print('*******', level)
                 ratings, rating_hp = self.ranking_rating.get_cluster_ratings(self, getattr(self, f'teams_{level}'), season=season, level=level)
@@ -246,58 +444,41 @@ class CountryLeague(RoundRobinNetwork):
                     index_of_team = getattr(self,f'teams_{level}').index(team)
                     self._add_rating_to_team(team, ratings[index_of_team], rating_hp, 'ranking', season=season)
                     print('team:',team, 'ranking_end_season:',ratings[index_of_team][-1])
-            promoted_teams = []
-            relegated_teams = []
-            # get promoted and relegated teams based on ranking
-            for level in levels:
-                if self.promotion_number < len(getattr(self, f'teams_{level}'))/2:
-                    promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
-                    relegate = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='bottom')
-                else:
-                    promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
-                    remaining_teams = [team for team in getattr(self, f'teams_{level}') if team not in promote]
-                    relegate = self.select_teams(remaining_teams, self.promotion_number, season=season, selection_strategy='bottom')
-                promoted_teams.extend(promote)
-                relegated_teams.extend(relegate)
-                setattr(self, f'promoted_teams_{level}', promote)
-                setattr(self, f'relegated_teams_{level}', relegate)
+            
+            self.promote_relegate_teams(season)
+            # promoted_teams = []
+            # relegated_teams = []
+            # # get promoted and relegated teams based on ranking
+            # for level in levels:
+            #     if self.promotion_number < len(getattr(self, f'teams_{level}'))/2:
+            #         promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
+            #         relegate = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='bottom')
+            #     else:
+            #         promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
+            #         remaining_teams = [team for team in getattr(self, f'teams_{level}') if team not in promote]
+            #         relegate = self.select_teams(remaining_teams, self.promotion_number, season=season, selection_strategy='bottom')
+            #     promoted_teams.extend(promote)
+            #     relegated_teams.extend(relegate)
+            #     setattr(self, f'promoted_teams_{level}', promote)
+            #     setattr(self, f'relegated_teams_{level}', relegate)
 
-            for team in promoted_teams:
-                current_level = self.teams_level[team][season]
-                next_level = f'level{int(current_level[-1]) - 1}' if current_level != 'level1' else 'level1'
-                self.teams_level[team][season + 1] = next_level
+            # for team in promoted_teams:
+            #     current_level = self.teams_level[team][season]
+            #     next_level = f'level{int(current_level[-1]) - 1}' if current_level != 'level1' else 'level1'
+            #     self.teams_level[team][season + 1] = next_level
 
-            for team in relegated_teams:
-                current_level = self.teams_level[team][season]
-                if self.teams_level4 != []:
-                    next_level = f'level{int(current_level[-1]) + 1}' if current_level != 'level4' else 'level4'
-                else:
-                    next_level = f'level{int(current_level[-1]) + 1}' if current_level != 'level3' else 'level3'
-                self.teams_level[team][season + 1] = next_level
-            for team, seasons in self.teams_level.items():
-                if season + 1 not in seasons:
-                    seasons[season + 1] = seasons[season]
-            for level in levels:
-                setattr(self, f'teams_{level}', [team for team in self.teams_level.keys() if self.teams_level[team][season + 1] == level])
-
-            # for team in self.promoted_teams_level2:
-            #     self.teams_level1.append(team)
-            #     self.teams_level2.remove(team)
-            # for team in self.relegated_teams_level1:
-            #     self.teams_level1.remove(team)
-            #     self.teams_level2.append(team)
-            # for team in self.promoted_teams_level3:
-            #     self.teams_level2.append(team)
-            #     self.teams_level3.remove(team)
-            # for team in self.relegated_teams_level2:
-            #     self.teams_level2.remove(team)
-            #     self.teams_level3.append(team)
-            # for team in self.relegated_teams_level3:
-            #     self.teams_level3.remove(team)
-            #     self.teams_level4.append(team)
-            # for team in self.promoted_teams_level4:
-            #     self.teams_level3.append(team)
-            #     self.teams_level4.remove(team)
+            # for team in relegated_teams:
+            #     current_level = self.teams_level[team][season]
+            #     if self.teams_level4 != []:
+            #         next_level = f'level{int(current_level[-1]) + 1}' if current_level != 'level4' else 'level4'
+            #     else:
+            #         next_level = f'level{int(current_level[-1]) + 1}' if current_level != 'level3' else 'level3'
+            #     self.teams_level[team][season + 1] = next_level
+            # for team, seasons in self.teams_level.items():
+            #     if season + 1 not in seasons:
+            #         seasons[season + 1] = seasons[season]
+            # for level in levels:
+            #     setattr(self, f'teams_{level}', [team for team in self.teams_level.keys() if self.teams_level[team][season + 1] == level])
         
         return True
 
@@ -316,12 +497,14 @@ class InternationalCompetition_Combine(BaseNetwork):
         """
         self.type='international'
         self.countries_configs = kwargs.get('countries_configs', {})
+        self.avg_match_per_team = kwargs.get('avg_match_per_team', 3)
+        self.min_match_per_team = kwargs.get('min_match_per_team', 1)
         self.international_prob = kwargs.get('match_prob', 0.1)
         self.oneleg = kwargs.get('oneleg', False)
         self.teams_per_country = kwargs.get('teams_per_country', 3)
         self.countries_leagues = {}
         self.seasons = kwargs.get('seasons', 1)
-        self.days_between_rounds = kwargs.get('days_between_rounds', 1)
+        # self.days_between_rounds = kwargs.get('days_between_rounds', 1)
         self.choose_mode = kwargs.get('choose_mode', 'random')
         self.team_id_map = {}  # map from original team id to new unique team id
         self.selected_teams_list = []
@@ -350,47 +533,78 @@ class InternationalCompetition_Combine(BaseNetwork):
                 self.total_teams+=country_config.get('teams', 0)
             self.n_teams = self.total_teams
             self.n_rounds = kwargs.get('rounds', self.n_teams - 1 + self.n_teams % 2)
+        else:
+            self.total_teams=0
+            for country_idx, country_config in self.countries_configs.items():
+                self.total_teams+=country_config.n_teams
+                self.countries_leagues[country_idx] = country_config
         self.create_data()
     
     def add_bets(self):
         pass
 
-    def add_forecast(self, country_node_mapping, season):
-        def find_team_id_in_country(country_node_mapping, team_id):
-            for country_id, teams in country_node_mapping.items():
-                for original_id, mapped_id in teams.items():
-                    if mapped_id == team_id:
-                        return country_id, original_id
-            return None, None
+    def add_forecast(self, season):
+        # def find_team_id_in_country(country_node_mapping, team_id):
+        #     for country_id, teams in country_node_mapping.items():
+        #         for original_id, mapped_id in teams.items():
+        #             if mapped_id == team_id:
+        #                 return country_id, original_id
+        #     return None, None
         # add forecast()
-        international_match_list = [(u,v,k) for u,v,k,data in self.data.edges(keys=True, data=True) if data['season'] == season and data.get('competition_type','')=='international']
-        for match in international_match_list:
-            round_pointer = self.data.edges[match].get('round', 0)
-            home_team_country, home_team_origin = find_team_id_in_country(country_node_mapping, match[1])
-            away_team_country, away_team_origin = find_team_id_in_country(country_node_mapping, match[0])
-            
-            # # get rating from origin country network
-            # home_ratings = self.countries_leagues[home_team_country].data.nodes[home_team_origin].get('ratings', {}).get('true_rating', {}).get(season, 0)
-            home_ratings = self.data.nodes[match[1]].get('ratings', {}).get('true_rating', {}).get(season, 0)
-            international_match_day = self.data.edges[match].get('day', 1) # get the date when the match is played
-            days_between_rounds_home = self.countries_configs[home_team_country].get('days_between_rounds', 1)
-            # days_between_rounds_home = self.countries_leagues[home_team_country].days_between_rounds # get the days between rounds of origin country
-            # date = 1 + round * days_between_rounds, then the round of the match is (date-1)/days_between_rounds, and the rating of the match is round_pointer+1
-            home_rating = home_ratings[int((international_match_day-1)/days_between_rounds_home)+1]
-            
-            away_ratings = self.data.nodes[match[0]].get('ratings', {}).get('true_rating', {}).get(season, 0)
-            days_between_rounds_away = self.countries_configs[away_team_country].get('days_between_rounds', 1)
-            away_rating = away_ratings[int((international_match_day-1)/days_between_rounds_away)+1]
-            # list(filter(lambda match: match[3].get('season', -1) == season, self.countries_leagues[away_team_country].iterate_over_games()))
+        # international_match_list = [(u,v,k) for u,v,k,data in self.data.edges(keys=True, data=True) if data['season'] == season and data.get('competition_type','')=='international']
+        for match in self.data.edges(keys=True):
+            if self.data.edges[match].get('season', 0) == season and self.data.edges[match].get('competition_type', '') == 'international':
+                match_day = self.data.edges[match].get('day', 1)
+                home_id = match[1]
+                away_id = match[0]
+                home_country_id = home_id.split('_')[0]
+                away_country_id = away_id.split('_')[0]
+                
+                home_league_matches = [
+                        (u, v, data['day'], data['round']) 
+                        for u, v, key, data in self.countries_leagues[home_country_id].data.edges(keys=True, data=True) 
+                        if data['season'] == season and data['competition_type'] == 'League' and (u == home_id or v == home_id)
+                    ]
+                closest_round = max([(day, round) for _, _, day, round in home_league_matches if day <= match_day], default=None, key=lambda x:x[0])[1]
+                # home_rating = self.countries_leagues[home_country_id].data.nodes[match[1]].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
+                home_rating = self.data.nodes[home_id]['ratings']['true_rating'][season][closest_round+1]
 
-            forecast_object = deepcopy(self.true_forecast)
-            diff = forecast_object.home_error.apply(home_rating) - forecast_object.away_error.apply(away_rating)
-            for i in range(len(forecast_object.outcomes)):
-                n = len(forecast_object.outcomes)
-                j = i+1
-                forecast_object.probabilities[i]=forecast_object.logit_link_function(n-j+1,diff)-forecast_object.logit_link_function(n-j,diff)
-            forecast_object.computed = True
-            self.data.edges[match].setdefault('forecasts', {})['true_forecast'] = forecast_object
+                away_league_matches = [
+                    (u, v, data['day'], data['round'])
+                    for u, v, key, data in self.countries_leagues[away_country_id].data.edges(keys=True, data=True)
+                    if data['season'] == season and data['competition_type'] == 'League' and (u == away_id or v == away_id)
+                ]
+                closest_round = max([(day, round) for _, _, day, round in away_league_matches if day <= match_day], default=None, key=lambda x: x[0])[1]
+                # away_rating = self.countries_leagues[away_country_id].data.nodes[match[0]].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
+                away_rating = self.data.nodes[away_id]['ratings']['true_rating'][season][closest_round+1]
+
+                forecast_object = deepcopy(self.true_forecast)
+                diff = forecast_object.home_error.apply(home_rating) - forecast_object.away_error.apply(away_rating)
+                for i in range(len(forecast_object.outcomes)):
+                    n = len(forecast_object.outcomes)
+                    j = i+1
+                    forecast_object.probabilities[i]=forecast_object.logit_link_function(n-j+1,diff)-forecast_object.logit_link_function(n-j,diff)
+                forecast_object.computed = True
+                self.data.edges[match].setdefault('forecasts', {})['true_forecast'] = forecast_object
+
+            # # round_pointer = self.data.edges[match].get('round', 0)
+            # # home_team_country, home_team_origin = find_team_id_in_country(country_node_mapping, match[1])
+            # # away_team_country, away_team_origin = find_team_id_in_country(country_node_mapping, match[0])
+            
+            # # # get rating from origin country network
+            # # home_ratings = self.countries_leagues[home_team_country].data.nodes[home_team_origin].get('ratings', {}).get('true_rating', {}).get(season, 0)
+            # home_ratings = self.data.nodes[match[1]].get('ratings', {}).get('true_rating', {}).get(season, 0)
+            # international_match_day = self.data.edges[match].get('day', 1) # get the date when the match is played
+            # days_between_rounds_home = self.countries_configs[home_team_country].get('days_between_rounds', 1)
+            # # days_between_rounds_home = self.countries_leagues[home_team_country].days_between_rounds # get the days between rounds of origin country
+            # # date = 1 + round * days_between_rounds, then the round of the match is (date-1)/days_between_rounds, and the rating of the match is round_pointer+1
+            # home_rating = home_ratings[int((international_match_day-1)/days_between_rounds_home)+1]
+            
+            # away_ratings = self.data.nodes[match[0]].get('ratings', {}).get('true_rating', {}).get(season, 0)
+            # days_between_rounds_away = self.countries_configs[away_team_country].get('days_between_rounds', 1)
+            # away_rating = away_ratings[int((international_match_day-1)/days_between_rounds_away)+1]
+            # # list(filter(lambda match: match[3].get('season', -1) == season, self.countries_leagues[away_team_country].iterate_over_games()))
+
 
     def add_odds(self):
         pass
@@ -418,53 +632,45 @@ class InternationalCompetition_Combine(BaseNetwork):
     def fill_graph(self, season=0):
         teams_list = self.international_teams_list[season-1]
         number_of_teams = len(teams_list)
-        n_games_per_round = int(math.ceil(number_of_teams / 2))
-        number_of_rounds = number_of_teams - 1 + number_of_teams % 2
+
+        total_matches = math.ceil((number_of_teams * self.avg_match_per_team)/2)
+        possible_matches = [(team1, team2) for team1 in teams_list for team2 in teams_list if team1 != team2]
+        random.shuffle(possible_matches)
+        match_pairs = set()
+        used_teams = set()
+
+        while possible_matches and len(used_teams) < number_of_teams:
+            match = possible_matches.pop()
+            team1, team2 = match
+            if team1 not in used_teams or team2 not in used_teams:
+                match_pairs.add(match)
+                used_teams.add(team1)
+                used_teams.add(team2)
         
-        team_labels = {i:i for i in teams_list}
-
-        graph = self.data
-
-        if number_of_teams % 2 != 0:
-            teams_list.append(-1)
-        slice_a = teams_list[0:n_games_per_round]
-        slice_b = teams_list[n_games_per_round:]
-        fixed = teams_list[0]
-        day = 1
-        for season_round in range(0, number_of_rounds):
-            for game in range(0, n_games_per_round):
-                if (slice_a[game] != -1) and (slice_b[game] != -1):
-                    if season_round % 2 == 0:
-                        graph.add_edge(
-                            team_labels.get(slice_a[game], slice_a[game]),
-                            team_labels.get(slice_b[game], slice_b[game]),
-                            season=season, round=season_round, day=day, competition_type='international'
-                        )
-                        graph.add_edge(
-                            team_labels.get(slice_b[game], slice_b[game]),
-                            team_labels.get(slice_a[game], slice_a[game]),
-                            season=season, round=season_round + number_of_rounds,
-                            day=day + (number_of_rounds * self.days_between_rounds),
-                            competition_type='international'
-                        )
-                    else:
-                        graph.add_edge(
-                            team_labels.get(slice_b[game], slice_b[game]),
-                            team_labels.get(slice_a[game], slice_a[game]),
-                            season=season, round=season_round, day=day, competition_type='international'
-                        )
-                        graph.add_edge(
-                            team_labels.get(slice_a[game], slice_a[game]),
-                            team_labels.get(slice_b[game], slice_b[game]),
-                            season=season, round=season_round + number_of_rounds,
-                            day=day + (number_of_rounds * self.days_between_rounds), 
-                            competition_type='international'
-                        )
-
-            day += self.days_between_rounds
-            rotate = slice_a[-1]
-            slice_a = [fixed, slice_b[0]] + slice_a[1:-1]
-            slice_b = slice_b[1:] + [rotate]
+        while len(match_pairs) < total_matches and possible_matches!=[]:
+            match = possible_matches.pop()
+            team1, team2 = match
+            match_pairs.add((team1, team2))
+        
+        match_schedule = []
+        available_days = list(range(1, 366))
+        for match in match_pairs:
+            day = random.choice(available_days)
+            match_schedule.append((match[0], match[1], day))
+        
+        match_schedule.sort(key=lambda x: x[2])
+        current_round = 0
+        last_day = match_schedule[0][2]
+        for match in match_schedule:
+            if match[2] != last_day:
+                current_round += 1
+            last_day = match[2]
+            self.data.add_edge(
+                match[0],
+                match[1],
+                season=season, round=current_round, day=match[2], competition_type='international'
+            )
+            print(f"Round {current_round}: {match[0]} vs {match[1]} on Day {match[2]}")
 
     def set_edge_state(self, season):
         teams_list = self.international_teams_list[season-1]
@@ -484,7 +690,10 @@ class InternationalCompetition_Combine(BaseNetwork):
                                 self.data.edges[u, v, key]['state'] = 'inactive'
                                 self.data.edges[v, u, key]['state'] = 'inactive'
     
-    def select_teams(self, country_node_mapping):
+    def select_teams(self):
+        if self.data is None:
+            self.data = nx.MultiDiGraph()
+        
         self.international_teams_list = {}
         for season in range(self.seasons):
             print('international competitinon after season: ', season)
@@ -495,12 +704,18 @@ class InternationalCompetition_Combine(BaseNetwork):
                 clusters = [team for team,seasons in country_league.teams_level.items() if seasons[season] == 'level1']
                 selected_teams = country_league.select_teams(clusters, self.teams_per_country, season, self.choose_mode)
                 for t in selected_teams:
-                    self.international_teams_list[season].append(country_node_mapping[country_idx][t])
-                print(f'teams from country {country_idx}: {selected_teams}')
-        self.cleanup_national_networks()
+                    self.international_teams_list[season].append(t)
+                    country_id = t.split('_')[0]
+                    # original_attributes = self.countries_leagues[country_idx].data.nodes[t]
+                    # self.data.add_node(t, **original_attributes)
+                    self.data.add_node(t)
+                    self.data.nodes[t] = self.countries_leagues[country_idx].data.nodes[t] # same attribute dictionary object
+            print(f'internaiontal season {season}: {self.international_teams_list[season]}')
+        # self.cleanup_national_networks()
     
     def merge_graph(self):
         merged_graph = nx.MultiDiGraph()
+        
         current_node_idx = self.total_teams-1
         country_node_mapping = {}
 
@@ -563,18 +778,19 @@ class InternationalCompetition_Combine(BaseNetwork):
 
     def create_data(self):
         # # merge country graphs merge_graph()
-        country_node_mapping = self.merge_graph()
-        self.check_data(country_node_mapping)
-        self.select_teams(country_node_mapping)
+        # country_node_mapping = self.merge_graph()
+        self.data = nx.MultiDiGraph()
+        # self.check_data(country_node_mapping)
+        self.select_teams()
         
         for season in range(1, self.seasons):
             # ###### skip first season
 
             self.fill_graph(season)
-            self.set_edge_state(season)
+            # self.set_edge_state(season)
             
             print(f'play International Competition Season {season-1}')
-            self.add_forecast(country_node_mapping, season)
+            self.add_forecast(season)
             self.play_sub_network(season)
             
             
