@@ -705,11 +705,7 @@ class InternationalCompetition_Combine(BaseNetwork):
                 selected_teams = country_league.select_teams(clusters, self.teams_per_country, season, self.choose_mode)
                 for t in selected_teams:
                     self.international_teams_list[season].append(t)
-                    country_id = t.split('_')[0]
-                    # original_attributes = self.countries_leagues[country_idx].data.nodes[t]
-                    # self.data.add_node(t, **original_attributes)
-                    self.data.add_node(t)
-                    self.data.nodes[t] = self.countries_leagues[country_idx].data.nodes[t] # same attribute dictionary object
+                    self.data.add_node(t, **self.countries_leagues[country_idx].data.nodes[t]) #directly use original node-attribute object
             print(f'internaiontal season {season}: {self.international_teams_list[season]}')
         # self.cleanup_national_networks()
     
