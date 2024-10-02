@@ -115,13 +115,14 @@ test_network2 = CountryLeague(
 test_network = InternationalCompetition_Combine(
     countries_configs={'c1':test_network1, 'c2':test_network2},
     teams_per_country=2,
-    match_prob=0.0,
+    # match_prob=0.0,
     seasons=3,
     # days_between_rounds=7,
     choose_mode='top',
     create_country_network=False,
     avg_match_per_team=3,
     min_match_per_team=1,
+    oneleg=False,
 )
 
 # test_network.export(ratings=['true_rating','ranking'],filename='test_InternationalLeague_network.csv')

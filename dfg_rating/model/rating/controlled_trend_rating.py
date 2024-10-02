@@ -97,7 +97,7 @@ class ControlledTrendRating(BaseRating):
         self.agg = {}
         self.init_season_cluster_ratings(season, n, ratings)
         for away_team, home_team, match_key, match_data in sorted(games,
-                                                                  key=lambda x: x[3]['day']):
+                                                                key=lambda x: x[3]['day']):
             # if match_data.get('season', 0) != current_season:
             #     current_season = match_data['season']
             #     agg = {}
@@ -107,6 +107,7 @@ class ControlledTrendRating(BaseRating):
             if away_team in t:
                 i_away_team = indexOf(t, away_team)
                 ratings[i_away_team][match_data['round'] + 1] = ratings[i_away_team][match_data['round']] + self.new_rating_value(away_team, match_data)
+
         return ratings, self.props
 
     def init_season_cluster_ratings(self, season, n, ratings):

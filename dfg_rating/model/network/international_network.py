@@ -1,3 +1,4 @@
+from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
 import numpy as np
 import pandas as pd
 import random
@@ -17,25 +18,25 @@ from copy import deepcopy
 
 
 
-class CountryLeague(RoundRobinNetwork):
+class CountryLeague(BaseNetwork):
     def __init__(self, **kwargs):
+        self.type='national'
+        self.data=None
+        self.seasons = kwargs.get('seasons', 1)
         self.country_id = kwargs.get('country_id', 0)+'_'
         self.oneleg = kwargs.get('oneleg', True)
         self.num_teams_level1 = kwargs.get('level1_teams', 12)
         self.num_teams_level2 = kwargs.get('level2_teams', 12)
         self.num_teams_level3 = kwargs.get('level3_teams', 12)
         self.promotion_number = kwargs.get('promotion_number', 2)
-        # self.days_between_rounds = kwargs.get('days_between_rounds', 1)
+        self.number_of_clusters = kwargs.get('clusters', 1)
         self.n_teams = kwargs.get('teams', 0)
-        # self.n_playing = self.num_teams_level1 + self.num_teams_level2 + self.num_teams_level3
+
         kwargs['teams'] = self.n_teams
+        self.n_rounds = kwargs.get('rounds', self.n_teams - 1 + self.n_teams % 2)
         kwargs['play'] = False
         self.rating_mode = kwargs.get('rating_mode', 'keep')
         
-
-        # self.prob_level1_level2 = kwargs.get('prob_level1_level2', 0.4)
-        # self.prob_level1_level3 = kwargs.get('prob_level1_level3', 0.3)
-        # self.prob_level2_level3 = kwargs.get('prob_level2_level3', 0.2)
         self.min_match_level1_level2 = kwargs.get('min_match_per_team_level1_level2', 1)
         self.avg_match_level1_level2 = kwargs.get('avg_match_per_team_level1_level2', 3)
         self.min_match_level2_level3 = kwargs.get('min_match_per_team_level2_level3', 1)
@@ -91,17 +92,27 @@ class CountryLeague(RoundRobinNetwork):
 
         self.ranking_rating: BaseRating = kwargs.get('ranking_rating', LeagueRating())
 
-        super().__init__(**kwargs)
+        self.create_data()
     
+    def add_odds():
+        pass
+    def add_bets():
+        pass
     # def select_teams(self, cluster_1, cluster_2, prob, season, select_n_teams=None, set_edge_state=False):
     def select_teams(self, clusters, select_n_teams=None, season=0, selection_strategy='random'):
         def select_from_cluster(cluster, n, strategy):
             if strategy == 'random':
                 return random.sample(cluster, n) if n else cluster
             elif strategy == 'top':
-                return sorted(cluster, key=lambda team: self.data.nodes[team].get('ratings', {}).get('ranking', {}).get(season, {})[-1], reverse=True)[:n]
+                if season in self.data.nodes[cluster[0]]['ratings'].get('ranking', {}):
+                    return sorted(cluster, key=lambda team: (self.data.nodes[team].get('ratings', {}).get('ranking', {}).get(season, {})[-1], random.random()), reverse=True)[:n]
+                else:
+                    return sorted(cluster, key=lambda team: (self.data.nodes[team].get('ratings', {}).get('true_rating', {}).get(season, {})[-1], random.random()), reverse=True)[:n]
             elif strategy == 'bottom':
-                return sorted(cluster, key=lambda team: self.data.nodes[team].get('ratings', {}).get('ranking', {}).get(season, {})[-1])[:n]
+                if season in self.data.nodes[cluster[0]]['ratings'].get('ranking', {}):
+                    return sorted(cluster, key=lambda team: (self.data.nodes[team].get('ratings', {}).get('ranking', {}).get(season, {})[-1], random.random()))[:n]
+                else:
+                    return sorted(cluster, key=lambda team: (self.data.nodes[team].get('ratings', {}).get('true_rating', {}).get(season, {})[-1], random.random()))[:n]
             else:
                 raise ValueError(f"Unknown selection strategy: {strategy}")
         if clusters == []:
@@ -143,32 +154,66 @@ class CountryLeague(RoundRobinNetwork):
                 self.data.edges[u, v, key]['state'] = 'active'
                 self.data.edges[v, u, key]['state'] = 'active'
 
-    def schedule_network(self, teams_level1, teams_level2, avg_match_level1_level2, season):
+    def schedule_network(self, teams_level1, teams_level2, min_matches_per_team, avg_matches_per_team, season, oneleg=True):
         # set national cup match
-        # matches between level1 and level2
         all_teams = teams_level1 + teams_level2
         num_teams = len(all_teams)
-        
-        total_matches = math.ceil((num_teams * avg_match_level1_level2) / 2)
-        possible_matches = [(team1, team2) for team1 in all_teams for team2 in all_teams if team1 != team2]
-        random.shuffle(possible_matches)
+        if oneleg:
+            total_matches = math.ceil((num_teams * avg_matches_per_team) / 2)
+        else:
+            total_matches = math.ceil((num_teams * avg_matches_per_team) / 4)
+
         match_pairs = set()
-        used_teams = set()
-        
-        # every team plays at least one game
-        while possible_matches and len(used_teams) < num_teams:
-            match = possible_matches.pop()
+        team_matches = {team: 0 for team in all_teams}
+
+        # possible_matches = [(team1, team2) for team1 in all_teams for team2 in all_teams if team1 != team2]
+        possible_matches = [(team1, team2) for idx1, team1 in enumerate(all_teams) for team2 in all_teams[idx1+1:]]
+        random.shuffle(possible_matches)
+        for match in possible_matches:
             team1, team2 = match
-            if team1 not in used_teams or team2 not in used_teams:
+            # Check if both teams need more matches
+            if team_matches[team1] < min_matches_per_team or team_matches[team2] < min_matches_per_team:
+                if oneleg:
+                    if random.choice([True, False]):
+                        match = (team1, team2)
+                    else:
+                        match = (team2, team1)
+                    match_pairs.add(match)
+                    possible_matches.remove((team1, team2))
+                    team_matches[team1] += 1
+                    team_matches[team2] += 1
+                else:
+                    # Schedule both home and away matches
+                    match_pairs.add((team1, team2))
+                    match_pairs.add((team2, team1))
+                    possible_matches.remove(match)
+                    team_matches[team1] += 2
+                    team_matches[team2] += 2
+            else:
+                # Both teams have met the minimum matches requirement
+                continue
+            # Check if all teams have met the minimum matches requirement
+            if all([team_matches[team] >= min_matches_per_team for team in all_teams]):
+                break
+        
+        while possible_matches!=[] and len(match_pairs)<total_matches:
+            pair = possible_matches.pop()
+            team1, team2 = pair
+            if oneleg:
+                if random.choice([True, False]):
+                    match = (team1, team2)
+                else:
+                    match = (team2, team1)
                 match_pairs.add(match)
-                used_teams.add(team1)
-                used_teams.add(team2)
-        
-        # continue until reaches avg_match_per_team
-        while len(match_pairs) < total_matches and possible_matches!=[]:
-            match = possible_matches.pop()
-            team1, team2 = match
-            match_pairs.add((team1, team2))
+                team_matches[team1] += 1
+                team_matches[team2] += 1
+            else:
+                # Schedule both home and away matches
+                match_pairs.add((team1, team2))
+                match_pairs.add((team2, team1))
+                team_matches[team1] += 2
+                team_matches[team2] += 2
+
         
         # random choose day during 365 days
         match_schedule = []
@@ -178,18 +223,13 @@ class CountryLeague(RoundRobinNetwork):
             match_schedule.append((match[0], match[1], day))
         
         match_schedule.sort(key=lambda x: x[2])  # sort by match day
-        current_round = 0
-        last_day = match_schedule[0][2]
         for match in match_schedule:
-            if match[2] != last_day:
-                current_round += 1 # keep same day match as one round
-            last_day = match[2]
             self.data.add_edge(
                 match[0],
                 match[1],
-                season=season, round=current_round, day=match[2], competition_type='National'
+                season=season, round=match[2], day=match[2], competition_type='National'
             )
-            print(f"Round {current_round}: {match[0]} vs {match[1]} on Day {match[2]}")
+            print(f"{match[0]} vs {match[1]} on Day {match[2]}")
     
     def fill_graph(self, season=0):
 
@@ -272,33 +312,7 @@ class CountryLeague(RoundRobinNetwork):
             try:
                 getattr(self, f'teams_{level}').remove(-1)
             except ValueError:
-                pass
-        
-        
-        
-
-        
-############################################################################################################
-        # clusters_probabilities = [
-        #     (self.teams_level1, self.teams_level1, 1, 'League'),
-        #     (self.teams_level2, self.teams_level2, 1, 'League'),
-        #     (self.teams_level3, self.teams_level3, 1, 'League'),
-        #     (self.teams_level1, self.teams_level2, self.prob_level1_level2, 'National'),
-        #     (self.teams_level1, self.teams_level3, self.prob_level1_level3, 'National'),
-        #     (self.teams_level2, self.teams_level3, self.prob_level2_level3, 'National'),
-        #     (self.teams_level1, self.teams_level4, 0, 'National'),
-        #     (self.teams_level2, self.teams_level4, 0, 'National'),
-        #     (self.teams_level3, self.teams_level4, 0, 'National'),
-        #     (self.teams_level4, self.teams_level4, 0, 'League')
-        # ]
-
-        # for cluster1, cluster2, prob, type in clusters_probabilities:
-        #     # selected_teams = self.select_teams([cluster1, cluster2], season)
-        #     selected_teams = [cluster1, cluster2] # dont need select
-        #     for team1 in selected_teams[0]:
-        #         for team2 in selected_teams[1]:
-        #             self.set_edge_state(team1, team2, prob, season, type)
-    
+                pass  
 
     def add_rating(self, rating_name='true_rating', mode='keep', season=0):
         # def edge_filter(e):
@@ -328,6 +342,12 @@ class CountryLeague(RoundRobinNetwork):
                         index_of_team = getattr(self,f'teams_{level}').index(team)
                         self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, rating_name, season=season)
                         print('team:',team, 'rating_start:',rating_values[index_of_team][0], 'rating_end:',rating_values[index_of_team][-1])
+    
+    def remove_division4_teams(self, season):
+        matches_of_4division = [(u,v,key,data) for u,v,key,data in self.data.edges(keys=True, data=True) if data['competition_type']=='League' and data['season']==season and (u in self.teams_level4 or v in self.teams_level4)]
+        # for team in self.teams_level4:
+        #     matches_of_team = [[u, v, key] for u, v, key, data in self.data.edges(keys=True, data=True) if (u == team or v == team) and data['competititon_type'] == 'League' and data['season'] == season]
+        self.data.remove_edges_from(matches_of_4division)
 
     def add_forecast(self, forecast, forecast_name, season=0):
         for match in self.data.edges(keys=True):
@@ -378,7 +398,7 @@ class CountryLeague(RoundRobinNetwork):
         relegated_teams = []
         # get promoted and relegated teams based on ranking
         for level in levels:
-            if self.promotion_number < len(getattr(self, f'teams_{level}'))/2:
+            if self.promotion_number <= len(getattr(self, f'teams_{level}'))/2:
                 promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
                 relegate = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='bottom')
             else:
@@ -416,15 +436,15 @@ class CountryLeague(RoundRobinNetwork):
             # fill the league graph and add rating
             self.fill_graph(season=season)
             self.add_rating(rating_name='true_rating', mode=self.rating_mode, season=season)
-            
+            self.remove_division4_teams(season)
             # schedule the national matches
             levels = [
-                (self.teams_level1, self.teams_level2, self.avg_match_level1_level2),
-                (self.teams_level1, self.teams_level3, self.avg_match_level3_level1),
-                (self.teams_level2, self.teams_level3, self.avg_match_level2_level3)
+                (self.teams_level1, self.teams_level2, self.min_match_level1_level2, self.avg_match_level1_level2),
+                (self.teams_level1, self.teams_level3, self.min_match_level3_level1, self.avg_match_level3_level1),
+                (self.teams_level2, self.teams_level3, self.min_match_level2_level3, self.avg_match_level2_level3)
             ]
-            for level1, level2, avg_match in levels:
-                self.schedule_network(level1, level2, avg_match, season)
+            for level1, level2, min_match, avg_match in levels:
+                self.schedule_network(level1, level2, min_match, avg_match, season, self.oneleg)
             
 
             # add forecast to all games
@@ -436,7 +456,7 @@ class CountryLeague(RoundRobinNetwork):
             print('********** playing season:', season, '*********')
             
             # based on the reslut of game, give ranking
-            levels = ['level1', 'level2', 'level3', 'level4']
+            levels = ['level1', 'level2', 'level3']
             for level in levels:
                 print('*******', level)
                 ratings, rating_hp = self.ranking_rating.get_cluster_ratings(self, getattr(self, f'teams_{level}'), season=season, level=level)
@@ -446,40 +466,7 @@ class CountryLeague(RoundRobinNetwork):
                     print('team:',team, 'ranking_end_season:',ratings[index_of_team][-1])
             
             self.promote_relegate_teams(season)
-            # promoted_teams = []
-            # relegated_teams = []
-            # # get promoted and relegated teams based on ranking
-            # for level in levels:
-            #     if self.promotion_number < len(getattr(self, f'teams_{level}'))/2:
-            #         promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
-            #         relegate = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='bottom')
-            #     else:
-            #         promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
-            #         remaining_teams = [team for team in getattr(self, f'teams_{level}') if team not in promote]
-            #         relegate = self.select_teams(remaining_teams, self.promotion_number, season=season, selection_strategy='bottom')
-            #     promoted_teams.extend(promote)
-            #     relegated_teams.extend(relegate)
-            #     setattr(self, f'promoted_teams_{level}', promote)
-            #     setattr(self, f'relegated_teams_{level}', relegate)
 
-            # for team in promoted_teams:
-            #     current_level = self.teams_level[team][season]
-            #     next_level = f'level{int(current_level[-1]) - 1}' if current_level != 'level1' else 'level1'
-            #     self.teams_level[team][season + 1] = next_level
-
-            # for team in relegated_teams:
-            #     current_level = self.teams_level[team][season]
-            #     if self.teams_level4 != []:
-            #         next_level = f'level{int(current_level[-1]) + 1}' if current_level != 'level4' else 'level4'
-            #     else:
-            #         next_level = f'level{int(current_level[-1]) + 1}' if current_level != 'level3' else 'level3'
-            #     self.teams_level[team][season + 1] = next_level
-            # for team, seasons in self.teams_level.items():
-            #     if season + 1 not in seasons:
-            #         seasons[season + 1] = seasons[season]
-            # for level in levels:
-            #     setattr(self, f'teams_{level}', [team for team in self.teams_level.keys() if self.teams_level[team][season + 1] == level])
-        
         return True
 
     def get_mean_rating(self, rating_name, season, level, default_rating):
@@ -499,7 +486,7 @@ class InternationalCompetition_Combine(BaseNetwork):
         self.countries_configs = kwargs.get('countries_configs', {})
         self.avg_match_per_team = kwargs.get('avg_match_per_team', 3)
         self.min_match_per_team = kwargs.get('min_match_per_team', 1)
-        self.international_prob = kwargs.get('match_prob', 0.1)
+        # self.international_prob = kwargs.get('match_prob', 0.1)
         self.oneleg = kwargs.get('oneleg', False)
         self.teams_per_country = kwargs.get('teams_per_country', 3)
         self.countries_leagues = {}
@@ -605,12 +592,12 @@ class InternationalCompetition_Combine(BaseNetwork):
             # away_rating = away_ratings[int((international_match_day-1)/days_between_rounds_away)+1]
             # # list(filter(lambda match: match[3].get('season', -1) == season, self.countries_leagues[away_team_country].iterate_over_games()))
 
-
     def add_odds(self):
         pass
 
     def add_rating(self):
         pass
+
     def cleanup_national_networks(self):
         import gc
         del self.countries_leagues
@@ -629,29 +616,66 @@ class InternationalCompetition_Combine(BaseNetwork):
                     self.data.edges[away_team, home_team, edge_key]['winner'] = winner
                     break
 
-    def fill_graph(self, season=0):
+    def fill_graph(self, season=0, oneleg=False):
         teams_list = self.international_teams_list[season-1]
         number_of_teams = len(teams_list)
 
-        total_matches = math.ceil((number_of_teams * self.avg_match_per_team)/2)
-        possible_matches = [(team1, team2) for team1 in teams_list for team2 in teams_list if team1 != team2]
-        random.shuffle(possible_matches)
-        match_pairs = set()
-        used_teams = set()
+        if oneleg:
+            total_matches = math.ceil((number_of_teams * self.avg_match_per_team) / 2)
+        else:
+            total_matches = math.ceil((number_of_teams * self.avg_match_per_team) / 4)
 
-        while possible_matches and len(used_teams) < number_of_teams:
-            match = possible_matches.pop()
+        match_pairs = set()
+        team_matches = {team: 0 for team in teams_list}
+
+        possible_matches = [(team1, team2) for idx1, team1 in enumerate(teams_list) for team2 in teams_list[idx1+1:]]
+        random.shuffle(possible_matches)
+        # print(possible_matches)
+        for match in possible_matches:
             team1, team2 = match
-            if team1 not in used_teams or team2 not in used_teams:
+            # Check if both teams need more matches
+            if team_matches[team1] < self.min_match_per_team or team_matches[team2] < self.min_match_per_team:
+                if oneleg:
+                    if random.choice([True, False]):
+                        match = (team1, team2)
+                    else:
+                        match = (team2, team1)
+                    match_pairs.add(match)
+                    possible_matches.remove((team1, team2))
+                    team_matches[team1] += 1
+                    team_matches[team2] += 1
+                else:
+                    # Schedule both home and away matches
+                    match_pairs.add((team1, team2))
+                    match_pairs.add((team2, team1))
+                    possible_matches.remove(match)
+                    team_matches[team1] += 2
+                    team_matches[team2] += 2
+            else:
+                # Both teams have met the minimum matches requirement
+                continue
+            # Check if all teams have met the minimum matches requirement
+            if all([team_matches[team] >= self.min_match_per_team for team in teams_list]):
+                break
+        
+        while possible_matches!=[] and len(match_pairs)<total_matches:
+            pair = possible_matches.pop()
+            team1, team2 = pair
+            if oneleg:
+                if random.choice([True, False]):
+                    match = (team1, team2)
+                else:
+                    match = (team2, team1)
                 match_pairs.add(match)
-                used_teams.add(team1)
-                used_teams.add(team2)
-        
-        while len(match_pairs) < total_matches and possible_matches!=[]:
-            match = possible_matches.pop()
-            team1, team2 = match
-            match_pairs.add((team1, team2))
-        
+                team_matches[team1] += 1
+                team_matches[team2] += 1
+            else:
+                # Schedule both home and away matches
+                match_pairs.add((team1, team2))
+                match_pairs.add((team2, team1))
+                team_matches[team1] += 2
+                team_matches[team2] += 2
+            
         match_schedule = []
         available_days = list(range(1, 366))
         for match in match_pairs:
@@ -659,18 +683,13 @@ class InternationalCompetition_Combine(BaseNetwork):
             match_schedule.append((match[0], match[1], day))
         
         match_schedule.sort(key=lambda x: x[2])
-        current_round = 0
-        last_day = match_schedule[0][2]
         for match in match_schedule:
-            if match[2] != last_day:
-                current_round += 1
-            last_day = match[2]
             self.data.add_edge(
                 match[0],
                 match[1],
-                season=season, round=current_round, day=match[2], competition_type='international'
+                season=season, round=match[2], day=match[2], competition_type='international'
             )
-            print(f"Round {current_round}: {match[0]} vs {match[1]} on Day {match[2]}")
+            print(f"{match[0]} vs {match[1]} on Day {match[2]}")
 
     def set_edge_state(self, season):
         teams_list = self.international_teams_list[season-1]
@@ -773,8 +792,6 @@ class InternationalCompetition_Combine(BaseNetwork):
                 
 
     def create_data(self):
-        # # merge country graphs merge_graph()
-        # country_node_mapping = self.merge_graph()
         self.data = nx.MultiDiGraph()
         # self.check_data(country_node_mapping)
         self.select_teams()
@@ -782,173 +799,9 @@ class InternationalCompetition_Combine(BaseNetwork):
         for season in range(1, self.seasons):
             # ###### skip first season
 
-            self.fill_graph(season)
+            self.fill_graph(season, self.oneleg)
             # self.set_edge_state(season)
             
             print(f'play International Competition Season {season-1}')
             self.add_forecast(season)
             self.play_sub_network(season)
-            
-            
-
-
-class InternationalCompetition(RoundRobinNetwork):
-    def __init__(self, **kwargs):
-        """
-        InternationalCompetition class
-        """
-        self.countries_configs = kwargs.get('countries_configs', {})
-        self.international_prob = kwargs.get('international_prob', 0.1)
-        self.oneleg_international = kwargs.get('oneleg', False)
-        self.teams_per_country = kwargs.get('teams_per_country', 3)
-        self.countries_leagues = {}
-        self.n_teams = 0
-        for country_idx, country_config in self.countries_configs.items():
-            self.countries_leagues[country_idx] = country_config
-            setattr(self, f'oneleg_{country_idx}', country_config.get('oneleg', False))
-            setattr(self, f'number_teams_level1_{country_idx}', country_config.get('level1_teams', 0))
-            setattr(self, f'number_teams_level2_{country_idx}', country_config.get('level2_teams', 0))
-            setattr(self, f'number_teams_level3_{country_idx}', country_config.get('level3_teams', 0))
-            setattr(self, f'n_teams_{country_idx}', getattr(self, f'number_teams_level1_{country_idx}') + getattr(self, f'number_teams_level2_{country_idx}') + getattr(self, f'number_teams_level3_{country_idx}'))
-            self.n_teams += getattr(self, f'n_teams_{country_idx}')
-            
-            setattr(self, f'promotion_number_{country_idx}', country_config.get('promotion_number', 1))
-            setattr(self, f'prob_within_level1_{country_idx}', country_config.get('prob_within_level1', 0.7))
-            setattr(self, f'prob_within_level2_{country_idx}', country_config.get('prob_within_level2', 0.6))
-            setattr(self, f'prob_within_level3_{country_idx}', country_config.get('prob_within_level3', 0.5))
-            setattr(self, f'prob_level1_level2_{country_idx}', country_config.get('prob_level1_level2', 0.4))
-            setattr(self, f'prob_level1_level3_{country_idx}', country_config.get('prob_level1_level3', 0.3))
-            setattr(self, f'prob_level2_level3_{country_idx}', country_config.get('prob_level2_level3', 0.2))
-            setattr(self, f'team_labels_{country_idx}', country_config.get('team_labels', None))
-            
-            setattr(self,f'true_rating_level1_{country_idx}', kwargs.get(
-                'true_rating_level1',
-                ControlledTrendRating(
-                    starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=50),
-                    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
-                    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
-                    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
-                    rating_name='true_rating'
-                )
-            )
-            )
-
-            setattr(self,f'true_rating_level2_{country_idx}', kwargs.get(
-                'true_rating_level2',
-                ControlledTrendRating(
-                    starting_point=ControlledRandomFunction(distribution='normal', loc=800, scale=50),
-                    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
-                    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
-                    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
-                    rating_name='true_rating'
-                )
-            )
-            )
-
-            setattr(self,f'true_rating_level3_{country_idx}', kwargs.get(
-                'true_rating_level3',
-                ControlledTrendRating(
-                    starting_point=ControlledRandomFunction(distribution='normal', loc=500, scale=50),
-                    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
-                    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
-                    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
-                    rating_name='true_rating'
-                )
-            )
-            )
-            
-            setattr(self,f'true_forecast_{country_idx}', kwargs.get(
-                'true_forecast',
-                LogFunctionForecast(
-                    outcomes=['home', 'draw', 'away'],
-                    coefficients=[-0.9, 0.3],
-                    beta_parameter=0.006
-                )
-            )
-            )
-
-            setattr(self,f'ranking_rating_{country_idx}', kwargs.get('ranking_rating', LeagueRating()))
-
-        kwargs['teams'] = self.n_teams
-        kwargs['play'] = False
-
-        super().__init__(**kwargs)
-    
-    def fill_graph(self, season=0):
-        teams_list = list(range(0, self.n_teams))
-        self.team_labels = {i: i for i in range(self.n_teams)}
-        if self.data is None:
-            graph = nx.MultiDiGraph()
-            graph.add_nodes_from([t for t in teams_list])
-            self.data = graph
-        super().fill_graph(self.team_labels, season)
-
-        team_idx = 0
-        for country_idx in range(self.countries_configs):
-            teams_list_country = random.sample(teams_list, getattr(self, f'n_teams_{country_idx}'))
-            if season == 0:
-                setattr(self, f'teams_level1_{country_idx}', random.sample(teams_list_country, getattr(self, f'number_teams_level1_{country_idx}')))
-                teams_list_country = [t for t in teams_list_country if t not in getattr(self, f'teams_level1_{country_idx}')]
-                setattr(self, f'teams_level2_{country_idx}', random.sample(teams_list_country, getattr(self, f'number_teams_level2_{country_idx}')))
-                teams_list_country = [t for t in teams_list_country if t not in getattr(self, f'teams_level2_{country_idx}')]
-                setattr(self, f'teams_level3_{country_idx}', teams_list_country)
-
-                setattr(self, f'teams_rating_level1_{country_idx}', getattr(self, f'teams_level1_{country_idx}').copy())
-                setattr(self, f'teams_rating_level2_{country_idx}', getattr(self, f'teams_level2_{country_idx}').copy())
-                setattr(self, f'teams_rating_level3_{country_idx}', getattr(self, f'teams_level3_{country_idx}').copy())
-            print('country:', country_idx)
-            print('level1:',getattr(self, f'teams_level1_{country_idx}'))
-            print('level2:',getattr(self, f'teams_level2_{country_idx}'))
-            print('level3:',getattr(self, f'teams_level3_{country_idx}'))
-
-        def set_edge_state(team1, team2, prob, season):
-            def search_edge(team1, team2, season):
-                return next(((u, v, key) for u, v, key, data in self.data.edges(keys=True, data=True) if data['season'] == season and u == team1 and v == team2), None)
-
-            edges_team1_2 = search_edge(team1, team2, season)
-            if edges_team1_2:
-                u, v, key = edges_team1_2
-                if not self.oneleg:
-                    self.data.edges[u, v, key]['state'] = 'active' if random.random() < prob else 'inactive'
-                    self.data.edges[v, u, key]['state'] = 'active' if random.random() < prob else 'inactive'
-                else:
-                    if random.random() < 0.5:
-                        self.data.edges[u, v, key]['state'] = 'active' if random.random() < prob else 'inactive'
-                        self.data.edges[v, u, key]['state'] = 'inactive'
-                    else:
-                        self.data.edges[v, u, key]['state'] = 'active' if random.random() < prob else 'inactive'
-                        self.data.edges[u, v, key]['state'] = 'inactive'
-        
-        for team1 in getattr(self, f'teams_level1_{country_idx}'):
-            for team2 in getattr(self, f'teams_level2_{country_idx}'):
-                set_edge_state(team1,team2,getattr(self, f'prob_level1_level2_{country_idx}'),season)
-        
-        for team1 in getattr(self, f'teams_level1_{country_idx}'):
-            for team2 in getattr(self, f'teams_level3_{country_idx}'):
-                set_edge_state(team1,team2,getattr(self, f'prob_level1_level3_{country_idx}'),season)
-        
-        for team1 in getattr(self, f'teams_level2_{country_idx}'):
-            for team2 in getattr(self, f'teams_level3_{country_idx}'):
-                set_edge_state(team1,team2,getattr(self, f'prob_level2_level3_{country_idx}'),season)
-
-    def create_data(self):
-        for season in range(self.seasons):
-            self.fill_graph(season)
-            for country_idx in range(self.countries_configs):
-                print('--------------- country:', country_idx, '----------------')
-                # add each level's rating
-                for level in ['level1','level2','level3']:
-                    def edge_filter(e):
-                        return e[3]['season'] == season
-                    rating_values, rating_hp = getattr(self, f'true_rating_{level}_{country_idx}').get_cluster_ratings(
-                    self, getattr(self, f'teams_rating_{level}_{country_idx}'), edge_filter, season
-                    )
-                    for team in getattr(self, f'teams_rating_{level}_{country_idx}'):
-                        # rating_values, rating_hp = rating.get_cluster_ratings(
-                        #     self, [team], edge_filter
-                        # ) # can give a list of teams
-                        index_of_team = getattr(self,f'teams_rating_{level}_{country_idx}').index(team)
-                        self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, 'true_rating', season=season)
-                        print('team:',team, 'rating_start:',rating_values[index_of_team][0])
-                self.add_forcast(getattr(self, f'true_forecast_{country_idx}'), 'true_forecast', season=season)
-                season_games = list(filter(lambda match: match[3].get('season', -1) == season, self.iterate_over_games()))
