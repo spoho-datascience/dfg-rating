@@ -1,5 +1,5 @@
 from dfg_rating.model.network.international_network import CountryLeague, InternationalCompetition_Combine
-from dfg_rating.model.rating.controlled_trend_rating import ControlledRandomFunction, ControlledTrendRating
+from dfg_rating.model.rating.multi_mode_rating import ControlledRandomFunction, ControlledTrendRating
 from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
 import dfg_rating.viz.jupyter_widgets as DFGWidgets
 
@@ -57,6 +57,9 @@ test_network1 = CountryLeague(
     min_match_per_team_level3_level1=1,
     avg_match_per_team_level3_level1=3,
 )
+
+# test add elo ratings
+
 
 test_network2 = CountryLeague(
     teams=14,

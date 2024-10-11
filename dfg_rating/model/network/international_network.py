@@ -328,20 +328,19 @@ class CountryLeague(BaseNetwork):
 
         """
         for level in ['level1', 'level2', 'level3', 'level4']:
-            if rating_name=='true_rating':
-                rating_values, rating_hp = getattr(self, f'true_rating_{level}').get_cluster_ratings(
-                    self, level, season
-                )
-                if mode == 'keep':
-                    for team in getattr(self, f'teams_rating_{level}'):
-                        index_of_team = getattr(self,f'teams_rating_{level}').index(team)
-                        self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, rating_name, season=season)
-                        print('team:',team, 'rating_start:',rating_values[index_of_team][0], 'rating_end:',rating_values[index_of_team][-1])
-                elif mode == 'mix' or mode == 'interchange':
-                    for team in getattr(self, f'teams_{level}'):
-                        index_of_team = getattr(self,f'teams_{level}').index(team)
-                        self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, rating_name, season=season)
-                        print('team:',team, 'rating_start:',rating_values[index_of_team][0], 'rating_end:',rating_values[index_of_team][-1])
+            rating_values, rating_hp = getattr(self, f'true_rating_{level}').get_ratings(
+                self, level, season
+            )
+            if mode == 'keep':
+                for team in getattr(self, f'teams_rating_{level}'):
+                    index_of_team = getattr(self,f'teams_rating_{level}').index(team)
+                    self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, rating_name, season=season)
+                    print('team:',team, 'rating_start:',rating_values[index_of_team][0], 'rating_end:',rating_values[index_of_team][-1])
+            elif mode == 'mix' or mode == 'interchange':
+                for team in getattr(self, f'teams_{level}'):
+                    index_of_team = getattr(self,f'teams_{level}').index(team)
+                    self._add_rating_to_team(team, rating_values[index_of_team], rating_hp, rating_name, season=season)
+                    print('team:',team, 'rating_start:',rating_values[index_of_team][0], 'rating_end:',rating_values[index_of_team][-1])
     
     def remove_division4_teams(self, season):
         matches_of_4division = [(u,v,key,data) for u,v,key,data in self.data.edges(keys=True, data=True) if data['competition_type']=='League' and data['season']==season and (u in self.teams_level4 or v in self.teams_level4)]
