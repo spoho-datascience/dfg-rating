@@ -128,25 +128,8 @@ test_network = InternationalCompetition_Combine(
     oneleg=False,
 )
 
-# test_network.export(ratings=['true_rating','ranking'],filename='test_InternationalLeague_network.csv')
-# test_network.print_data(schedule=True, winner=True, forecasts=True, attributes=True, ratings=True)
-# seasons = test_network.get_seasons()
-# test_network.iterate_over_games()
-# serialized_network = test_network.serialize_network(network_name='test_internaiontal_network')
-# number_of_nodes = test_network.get_number_of_teams()
 
-
-# # add rating should be done in the national network.
-# rating_level1_add = ControlledTrendRating(
-#     starting_point=ControlledRandomFunction(distribution='normal', loc=200, scale=10),
-#     delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
-#     trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
-#     season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
-#     rating_name='true_rating'
-# )
-# for season in test_network.get_seasons():
-#     test_network.add_rating(rating_level1_add, 'true_rating', team_id=0, season=0)
-
+test_network.export(printing_ratings=['true_rating','ranking'],file_name='test_InternationalLeague_network.csv')
 # # display network explorer
 app = DFGWidgets.NetworkExplorer(
     network=test_network,

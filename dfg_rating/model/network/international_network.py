@@ -10,9 +10,11 @@ from dfg_rating.model.network.base_network import BaseNetwork
 import math
 import copy
 from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
-from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
+# from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
+from dfg_rating.model.rating.multi_mode_rating import ControlledTrendRating, ControlledRandomFunction
 from dfg_rating.model.rating.base_rating import BaseRating
-from dfg_rating.model.rating.ranking_rating import LeagueRating
+# from dfg_rating.model.rating.ranking_rating import LeagueRating
+from dfg_rating.model.rating.multi_mode_rating import LeagueRating
 from dfg_rating.model.forecast.base_forecast import BaseForecast
 from copy import deepcopy
 
@@ -347,7 +349,17 @@ class CountryLeague(BaseNetwork):
         # for team in self.teams_level4:
         #     matches_of_team = [[u, v, key] for u, v, key, data in self.data.edges(keys=True, data=True) if (u == team or v == team) and data['competititon_type'] == 'League' and data['season'] == season]
         self.data.remove_edges_from(matches_of_4division)
-
+    
+    def get_avaliable_rating(self, team, match_day, season):
+        league_matches = [
+                        (u, v, data['day'], data['round']) 
+                        for u, v, key, data in self.data.edges(keys=True, data=True) 
+                        if data['season'] == season and data['competition_type'] == 'League' and (u == team or v == team)
+                    ]
+        closest_round = max([(day, round) for _, _, day, round in league_matches if day <= match_day], default=None, key=lambda x:x[0])[1]
+        rating = self.data.nodes[team].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
+        return rating, closest_round
+    
     def add_forecast(self, forecast, forecast_name, season=0):
         for match in self.data.edges(keys=True):
             if self.data.edges[match].get('season', 0) == season:
@@ -355,21 +367,22 @@ class CountryLeague(BaseNetwork):
                     super()._add_forecast_to_team(match, deepcopy(forecast), forecast_name, 'true_rating')
                 elif self.data.edges[match].get('competition_type', '') == 'National':
                     match_day = self.data.edges[match].get('day', 1)
-                    home_league_matches = [
-                        (u, v, data['day'], data['round']) 
-                        for u, v, key, data in self.data.edges(keys=True, data=True) 
-                        if data['season'] == season and data['competition_type'] == 'League' and (u == match[1] or v == match[1])
-                    ]
-                    closest_round = max([(day, round) for _, _, day, round in home_league_matches if day <= match_day], default=None, key=lambda x:x[0])[1]
-                    home_rating = self.data.nodes[match[1]].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
-
-                    away_league_matches = [
-                        (u, v, data['day'], data['round'])
-                        for u, v, key, data in self.data.edges(keys=True, data=True)
-                        if data['season'] == season and data['competition_type'] == 'League' and (u == match[0] or v == match[0])
-                    ]
-                    closest_round = max([(day, round) for _, _, day, round in away_league_matches if day <= match_day], default=None, key=lambda x: x[0])[1]
-                    away_rating = self.data.nodes[match[0]].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
+                    home_rating, home_closest_round = self.get_avaliable_rating(match[1],match_day,season)
+                    # home_league_matches = [
+                    #     (u, v, data['day'], data['round']) 
+                    #     for u, v, key, data in self.data.edges(keys=True, data=True) 
+                    #     if data['season'] == season and data['competition_type'] == 'League' and (u == match[1] or v == match[1])
+                    # ]
+                    # closest_round = max([(day, round) for _, _, day, round in home_league_matches if day <= match_day], default=None, key=lambda x:x[0])[1]
+                    # home_rating = self.data.nodes[match[1]].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
+                    away_rating, away_clostest_round = self.get_avaliable_rating(match[0],match_day,season)
+                    # away_league_matches = [
+                    #     (u, v, data['day'], data['round'])
+                    #     for u, v, key, data in self.data.edges(keys=True, data=True)
+                    #     if data['season'] == season and data['competition_type'] == 'League' and (u == match[0] or v == match[0])
+                    # ]
+                    # closest_round = max([(day, round) for _, _, day, round in away_league_matches if day <= match_day], default=None, key=lambda x: x[0])[1]
+                    # away_rating = self.data.nodes[match[0]].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
                     forecast_object = deepcopy(forecast)
                     diff = forecast_object.home_error.apply(home_rating) - forecast_object.away_error.apply(away_rating)
                     for i in range(len(forecast_object.outcomes)):
@@ -458,7 +471,7 @@ class CountryLeague(BaseNetwork):
             levels = ['level1', 'level2', 'level3']
             for level in levels:
                 print('*******', level)
-                ratings, rating_hp = self.ranking_rating.get_cluster_ratings(self, getattr(self, f'teams_{level}'), season=season, level=level)
+                ratings, rating_hp = self.ranking_rating.get_ratings(self, getattr(self, f'teams_{level}'), season=season, level=level)
                 for team in getattr(self, f'teams_{level}'):
                     index_of_team = getattr(self,f'teams_{level}').index(team)
                     self._add_rating_to_team(team, ratings[index_of_team], rating_hp, 'ranking', season=season)
@@ -546,23 +559,27 @@ class InternationalCompetition_Combine(BaseNetwork):
                 home_country_id = home_id.split('_')[0]
                 away_country_id = away_id.split('_')[0]
                 
-                home_league_matches = [
-                        (u, v, data['day'], data['round']) 
-                        for u, v, key, data in self.countries_leagues[home_country_id].data.edges(keys=True, data=True) 
-                        if data['season'] == season and data['competition_type'] == 'League' and (u == home_id or v == home_id)
-                    ]
-                closest_round = max([(day, round) for _, _, day, round in home_league_matches if day <= match_day], default=None, key=lambda x:x[0])[1]
-                # home_rating = self.countries_leagues[home_country_id].data.nodes[match[1]].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
-                home_rating = self.data.nodes[home_id]['ratings']['true_rating'][season][closest_round+1]
+                home_rating, home_closest_round = self.countries_leagues[home_country_id].get_avaliable_rating(home_id, match_day, season)
 
-                away_league_matches = [
-                    (u, v, data['day'], data['round'])
-                    for u, v, key, data in self.countries_leagues[away_country_id].data.edges(keys=True, data=True)
-                    if data['season'] == season and data['competition_type'] == 'League' and (u == away_id or v == away_id)
-                ]
-                closest_round = max([(day, round) for _, _, day, round in away_league_matches if day <= match_day], default=None, key=lambda x: x[0])[1]
-                # away_rating = self.countries_leagues[away_country_id].data.nodes[match[0]].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
-                away_rating = self.data.nodes[away_id]['ratings']['true_rating'][season][closest_round+1]
+                # home_league_matches = [
+                #         (u, v, data['day'], data['round']) 
+                #         for u, v, key, data in self.countries_leagues[home_country_id].data.edges(keys=True, data=True) 
+                #         if data['season'] == season and data['competition_type'] == 'League' and (u == home_id or v == home_id)
+                #     ]
+                # closest_round = max([(day, round) for _, _, day, round in home_league_matches if day <= match_day], default=None, key=lambda x:x[0])[1]
+                # # home_rating = self.countries_leagues[home_country_id].data.nodes[match[1]].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
+                # home_rating = self.data.nodes[home_id]['ratings']['true_rating'][season][closest_round+1]
+                
+                away_rating, away_closest_round = self.countries_leagues[away_country_id].get_avaliable_rating(away_id, match_day, season)
+
+                # away_league_matches = [
+                #     (u, v, data['day'], data['round'])
+                #     for u, v, key, data in self.countries_leagues[away_country_id].data.edges(keys=True, data=True)
+                #     if data['season'] == season and data['competition_type'] == 'League' and (u == away_id or v == away_id)
+                # ]
+                # closest_round = max([(day, round) for _, _, day, round in away_league_matches if day <= match_day], default=None, key=lambda x: x[0])[1]
+                # # away_rating = self.countries_leagues[away_country_id].data.nodes[match[0]].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
+                # away_rating = self.data.nodes[away_id]['ratings']['true_rating'][season][closest_round+1]
 
                 forecast_object = deepcopy(self.true_forecast)
                 diff = forecast_object.home_error.apply(home_rating) - forecast_object.away_error.apply(away_rating)
@@ -593,9 +610,16 @@ class InternationalCompetition_Combine(BaseNetwork):
 
     def add_odds(self):
         pass
+    
+    def iterate_over_games(self):
+        all_matches = []
+        for country_id, country_league in self.countries_leagues.items():
+            all_matches.extend(country_league.iterate_over_games()) # get all national and league matches
+        all_matches.extend(self.data.edges(keys=True, data=True)) # add international matches
+        return sorted(all_matches, key=lambda x: (x[3]['season'], x[3]['day']))
 
     def add_rating(self):
-        pass
+        self.iterate_over_games()
 
     def cleanup_national_networks(self):
         import gc
@@ -657,7 +681,7 @@ class InternationalCompetition_Combine(BaseNetwork):
             if all([team_matches[team] >= self.min_match_per_team for team in teams_list]):
                 break
         
-        while possible_matches!=[] and len(match_pairs)<total_matches:
+        while possible_matches!=[] and len(match_pairs)<total_matches*2:
             pair = possible_matches.pop()
             team1, team2 = pair
             if oneleg:
@@ -804,3 +828,34 @@ class InternationalCompetition_Combine(BaseNetwork):
             print(f'play International Competition Season {season-1}')
             self.add_forecast(season)
             self.play_sub_network(season)
+    
+    def export(self, file_name='network.csv', printing_ratings=['true_rating'], printing_forecasts=['true_forecast']):
+        print("Export network")
+        network_flat = []
+        for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
+            match_dict = {
+                "Home": home_team,
+                "Away": away_team,
+                "Season": edge_attributes.get('season', 0),
+                "Round": edge_attributes.get('round', -1),
+                "Day": edge_attributes.get('day', -1),
+                "Result": edge_attributes.get('winner', 'none'),
+                'competition_type': edge_attributes.get('competition_type', 'League')
+            }
+            for f in printing_forecasts:
+                forecast_object: BaseForecast = edge_attributes.get('forecasts', {}).get(f, None)
+                if forecast_object is not None:
+                    for i, outcome in enumerate(forecast_object.outcomes):
+                        match_dict[f"{f}#{outcome}"] = forecast_object.probabilities[i]
+            for r in printing_ratings:
+                for team, name in [(home_team, 'Home'), (away_team, 'Away')]:
+                    country_id = team.split('_')[0]
+                    country_network = self.countries_leagues[country_id]
+                    if edge_attributes.get('competition_type', '') == 'League':
+                        rating_dict = country_network.data.nodes[team].get('ratings', {}).get(r, {})
+                        match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0), 0)[edge_attributes.get('round', 0)]
+                    elif r!='ranking': # for inter/national match, there is no ranking avaliable
+                        match_dict[f"{r}#{name}"] = country_network.get_avaliable_rating(team, edge_attributes.get('day', 1), edge_attributes.get('season', 0))[0]
+            network_flat.append(match_dict)
+        df = pd.DataFrame(network_flat)
+        df.to_csv(file_name, index=False)
