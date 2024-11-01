@@ -489,6 +489,38 @@ class CountryLeague(BaseNetwork):
             ratings_list.append(last_season_rating)
         return default_rating[0] if len(ratings_list) == 0 else np.mean(ratings_list)
 
+    def export(self, file_name='network.csv', printing_ratings=['true_rating'], printing_forecasts=['true_forecast']):
+        print("Export network")
+        network_flat = []
+        for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
+            match_dict = {
+                "Home": home_team,
+                "Away": away_team,
+                "Season": edge_attributes.get('season', 0),
+                "Round": edge_attributes.get('round', -1),
+                "Day": edge_attributes.get('day', -1),
+                "Result": edge_attributes.get('winner', 'none'),
+                'competition_type': edge_attributes.get('competition_type', 'League')
+            }
+            for f in printing_forecasts:
+                forecast_object: BaseForecast = edge_attributes.get('forecasts', {}).get(f, None)
+                if forecast_object is not None:
+                    for i, outcome in enumerate(forecast_object.outcomes):
+                        match_dict[f"{f}#{outcome}"] = forecast_object.probabilities[i]
+            for r in printing_ratings:
+                for team, name in [(home_team, 'Home'), (away_team, 'Away')]:
+                    country_id = team.split('_')[0]
+                    country_network = self.countries_leagues[country_id]
+                    if edge_attributes.get('competition_type', '') == 'League':
+                        rating_dict = country_network.data.nodes[team].get('ratings', {}).get(r, {})
+                        match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0), 0)[edge_attributes.get('round', 0)]
+                    elif r!='ranking': # for inter/national match, there is no ranking avaliable
+                        match_dict[f"{r}#{name}"] = country_network.get_avaliable_rating(team, edge_attributes.get('day', 1), edge_attributes.get('season', 0))[0]
+            network_flat.append(match_dict)
+        df = pd.DataFrame(network_flat)
+        df.to_csv(file_name, index=False)
+
+
 class InternationalCompetition_Combine(BaseNetwork):
     def __init__(self, **kwargs):
         """
