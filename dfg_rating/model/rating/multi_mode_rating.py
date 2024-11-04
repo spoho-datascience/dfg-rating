@@ -214,28 +214,16 @@ class ELORating(BaseRating):
             }
 
     def init_ratings(self, team, season, n):
-        seasons_available = n.get_seasons()
-        season_i = indexOf(seasons_available, season)
-        if season_i == 0:
-            """First season on the simulation, new starting point"""
-            starting_point = self.rating_mean
-        else:
-            # """First season in the ratings computation but not in the network. Reading previous season"""
-            previous_playing_teams = n.get_playing_teams(seasons_available[season_i - 1], league)
-            if team not in previous_playing_teams.values():
-                starting_point = n.get_mean_rating(self.rating_name, seasons_available[season_i - 1], league, [self.rating_mean], relegated=True)
-            else:
-                starting_point = n.data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(
-                    seasons_available[season_i - 1], [self.rating_mean]
-                )[-1]
-        return starting_point
+        pass
 
-    def init_season_ratings(self, season, teams, n, ratings):
-        init_position = 0
-        # n.update_leagues_information()
-        for team_i, team in enumerate(teams):
-            # current_league = n.get_current_league(season, team)
-            ratings[team_i, init_position] = self.init_ratings(team, season, n)
+    def init_season_ratings(self, season, n, ratings):
+        if season != 0:
+            init_position = 0
+            # starting_point = self.rating_mean
+            # previous_playing_teams = n.get_playing_teams(season - 1)
+            for team_i, team in enumerate(self.teams):
+                starting_point = n.countries_leagues[team.split('_')[0]].data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(season - 1, self.rating_mean)[-1]
+                ratings[team_i, init_position] = starting_point
 
     def compute_expected_values(self, home_value, away_value):
         expected_home = 1.0 / (
@@ -250,22 +238,19 @@ class ELORating(BaseRating):
         return current + (self.settings['k'] * (score - expected))
 
     def end_season_ratings(self, network, ratings):
-        end_position = (self.rounds_per_season + 2) - 1
+        end_position = 365+1
         for team_i, team in enumerate(self.teams):
             ratings[team_i, end_position] = ratings[team_i, end_position - 1]
 
-    def get_all_ratings(self, n: BaseNetwork, edge_filter=None, season=0, **params):
-        edge_filter = edge_filter or base_edge_filter
-        self.teams = [].append(list(nation.data.nodes) for nation in n.countries_leagues.values())
+    def get_all_ratings(self, n: BaseNetwork, season=0, **params):
+        self.teams = [team for nation in n.countries_leagues.values() for team in nation.data.nodes]
         n_teams = len(self.teams)
         self.rounds_per_season = 365
-        ratings = np.zeros([n_teams, (365 + 2)])
+        ratings = np.full([n_teams, (365 + 2)], self.rating_mean)
+
         self.init_season_ratings(season, n, ratings)
         players_dict = {team: team_i for team_i, team in enumerate(self.teams)}
-        games = sorted(
-            (filter(edge_filter, nation.data.edges(keys=True, data=True)) for nation in n.countries_leagues.values()),
-            key=lambda x: x[3]['day']
-        )
+        games = [game for game in n.iterate_over_games() if game[3]['season'] == season]
         for match in games:
             away_team, home_team, match_key, match_data = match
             current_day = match_data['day']
@@ -276,25 +261,21 @@ class ELORating(BaseRating):
                 ratings[away_team_i, current_day - 1]
             )
             home_score, away_score = self.compute_scores(match_data['winner'])
-            ratings[away_team_i, current_day] = self.update_elo(
+            ratings[away_team_i, current_day:] = self.update_elo( # update rest all days
                 ratings[away_team_i, current_day - 1],
                 away_score,
                 away_expected,
                 match_data
             )
-            ratings[home_team_i, current_day] = self.update_elo(
+            ratings[home_team_i, current_day:] = self.update_elo(
                 ratings[home_team_i, current_day - 1],
                 home_score,
                 home_expected,
                 match_data
             )
-            for team in self.teams:
-                if team not in [home_team, away_team]:
-                    team_i = players_dict[team]
-                    ratings[team_i, current_day] = ratings[team_i, current_day - 1]
         
-        self.end_season_ratings(n, ratings)
-        return ratings, self.props
+        # self.end_season_ratings(n, ratings)
+        return ratings, players_dict
 
     def get_ratings(self, n: BaseNetwork, level=None, season=0):
         self.teams = getattr(n, f'teams_{level}')

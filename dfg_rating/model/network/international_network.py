@@ -509,13 +509,14 @@ class CountryLeague(BaseNetwork):
                         match_dict[f"{f}#{outcome}"] = forecast_object.probabilities[i]
             for r in printing_ratings:
                 for team, name in [(home_team, 'Home'), (away_team, 'Away')]:
-                    country_id = team.split('_')[0]
-                    country_network = self.countries_leagues[country_id]
                     if edge_attributes.get('competition_type', '') == 'League':
-                        rating_dict = country_network.data.nodes[team].get('ratings', {}).get(r, {})
+                        rating_dict = self.data.nodes[team].get('ratings', {}).get(r, {})
                         match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0), 0)[edge_attributes.get('round', 0)]
-                    elif r!='ranking': # for inter/national match, there is no ranking avaliable
-                        match_dict[f"{r}#{name}"] = country_network.get_avaliable_rating(team, edge_attributes.get('day', 1), edge_attributes.get('season', 0))[0]
+                    elif r=='elo_rating':
+                        rating_dict = self.data.nodes[team].get('ratings', {}).get(r, {})
+                        match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0), 0)[edge_attributes.get('day', 1)]
+                    elif r!='ranking': # for national match, there is no ranking avaliable
+                        match_dict[f"{r}#{name}"] = self.get_avaliable_rating(team, edge_attributes.get('day', 1), edge_attributes.get('season', 0))[0]
             network_flat.append(match_dict)
         df = pd.DataFrame(network_flat)
         df.to_csv(file_name, index=False)
@@ -650,7 +651,18 @@ class InternationalCompetition_Combine(BaseNetwork):
         all_matches.extend(self.data.edges(keys=True, data=True)) # add international matches
         return sorted(all_matches, key=lambda x: (x[3]['season'], x[3]['day']))
 
-    def add_rating(self):
+    def _add_rating_to_team(self, team_id, rating_values, rating_hyperparameters, rating_name, season=-1):
+        if season is None:
+            season = 0
+        country_id = team_id.split('_')[0]
+        self.countries_leagues[country_id]._add_rating_to_team(team_id, rating_values, rating_hyperparameters, rating_name, season)
+
+    def add_rating(self, rating, rating_name):
+        for s in range(self.seasons):
+            ratings, player_dict = rating.get_all_ratings(self, season=s)
+            for t, t_i in player_dict.items():
+                self._add_rating_to_team(t, ratings[t_i], {}, rating_name, season=s)
+        
         self.iterate_over_games()
 
     def cleanup_national_networks(self):
@@ -861,6 +873,15 @@ class InternationalCompetition_Combine(BaseNetwork):
             self.add_forecast(season)
             self.play_sub_network(season)
     
+    def get_playing_teams(self, season):
+        pass
+        # playing_teams = []
+        # for national_network in self.countries_leagues.values():
+        #     playing_teams.extend(national_network.teams_level1)
+        #     playing_teams.extend(national_network.teams_level2)
+        #     playing_teams.extend(national_network.teams_level3)
+        # return playing_teams
+
     def export(self, file_name='network.csv', printing_ratings=['true_rating'], printing_forecasts=['true_forecast']):
         print("Export network")
         network_flat = []
@@ -886,6 +907,9 @@ class InternationalCompetition_Combine(BaseNetwork):
                     if edge_attributes.get('competition_type', '') == 'League':
                         rating_dict = country_network.data.nodes[team].get('ratings', {}).get(r, {})
                         match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0), 0)[edge_attributes.get('round', 0)]
+                    elif r=='elo_rating':
+                        rating_dict = country_network.data.nodes[team].get('ratings', {}).get(r, {})
+                        match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0), 0)[edge_attributes.get('day', 1)]
                     elif r!='ranking': # for inter/national match, there is no ranking avaliable
                         match_dict[f"{r}#{name}"] = country_network.get_avaliable_rating(team, edge_attributes.get('day', 1), edge_attributes.get('season', 0))[0]
             network_flat.append(match_dict)

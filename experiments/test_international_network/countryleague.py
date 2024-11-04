@@ -58,7 +58,8 @@ test_network1 = CountryLeague(
     avg_match_per_team_level3_level1=3,
 )
 
-# test add elo ratings
+
+# test_network1.export(printing_ratings=['true_rating','ranking'],file_name='test_NationalLeague_network.csv')
 
 
 test_network2 = CountryLeague(
@@ -128,11 +129,22 @@ test_network = InternationalCompetition_Combine(
     oneleg=False,
 )
 
-
-test_network.export(printing_ratings=['true_rating','ranking'],file_name='test_InternationalLeague_network.csv')
+from dfg_rating.model.rating.multi_mode_rating import ELORating
+elo_rating1 = ELORating(
+    rating_name='elo_rating',
+    trained=True,
+    rating_mode='keep',
+    rating_mean=1000,
+)
+test_network.add_rating(elo_rating1, 'elo_rating')
+test_network.export(printing_ratings=['true_rating','ranking','elo_rating'],file_name='test_InternationalLeague_network.csv')
+test_network1.export(printing_ratings=['true_rating','ranking','elo_rating'],file_name='test_NationalLeague_network.csv')
+'''
+file_name='test_InternationalLeague_network.csv')
 # # display network explorer
 app = DFGWidgets.NetworkExplorer(
     network=test_network,
     edge_props=["round"]
 )
 app.run('internal', debug=True, port=8001)
+'''
