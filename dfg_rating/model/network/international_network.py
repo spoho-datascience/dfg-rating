@@ -495,7 +495,11 @@ class CountryLeague(BaseNetwork):
         for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
             match_dict = {
                 "Home": home_team,
+                "Home_level": self.teams_level[home_team].get(edge_attributes.get('season', 0), 'level1'),
+                "Home_country": home_team.split('_')[0],
                 "Away": away_team,
+                "Away_level": self.teams_level[away_team].get(edge_attributes.get('season', 0), 'level1'),
+                "Away_country": away_team.split('_')[0],
                 "Season": edge_attributes.get('season', 0),
                 "Round": edge_attributes.get('round', -1),
                 "Day": edge_attributes.get('day', -1),
@@ -649,7 +653,7 @@ class InternationalCompetition_Combine(BaseNetwork):
         for country_id, country_league in self.countries_leagues.items():
             all_matches.extend(country_league.iterate_over_games()) # get all national and league matches
         all_matches.extend(self.data.edges(keys=True, data=True)) # add international matches
-        return sorted(all_matches, key=lambda x: (x[3]['season'], x[3]['day']))
+        return sorted(all_matches, key=lambda x: (x[3]['season'], x[3]['day'], x[3]['round'], x[0], x[1]))
 
     def _add_rating_to_team(self, team_id, rating_values, rating_hyperparameters, rating_name, season=-1):
         if season is None:
@@ -888,7 +892,11 @@ class InternationalCompetition_Combine(BaseNetwork):
         for away_team, home_team, edge_key, edge_attributes in self.iterate_over_games():
             match_dict = {
                 "Home": home_team,
+                "Home_level": self.countries_leagues[home_team.split('_')[0]].teams_level[home_team].get(edge_attributes.get('season', 0), 'level1'),
+                "Home_country": home_team.split('_')[0],
                 "Away": away_team,
+                "Away_level": self.countries_leagues[away_team.split('_')[0]].teams_level[away_team].get(edge_attributes.get('season', 0), 'level1'),
+                "Away_country": away_team.split('_')[0],
                 "Season": edge_attributes.get('season', 0),
                 "Round": edge_attributes.get('round', -1),
                 "Day": edge_attributes.get('day', -1),

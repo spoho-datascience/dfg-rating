@@ -256,19 +256,23 @@ class ELORating(BaseRating):
             current_day = match_data['day']
             home_team_i = players_dict.get(home_team, home_team)
             away_team_i = players_dict.get(away_team, away_team)
+            
+            # might be some national/international competition plays at the same day for same team
+            # if already played a game this day, just use this day's rating
+
             home_expected, away_expected = self.compute_expected_values(
-                ratings[home_team_i, current_day - 1],
-                ratings[away_team_i, current_day - 1]
+                ratings[home_team_i, current_day],
+                ratings[away_team_i, current_day]
             )
             home_score, away_score = self.compute_scores(match_data['winner'])
             ratings[away_team_i, current_day:] = self.update_elo( # update rest all days
-                ratings[away_team_i, current_day - 1],
+                ratings[away_team_i, current_day],
                 away_score,
                 away_expected,
                 match_data
             )
             ratings[home_team_i, current_day:] = self.update_elo(
-                ratings[home_team_i, current_day - 1],
+                ratings[home_team_i, current_day],
                 home_score,
                 home_expected,
                 match_data
