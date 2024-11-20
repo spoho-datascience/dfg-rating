@@ -184,6 +184,7 @@ class SplitELORating(ELORating):
                 return current + (k_factor * (score - expected))
         return current + (self.settings['k'] * (score - expected))
 
+
 class GoalsELORating(ELORating):
 
     def __init__(self, **kwargs):
@@ -194,9 +195,15 @@ class GoalsELORating(ELORating):
     def get_adjusted_k(self, match_data):
         home_score = match_data[self.home_score_key]
         away_score = match_data[self.away_score_key]
-        adjusted_k = self.settings['k'] * (1 + np.absolute(home_score - away_score))**self.settings['lam']
+        if self.settings["param_adjust"] is True:
+            k = self.settings['split_k'].get(match_data['competition'], None)
+            lam = self.settings["split_lam"].get(match_data['competition'], None)
+            adjusted_k = k * (1 + np.absolute(home_score - away_score)) ** lam
+        else:
+            adjusted_k = self.settings['k'] * (1 + np.absolute(home_score - away_score)) ** self.settings['lam']
         return adjusted_k
-    
+
+
 class OddsELORating(ELORating):
 
     def __init__(self, **kwargs):
@@ -206,10 +213,10 @@ class OddsELORating(ELORating):
         super().__init__(**kwargs)
 
     def compute_scores(self, match_data):
-        overround = 1/match_data[self.home_odds_pointer] + 1/match_data[self.draw_odds_pointer] + 1/match_data[self.away_odds_pointer]
-        home_pred = 1/match_data[self.home_odds_pointer]/overround
-        draw_pred = 1/match_data[self.draw_odds_pointer]/overround
+        overround = 1 / match_data[self.home_odds_pointer] + 1 / match_data[self.draw_odds_pointer] + 1 / match_data[
+            self.away_odds_pointer]
+        home_pred = 1 / match_data[self.home_odds_pointer] / overround
+        draw_pred = 1 / match_data[self.draw_odds_pointer] / overround
         home_score = home_pred + 0.5 * draw_pred
         away_score = 1 - home_score
         return home_score, away_score
-    
