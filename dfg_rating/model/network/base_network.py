@@ -526,6 +526,7 @@ class WhiteNetwork(BaseNetwork):
         super().__init__("white", **kwargs)
         self.table_data: pd.DataFrame = kwargs['data']
         self.mapping = kwargs.get("mapping", self.DEFAULT_MAPPING)
+        self.network_info = kwargs.get("network_info", {})
         correct, report = self.validate()
         if correct:
             if self.mapping['dayIsTimestamp']:
