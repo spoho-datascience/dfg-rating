@@ -80,6 +80,7 @@ class ELORating(BaseRating):
             ratings[team_i, end_position] = ratings[team_i, end_position - 1]
 
     def get_all_ratings(self, n: BaseNetwork, edge_filter=None, season=0, **params):
+        league_teams_dict = defaultdict(list)
         edge_filter = edge_filter or base_edge_filter
         self.teams = list(n.data.nodes)
         n_teams = len(self.teams)
@@ -123,6 +124,39 @@ class ELORating(BaseRating):
                         adjusted_k,
                         match_data
                     )
+                    if self.settings["league_average"] is True:
+                        # Check for International or Cup match
+                        if match_data['competition'] in ['International', 'Cup']:
+                            home_league_id = match_data['home_team_league_id']
+                            away_league_id = match_data['away_team_league_id']
+                            if home_league_id != away_league_id:
+                                # Get all teams in the respective leagues
+                                home_league_teams = [team for team in self.teams if
+                                                     n.data.nodes[team].get('league_id') == home_league_id]
+                                away_league_teams = [team for team in self.teams if
+                                                     n.data.nodes[team].get('league_id') == away_league_id]
+                                # Apply the league-wide rating adjustments
+                                for team in home_league_teams:
+                                    if team != home_team:
+                                        team_i = players_dict.get(team, team)
+                                        ratings[team_i, current_position] = self.update_elo(
+                                            ratings[team_i, current_position - 1],
+                                            home_score,  # Use home team's result to adjust all teams in its league
+                                            home_expected,
+                                            adjusted_k,
+                                            match_data
+                                        )
+                                for team in away_league_teams:
+                                    if team != away_team:
+                                        team_i = players_dict.get(team, team)
+                                        ratings[team_i, current_position] = self.update_elo(
+                                            ratings[team_i, current_position - 1],
+                                            away_score,  # Use away team's result to adjust all teams in its league
+                                            away_expected,
+                                            adjusted_k,
+                                            match_data
+                                        )
+                                teams_playing.update(home_league_teams, away_league_teams)
             # Dealing with teams not playing
             if len(teams_playing) != len(self.teams):
                 for team in self.teams:
