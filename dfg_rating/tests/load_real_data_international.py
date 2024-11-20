@@ -9,6 +9,7 @@ from dfg_rating.model.network.base_network import WhiteNetwork
 from dfg_rating.model.rating.elo_rating import ELORating, GoalsELORating, OddsELORating
 
 from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
+from dfg_rating.model.forecast.base_forecast import SimpleForecast
 from dfg_rating.model.evaluators.accuracy import RankProbabilityScore, Likelihood
 
 # set parameters
@@ -27,6 +28,31 @@ print("Data loaded")
 all_data['date'] = pd.to_datetime(all_data['date'], format='%d.%m.%Y %H:%M')
 all_data = all_data.sort_values(by='date')
 
+
+# Function to assign round numbers within each season
+def assign_rounds(df):
+    # Extract only the date part (ignoring time)
+    df['match_day'] = df['date'].dt.date
+
+    # Get unique match days for the season and assign consecutive round numbers
+    unique_days = df['match_day'].unique()
+    round_mapping = {day: round_num for round_num, day in enumerate(unique_days)}
+
+    # Map the round numbers back to the DataFrame
+    df['round'] = df['match_day'].map(round_mapping)
+
+    return df
+
+
+# Apply the round assignment function to each season
+all_data = all_data.groupby('season_id').apply(assign_rounds)
+
+# Drop the intermediate 'match_day' column if not needed
+all_data.drop(columns=['match_day'], inplace=True)
+
+# Reset the index after groupby
+all_data.reset_index(drop=True, inplace=True)
+
 # get training data set (first three seasons)
 training_data = all_data[all_data['season_id'].isin([0, 1, 2])]
 
@@ -43,7 +69,7 @@ training_data_network = WhiteNetwork(
         },
         "day": "date",
         "dayIsTimestamp": True,
-        "ts_format": "%d.%m.%Y %H:%M:%S",
+        "ts_format": "%d.%m.%Y %H:%M",
         "season": "season_id",
         "winner": {
             "result": "result",
@@ -53,14 +79,14 @@ training_data_network = WhiteNetwork(
                 "away": "away"
             }
         },
-        "round": "day",
+        "round": "round",
         "home_score": "home_score",
         "away_score": "away_score",
         "odds": {
             "average_odds": {
-                "home": "average_home_odds",
-                "draw": "average_draw_odds",
-                "away": "average_away_odds"
+                "home": "home_odds_new",
+                "draw": "draw_odds_new",
+                "away": "away_odds_new"
             }
         },
 
