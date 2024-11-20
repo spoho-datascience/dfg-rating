@@ -458,7 +458,9 @@ class BaseNetwork(ABC):
         for away_team, home_team, edge_key, edge_attributes in self.data.edges(keys=True, data=True):
             match_dict = {
                 "Home": home_team,
+                "Home_team": edge_attributes.get('home_team', 0),
                 "Away": away_team,
+                "Away_team": edge_attributes.get('away_team', 0),
                 "Season": edge_attributes.get('season', 0),
                 "Round": edge_attributes.get('round', -1),
                 "Day": edge_attributes.get('day', -1),
