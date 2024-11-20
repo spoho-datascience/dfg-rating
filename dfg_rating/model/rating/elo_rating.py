@@ -22,7 +22,11 @@ class ELORating(BaseRating):
                 "d": kwargs.get("param_d", 400.0),
                 "k": kwargs.get("param_k", 14.0),
                 "w": kwargs.get("param_w", 80),
-                "lam": kwargs.get("param_lam", 0.4)
+                "lam": kwargs.get("param_lam", 1.6),
+                "league_average": kwargs.get("league_average", False),
+                "param_adjust": kwargs.get("param_adjust", False),
+                "split_k": kwargs.get("param_split_k", {}),
+                "split_lam": kwargs.get("param_split_lam", {})
             }
 
     def init_ratings(self, team, season, n, league=None):
