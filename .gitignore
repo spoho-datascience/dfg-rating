@@ -555,3 +555,4 @@ experiments/notebooks/network_analysis/RealData/results/*
 /data/*
 *.tar.gz
 *.code-workspace
+*.csv
