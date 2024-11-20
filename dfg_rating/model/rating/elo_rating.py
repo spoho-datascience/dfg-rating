@@ -1,6 +1,7 @@
 import itertools
 import time
 from operator import indexOf
+from collections import defaultdict
 
 import numpy as np
 from tqdm import tqdm
@@ -64,7 +65,11 @@ class ELORating(BaseRating):
         return home_score, 1 - home_score
     
     def get_adjusted_k(self, match_data):
-        return self.settings['k']
+        if self.settings["param_adjust"] is True:
+            adjusted_k = self.settings['split_k'].get(match_data['competition'], None)
+        else:
+            adjusted_k = self.settings['k']
+        return adjusted_k
 
     def update_elo(self, current, score, expected, adjusted_k, match_data):
         return current + (adjusted_k * (score - expected))
