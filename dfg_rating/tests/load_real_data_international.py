@@ -106,28 +106,34 @@ elif rating == 'ELO goals':
             # elo = ELORating(trained=False, param_k=20)
             # real_data_network.add_rating(rating=elo, rating_name="test_elo_rating")
 
+training_data_network.export(filename='test.csv')
+
 elo = ELORating(trained=True, param_k=20, rating_name="test_elo_rating")
 training_data_network.add_rating(rating=elo, rating_name="test_elo_rating")
+training_data_network.add_forecast(
+    forecast=LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-1.1, 0.1], beta_parameter=0.006),
+    forecast_name='base_forecast',
+    base_ranking='test_elo_rating'
+)
 
 training_data_network.add_rating(
-    rating=GoalsELORating(trained=True, param_k=20, param_lam=0.7, rating_name="test_goals_elo_rating"),
+    rating=GoalsELORating(trained=True, param_k=4, param_lam=1.6, rating_name="test_goals_elo_rating"),
     rating_name="test_goals_elo_rating"
 )
 
 training_data_network.add_rating(
     rating=OddsELORating(
         trained=True, 
-        param_k=20, 
-        home_odds_pointer="average_home_odds", 
-        draw_odds_pointer="average_draw_odds", 
-        away_odds_pointer="average_away_odds", 
-        rating_name="test_goals_elo_rating"
+        param_k=175,
+        home_odds_pointer="home_odds_new",
+        draw_odds_pointer="draw_odds_new",
+        away_odds_pointer="away_odds_new",
+        rating_name="test_odds_elo_rating"
     ),
-    rating_name="test_goals_elo_rating"
+    rating_name="test_odds_elo_rating"
 )
-# network = pd.DataFrame()
-# for match in training_data_network.iterate_over_games():
-#     network.add(match)
+
+training_data_network.export(ratings=['test_elo_rating', 'test_goals_elo_rating', 'test_odds_elo_rating'])
 
 app = Widgets.RatingsExplorer(network=training_data_network)
 app.run('external', port=8001)
