@@ -2,6 +2,8 @@ import os
 import pandas as pd
 from dfg_rating.model.network.base_network import WhiteNetwork
 from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
+from dfg_rating.model.rating.multi_mode_rating import ELORating
+# from dfg_rating.model.rating.elo_rating import ELORating
 
 data = pd.read_csv('/home/haiyu/workspace/test_InternationalLeague_network.csv')
 
@@ -36,10 +38,18 @@ international_network = WhiteNetwork(
     }
 )
 
+elo_adding = ELORating(
+    rating_name='elo_rating_adding',
+    trained=True,
+    rating_mode='keep',
+    rating_mean=1000,
+)
+
+for s in international_network.get_seasons():
+    ratings, player_dict = elo_adding.get_all_ratings(international_network, season=s)
+    for t, t_i in player_dict.items():
+        international_network._add_rating_to_team(t, ratings[t_i], {}, 'elo_rating_adding', season=s)
+
 international_network.print_data(schedule=True)
 
-international_network.add_forecast(
-            forecast=LogFunctionForecast(outcomes=['home', 'draw', 'away'], coefficients=[-1.0, 0.0], beta_parameter=0.006),
-            forecast_name='player_forecast',
-            base_ranking='true_rating'
-            )
+international_network.export_international(data, printing_ratings=['elo_rating_adding'],export_file_name='test_InternationalLeague_network_import.csv')

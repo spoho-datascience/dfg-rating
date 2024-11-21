@@ -221,9 +221,14 @@ class ELORating(BaseRating):
             init_position = 0
             # starting_point = self.rating_mean
             # previous_playing_teams = n.get_playing_teams(season - 1)
-            for team_i, team in enumerate(self.teams):
-                starting_point = n.countries_leagues[team.split('_')[0]].data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(season - 1, self.rating_mean)[-1]
-                ratings[team_i, init_position] = starting_point
+            if n.type == 'international':
+                for team_i, team in enumerate(self.teams):
+                    starting_point = n.countries_leagues[team.split('_')[0]].data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(season - 1, self.rating_mean)[-1]
+                    ratings[team_i, init_position] = starting_point
+            elif n.type == 'white':
+                for team_i, team in enumerate(self.teams):
+                    starting_point = n.data.nodes[team].get('ratings', {}).get(self.rating_name, {}).get(season - 1, 0)[-1]
+                    ratings[team_i, init_position] = starting_point
 
     def compute_expected_values(self, home_value, away_value):
         expected_home = 1.0 / (
@@ -243,14 +248,25 @@ class ELORating(BaseRating):
             ratings[team_i, end_position] = ratings[team_i, end_position - 1]
 
     def get_all_ratings(self, n: BaseNetwork, season=0, **params):
-        self.teams = [team for nation in n.countries_leagues.values() for team in nation.data.nodes]
+        if n.type == 'international':
+            self.teams = n.get_all_teams()
+        elif n.type == 'white':
+            self.teams = n.data.nodes
         n_teams = len(self.teams)
         self.rounds_per_season = 365
         ratings = np.full([n_teams, (365 + 2)], self.rating_mean)
 
         self.init_season_ratings(season, n, ratings)
+        
         players_dict = {team: team_i for team_i, team in enumerate(self.teams)}
-        games = [game for game in n.iterate_over_games() if game[3]['season'] == season]
+        games=[]
+        
+        if n.type == 'international':
+            games = [game for game in n.iterate_over_games() if game[3]['season'] == season]
+        elif n.type == 'white':
+            all_matches = sorted(n.data.edges(keys=True, data=True), key=lambda x: (x[3]['season'], x[3]['day'], x[3]['round'], x[0], x[1]))
+            games = [game for game in all_matches if game[3]['season'] == season]
+        
         for match in games:
             away_team, home_team, match_key, match_data = match
             current_day = match_data['day']

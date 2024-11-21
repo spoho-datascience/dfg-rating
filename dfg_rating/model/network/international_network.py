@@ -100,7 +100,7 @@ class CountryLeague(BaseNetwork):
         pass
     def add_bets():
         pass
-    # def select_teams(self, cluster_1, cluster_2, prob, season, select_n_teams=None, set_edge_state=False):
+    
     def select_teams(self, clusters, select_n_teams=None, season=0, selection_strategy='random'):
         def select_from_cluster(cluster, n, strategy):
             if strategy == 'random':
@@ -171,6 +171,7 @@ class CountryLeague(BaseNetwork):
         # possible_matches = [(team1, team2) for team1 in all_teams for team2 in all_teams if team1 != team2]
         possible_matches = [(team1, team2) for idx1, team1 in enumerate(all_teams) for team2 in all_teams[idx1+1:]]
         random.shuffle(possible_matches)
+        remaining_matches = possible_matches.copy()
         for match in possible_matches:
             team1, team2 = match
             # Check if both teams need more matches
@@ -181,14 +182,14 @@ class CountryLeague(BaseNetwork):
                     else:
                         match = (team2, team1)
                     match_pairs.add(match)
-                    possible_matches.remove((team1, team2))
+                    remaining_matches.remove((team1, team2))
                     team_matches[team1] += 1
                     team_matches[team2] += 1
                 else:
                     # Schedule both home and away matches
                     match_pairs.add((team1, team2))
                     match_pairs.add((team2, team1))
-                    possible_matches.remove(match)
+                    remaining_matches.remove(match)
                     team_matches[team1] += 2
                     team_matches[team2] += 2
             else:
@@ -198,8 +199,8 @@ class CountryLeague(BaseNetwork):
             if all([team_matches[team] >= min_matches_per_team for team in all_teams]):
                 break
         
-        while possible_matches!=[] and len(match_pairs)<total_matches:
-            pair = possible_matches.pop()
+        while remaining_matches!=[] and len(match_pairs)<total_matches:
+            pair = remaining_matches.pop()
             team1, team2 = pair
             if oneleg:
                 if random.choice([True, False]):
@@ -317,8 +318,6 @@ class CountryLeague(BaseNetwork):
                 pass  
 
     def add_rating(self, rating_name='true_rating', mode='keep', season=0):
-        # def edge_filter(e):
-        #     return e[3]['season'] == season and e[3]['competition_type'] == 'League'
         """
         for each level, add rating to each team
         
@@ -346,8 +345,6 @@ class CountryLeague(BaseNetwork):
     
     def remove_division4_teams(self, season):
         matches_of_4division = [(u,v,key,data) for u,v,key,data in self.data.edges(keys=True, data=True) if data['competition_type']=='League' and data['season']==season and (u in self.teams_level4 or v in self.teams_level4)]
-        # for team in self.teams_level4:
-        #     matches_of_team = [[u, v, key] for u, v, key, data in self.data.edges(keys=True, data=True) if (u == team or v == team) and data['competititon_type'] == 'League' and data['season'] == season]
         self.data.remove_edges_from(matches_of_4division)
     
     def get_avaliable_rating(self, team, match_day, season):
@@ -368,21 +365,7 @@ class CountryLeague(BaseNetwork):
                 elif self.data.edges[match].get('competition_type', '') == 'National':
                     match_day = self.data.edges[match].get('day', 1)
                     home_rating, home_closest_round = self.get_avaliable_rating(match[1],match_day,season)
-                    # home_league_matches = [
-                    #     (u, v, data['day'], data['round']) 
-                    #     for u, v, key, data in self.data.edges(keys=True, data=True) 
-                    #     if data['season'] == season and data['competition_type'] == 'League' and (u == match[1] or v == match[1])
-                    # ]
-                    # closest_round = max([(day, round) for _, _, day, round in home_league_matches if day <= match_day], default=None, key=lambda x:x[0])[1]
-                    # home_rating = self.data.nodes[match[1]].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
                     away_rating, away_clostest_round = self.get_avaliable_rating(match[0],match_day,season)
-                    # away_league_matches = [
-                    #     (u, v, data['day'], data['round'])
-                    #     for u, v, key, data in self.data.edges(keys=True, data=True)
-                    #     if data['season'] == season and data['competition_type'] == 'League' and (u == match[0] or v == match[0])
-                    # ]
-                    # closest_round = max([(day, round) for _, _, day, round in away_league_matches if day <= match_day], default=None, key=lambda x: x[0])[1]
-                    # away_rating = self.data.nodes[match[0]].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
                     forecast_object = deepcopy(forecast)
                     diff = forecast_object.home_error.apply(home_rating) - forecast_object.away_error.apply(away_rating)
                     for i in range(len(forecast_object.outcomes)):
@@ -702,6 +685,7 @@ class InternationalCompetition_Combine(BaseNetwork):
         possible_matches = [(team1, team2) for idx1, team1 in enumerate(teams_list) for team2 in teams_list[idx1+1:]]
         random.shuffle(possible_matches)
         # print(possible_matches)
+        remaining_matches = total_matches.copy()
         for match in possible_matches:
             team1, team2 = match
             # Check if both teams need more matches
@@ -712,14 +696,14 @@ class InternationalCompetition_Combine(BaseNetwork):
                     else:
                         match = (team2, team1)
                     match_pairs.add(match)
-                    possible_matches.remove((team1, team2))
+                    remaining_matches.remove((team1, team2))
                     team_matches[team1] += 1
                     team_matches[team2] += 1
                 else:
                     # Schedule both home and away matches
                     match_pairs.add((team1, team2))
                     match_pairs.add((team2, team1))
-                    possible_matches.remove(match)
+                    remaining_matches.remove(match)
                     team_matches[team1] += 2
                     team_matches[team2] += 2
             else:
@@ -729,8 +713,8 @@ class InternationalCompetition_Combine(BaseNetwork):
             if all([team_matches[team] >= self.min_match_per_team for team in teams_list]):
                 break
         
-        while possible_matches!=[] and len(match_pairs)<total_matches*2:
-            pair = possible_matches.pop()
+        while remaining_matches!=[] and len(match_pairs)<total_matches*2:
+            pair = remaining_matches.pop()
             team1, team2 = pair
             if oneleg:
                 if random.choice([True, False]):
@@ -860,7 +844,9 @@ class InternationalCompetition_Combine(BaseNetwork):
             plt.title(f'Season {season}')
             plt.show()
             plt.savefig(f'season_{season}.png')
-                
+
+    def get_all_teams(self):
+        return [team for nation in self.countries_leagues.values() for team in nation.data.nodes]
 
     def create_data(self):
         self.data = nx.MultiDiGraph()
@@ -912,7 +898,7 @@ class InternationalCompetition_Combine(BaseNetwork):
                 for team, name in [(home_team, 'Home'), (away_team, 'Away')]:
                     country_id = team.split('_')[0]
                     country_network = self.countries_leagues[country_id]
-                    if edge_attributes.get('competition_type', '') == 'League':
+                    if edge_attributes.get('competition_type', '') == 'League' and r!='elo_rating':
                         rating_dict = country_network.data.nodes[team].get('ratings', {}).get(r, {})
                         match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0), 0)[edge_attributes.get('round', 0)]
                     elif r=='elo_rating':

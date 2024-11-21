@@ -491,6 +491,19 @@ class BaseNetwork(ABC):
         df = pd.DataFrame(network_flat)
         df.to_csv(file_name, index=False)
 
+    def export_international(self, data=[], export_file_name='network.csv', printing_ratings=['true_rating']):
+        print("Export network")
+        network_flat = []
+        data = data.sort_index()
+        for _, row in data.iterrows():
+            row_dict = row.to_dict()
+            for r in printing_ratings:
+                for team, name in [(row_dict['Home'], 'Home'), (row_dict['Away'], 'Away')]:
+                    row_dict[f"{r}#{name}"] = self.data.nodes[team].get('ratings', {}).get(r, {}).get(row_dict['Season'], 0)[row_dict['Day']]
+            network_flat.append(row_dict)
+        df = pd.DataFrame(network_flat)
+        df.to_csv(export_file_name, index=False)
+
     @abstractmethod
     def add_rating(self, rating, rating_name):
         pass
@@ -537,7 +550,7 @@ class WhiteNetwork(BaseNetwork):
                 self.table_data.sort_values(by=self.mapping['day'], inplace=True)
             else:
                 self.table_data.sort_values(by=self.mapping['day'], inplace=True)
-            self.season_values = [s for s in self.table_data[self.mapping['season']].unique()]
+            self.season_values = sorted([s for s in self.table_data[self.mapping['season']].unique()])
             self.create_data()
             print("Network loaded correctly")
         else:
