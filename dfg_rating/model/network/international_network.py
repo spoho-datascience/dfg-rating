@@ -41,10 +41,21 @@ class CountryLeague(BaseNetwork):
         
         self.min_match_level1_level2 = kwargs.get('min_match_per_team_level1_level2', 1)
         self.avg_match_level1_level2 = kwargs.get('avg_match_per_team_level1_level2', 3)
+
         self.min_match_level2_level3 = kwargs.get('min_match_per_team_level2_level3', 1)
         self.avg_match_level2_level3 = kwargs.get('avg_match_per_team_level2_level3', 3)
+
         self.min_match_level3_level1 = kwargs.get('min_match_per_team_level3_level1', 1)
         self.avg_match_level3_level1 = kwargs.get('avg_match_per_team_level3_level1', 3)
+
+        self.min_match_level1_level1 = kwargs.get('min_match_per_team_level1_level1', 1)
+        self.avg_match_level1_level1 = kwargs.get('avg_match_per_team_level1_level1', 0.2)
+
+        self.min_match_level2_level2 = kwargs.get('min_match_per_team_level2_level2', 1)
+        self.avg_match_level2_level2 = kwargs.get('avg_match_per_team_level2_level2', 0.2)
+
+        self.min_match_level3_level3 = kwargs.get('min_match_per_team_level3_level3', 1)
+        self.avg_match_level3_level3 = kwargs.get('avg_match_per_team_level3_level3', 0.2)
         
         self.team_labels = kwargs.get('team_labels', None)
 
@@ -158,7 +169,11 @@ class CountryLeague(BaseNetwork):
 
     def schedule_network(self, teams_level1, teams_level2, min_matches_per_team, avg_matches_per_team, season, oneleg=True):
         # set national cup match
-        all_teams = teams_level1 + teams_level2
+        if teams_level1 != teams_level2:
+            all_teams = teams_level1 + teams_level2
+        else:
+            all_teams = teams_level1
+
         num_teams = len(all_teams)
         if oneleg:
             total_matches = math.ceil((num_teams * avg_matches_per_team) / 2)
@@ -169,7 +184,21 @@ class CountryLeague(BaseNetwork):
         team_matches = {team: 0 for team in all_teams}
 
         # possible_matches = [(team1, team2) for team1 in all_teams for team2 in all_teams if team1 != team2]
-        possible_matches = [(team1, team2) for idx1, team1 in enumerate(all_teams) for team2 in all_teams[idx1+1:]]
+        if teams_level1 != teams_level2:
+            possible_matches = [(team1, team2) for idx1, team1 in enumerate(teams_level1) for idx2, team2 in enumerate(teams_level2)]
+        else:
+            possible_matches = [(team1, team2) for idx1, team1 in enumerate(all_teams) for team2 in all_teams[idx1+1:]]
+
+        if total_matches > len(possible_matches)*2 and oneleg:
+            raise ValueError(f"Not enough possible matches to schedule {total_matches} matches with {len(possible_matches)*2} possible matches")
+        if total_matches > len(possible_matches)*4 and not oneleg:
+            raise ValueError(f"Not enough possible matches to schedule {total_matches} matches with {len(possible_matches)*4} possible matches")
+        ### Do not consider the matches within same division:
+        # for team1 in teams_level1:
+        #     for team2 in teams_level1:
+        #         if team1 != team2:
+        #             possible_matches.append((team1, team2))
+
         random.shuffle(possible_matches)
         remaining_matches = possible_matches.copy()
         for match in possible_matches:
@@ -436,7 +465,10 @@ class CountryLeague(BaseNetwork):
             levels = [
                 (self.teams_level1, self.teams_level2, self.min_match_level1_level2, self.avg_match_level1_level2),
                 (self.teams_level1, self.teams_level3, self.min_match_level3_level1, self.avg_match_level3_level1),
-                (self.teams_level2, self.teams_level3, self.min_match_level2_level3, self.avg_match_level2_level3)
+                (self.teams_level2, self.teams_level3, self.min_match_level2_level3, self.avg_match_level2_level3),
+                (self.teams_level1, self.teams_level1, self.min_match_level1_level1, self.avg_match_level1_level1),
+                (self.teams_level2, self.teams_level2, self.min_match_level2_level2, self.avg_match_level2_level2),
+                (self.teams_level3, self.teams_level3, self.min_match_level3_level3, self.avg_match_level3_level3)
             ]
             for level1, level2, min_match, avg_match in levels:
                 self.schedule_network(level1, level2, min_match, avg_match, season, self.oneleg)
@@ -496,12 +528,12 @@ class CountryLeague(BaseNetwork):
                         match_dict[f"{f}#{outcome}"] = forecast_object.probabilities[i]
             for r in printing_ratings:
                 for team, name in [(home_team, 'Home'), (away_team, 'Away')]:
-                    if edge_attributes.get('competition_type', '') == 'League':
+                    if edge_attributes.get('competition_type', '') == 'League' and r!='elo_rating':
                         rating_dict = self.data.nodes[team].get('ratings', {}).get(r, {})
                         match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0), 0)[edge_attributes.get('round', 0)]
                     elif r=='elo_rating':
                         rating_dict = self.data.nodes[team].get('ratings', {}).get(r, {})
-                        match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0), 0)[edge_attributes.get('day', 1)]
+                        match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0), 0)[edge_attributes.get('day', 1)-1]
                     elif r!='ranking': # for national match, there is no ranking avaliable
                         match_dict[f"{r}#{name}"] = self.get_avaliable_rating(team, edge_attributes.get('day', 1), edge_attributes.get('season', 0))[0]
             network_flat.append(match_dict)
@@ -639,7 +671,7 @@ class InternationalCompetition_Combine(BaseNetwork):
         possible_matches = [(team1, team2) for idx1, team1 in enumerate(teams_list) for team2 in teams_list[idx1+1:]]
         random.shuffle(possible_matches)
         # print(possible_matches)
-        remaining_matches = total_matches.copy()
+        remaining_matches = possible_matches.copy()
         for match in possible_matches:
             team1, team2 = match
             # Check if both teams need more matches
@@ -857,7 +889,7 @@ class InternationalCompetition_Combine(BaseNetwork):
                         match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0), 0)[edge_attributes.get('round', 0)]
                     elif r=='elo_rating':
                         rating_dict = country_network.data.nodes[team].get('ratings', {}).get(r, {})
-                        match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0), 0)[edge_attributes.get('day', 1)]
+                        match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0), 0)[edge_attributes.get('day', 1)-1]
                     elif r!='ranking': # for inter/national match, there is no ranking avaliable
                         match_dict[f"{r}#{name}"] = country_network.get_avaliable_rating(team, edge_attributes.get('day', 1), edge_attributes.get('season', 0))[0]
             network_flat.append(match_dict)

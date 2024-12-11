@@ -56,36 +56,42 @@ country_network1 = CountryLeague(
     avg_match_per_team_level2_level3=2,
     min_match_per_team_level3_level1=1,
     avg_match_per_team_level3_level1=3,
+    min_match_per_team_level1_level1=1,
+    avg_match_per_team_level1_level1=0.4,
+    min_match_per_team_level2_level2=1,
+    avg_match_per_team_level2_level2=0.2,
+    min_match_per_team_level3_level3=1,
+    avg_match_per_team_level3_level3=0.3,
 )
 
 
 country_network1.export(printing_ratings=['true_rating','ranking'],file_name='test_NationalLeague_network.csv')
 
 
-# country_network2 = CountryLeague(
-#     teams=14,
-#     level1_teams=4,
-#     level2_teams=4,
-#     level3_teams=4,
-#     promotion_number=1,
-#     # prob_level1_level2=0.10,
-#     # prob_level1_level3=0.05,
-#     # prob_level2_level3=0.00,
-#     true_rating_level1=rating_level1,
-#     true_rating_level2=rating_level2,
-#     true_rating_level3=rating_level3,
-#     true_forecast=forecast_test,
-#     seasons=3,
-#     # days_between_rounds=7,
-#     country_id='c2',
-#     rating_mode='interchange',
-#     min_match_per_team_level1_level2=1,
-#     avg_match_per_team_level1_level2=4,
-#     min_match_per_team_level2_level3=1,
-#     avg_match_per_team_level2_level3=2,
-#     min_match_per_team_level3_level1=1,
-#     avg_match_per_team_level3_level1=3,
-# )
+country_network2 = CountryLeague(
+    teams=14,
+    level1_teams=4,
+    level2_teams=4,
+    level3_teams=4,
+    promotion_number=1,
+    # prob_level1_level2=0.10,
+    # prob_level1_level3=0.05,
+    # prob_level2_level3=0.00,
+    true_rating_level1=rating_level1,
+    true_rating_level2=rating_level2,
+    true_rating_level3=rating_level3,
+    true_forecast=forecast_test,
+    seasons=3,
+    # days_between_rounds=7,
+    country_id='c2',
+    rating_mode='interchange',
+    min_match_per_team_level1_level2=1,
+    avg_match_per_team_level1_level2=4,
+    min_match_per_team_level2_level3=1,
+    avg_match_per_team_level2_level3=2,
+    min_match_per_team_level3_level1=1,
+    avg_match_per_team_level3_level1=3,
+)
 # '''
 # countries_config = {
 #     0:{
@@ -117,28 +123,30 @@ country_network1.export(printing_ratings=['true_rating','ranking'],file_name='te
 #     }
 # }
 # '''
-# Inter_network = InternationalCompetition_Combine(
-#     countries_configs={'c1':country_network1, 'c2':country_network2},
-#     teams_per_country=2,
-#     # match_prob=0.0,
-#     seasons=3,
-#     # days_between_rounds=7,
-#     choose_mode='top',
-#     create_country_network=False,
-#     avg_match_per_team=3,
-#     min_match_per_team=1,
-#     oneleg=False,
-# )
+Inter_network = InternationalCompetition_Combine(
+    countries_configs={'c1':country_network1, 'c2':country_network2},
+    teams_per_country=2,
+    # match_prob=0.0,
+    seasons=3,
+    # days_between_rounds=7,
+    choose_mode='top',
+    create_country_network=False,
+    avg_match_per_team=3,
+    min_match_per_team=1,
+    oneleg=False,
+)
 
-# from dfg_rating.model.rating.multi_mode_rating import ELORating
-# elo_rating1 = ELORating(
-#     rating_name='elo_rating',
-#     trained=True,
-#     rating_mode='keep',
-#     rating_mean=1000,
-# )
+from dfg_rating.model.rating.multi_mode_rating import ELORating
+elo_rating1 = ELORating(
+    rating_name='elo_rating',
+    trained=True,
+    rating_mode='keep',
+    rating_mean=1000,
+)
+Inter_network.add_rating(elo_rating1, 'elo_rating')
+country_network1.export(printing_ratings=['true_rating','ranking','elo_rating'],file_name='test_NationalLeague_network.csv')
 # Inter_network.add_rating(elo_rating1, 'elo_rating')
-# Inter_network.export(printing_ratings=['true_rating','ranking','elo_rating'],file_name='test_InternationalLeague_network.csv')
+Inter_network.export(printing_ratings=['true_rating','ranking','elo_rating'],file_name='test_InternationalLeague_network.csv')
 
 # # country_network1.export(printing_ratings=['true_rating','ranking','elo_rating'],file_name='test_NationalLeague_network.csv')
 '''
