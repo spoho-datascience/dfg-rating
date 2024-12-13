@@ -32,6 +32,7 @@ class RoundRobinNetwork(BaseNetwork):
                 Returns:
                     boolean: True if the process has been successful, False if else.
                 """
+        teams_list = []
         if team_labels is None:
             team_labels = {}
         if self.data is None:
@@ -43,11 +44,13 @@ class RoundRobinNetwork(BaseNetwork):
         if number_of_teams == 0:
             number_of_teams = self.n_teams
             number_of_rounds = self.n_rounds
+            teams_list = [t for t in range(0, number_of_teams)]
         else:
             number_of_rounds = number_of_teams - 1 + number_of_teams % 2
+            teams_list = list(team_labels.keys())
 
         n_games_per_round = self.params.get('games_per_round', int(math.ceil(number_of_teams / 2)))
-        teams_list = [t for t in range(0, number_of_teams)]
+        # teams_list = [t for t in range(0, number_of_teams)]
         if number_of_teams % 2 != 0:
             teams_list.append(-1)
         slice_a = teams_list[0:n_games_per_round]

@@ -96,6 +96,8 @@ class BaseNetwork(ABC):
             ):
                 print(
                     f"({home_team} vs. {away_team} at season {edge_attributes['season']} round {edge_attributes['round']}, day {edge_attributes['day']})")
+                if (print_kwargs.get('type', False)) and ('competition_type' in edge_attributes):
+                    print(f"match type: {edge_attributes.get('competition_type', 'League')}")
                 if (print_kwargs.get('winner', False)) & ('winner' in edge_attributes):
                     print(f"Result: {edge_attributes['winner']}")
                 if (print_kwargs.get('forecasts', False)) & ('forecasts' in edge_attributes):
@@ -458,15 +460,15 @@ class BaseNetwork(ABC):
         for away_team, home_team, edge_key, edge_attributes in self.data.edges(keys=True, data=True):
             match_dict = {
                 "Home": home_team,
-                "Home_team": edge_attributes.get('home_team', 0),
                 "Away": away_team,
-                "Away_team": edge_attributes.get('away_team', 0),
                 "Season": edge_attributes.get('season', 0),
                 "Round": edge_attributes.get('round', -1),
                 "Day": edge_attributes.get('day', -1),
                 "Result": edge_attributes.get('winner', 'none'),
                 "League_ID": edge_attributes.get('league_id', 0),
                 "Competition": edge_attributes.get('competition', 0),
+                "state": edge_attributes.get('state', 'active'),
+                'competition_type': edge_attributes.get('competition_type', 'League')
             }
             for f in printing_forecasts:
                 forecast_object: BaseForecast = edge_attributes.get('forecasts', {}).get(f, None)
@@ -490,6 +492,19 @@ class BaseNetwork(ABC):
         file_name = kwargs.get('filename', 'network.csv')
         df = pd.DataFrame(network_flat)
         df.to_csv(file_name, index=False)
+
+    def export_international(self, data=[], export_file_name='network.csv', printing_ratings=['true_rating']):
+        print("Export network")
+        network_flat = []
+        data = data.sort_index()
+        for _, row in data.iterrows():
+            row_dict = row.to_dict()
+            for r in printing_ratings:
+                for team, name in [(row_dict['Home'], 'Home'), (row_dict['Away'], 'Away')]:
+                    row_dict[f"{r}#{name}"] = self.data.nodes[team].get('ratings', {}).get(r, {}).get(row_dict['Season'], 0)[row_dict['Day']]
+            network_flat.append(row_dict)
+        df = pd.DataFrame(network_flat)
+        df.to_csv(export_file_name, index=False)
 
     @abstractmethod
     def add_rating(self, rating, rating_name):
@@ -526,7 +541,6 @@ class WhiteNetwork(BaseNetwork):
         super().__init__("white", **kwargs)
         self.table_data: pd.DataFrame = kwargs['data']
         self.mapping = kwargs.get("mapping", self.DEFAULT_MAPPING)
-        self.network_info = kwargs.get("network_info", {})
         correct, report = self.validate()
         if correct:
             if self.mapping['dayIsTimestamp']:
@@ -538,7 +552,7 @@ class WhiteNetwork(BaseNetwork):
                 self.table_data.sort_values(by=self.mapping['day'], inplace=True)
             else:
                 self.table_data.sort_values(by=self.mapping['day'], inplace=True)
-            self.season_values = [s for s in self.table_data[self.mapping['season']].unique()]
+            self.season_values = sorted([s for s in self.table_data[self.mapping['season']].unique()])
             self.create_data()
             print("Network loaded correctly")
         else:

@@ -20,6 +20,9 @@ setup(
             'dfg_viz=dfg_rating.client:viz'
         ]
     },
+    package_data={
+        'dfg_rating': ['database.ini'],
+    },
     author='Marc Garnica Caparrós',
     author_email='m.garnica@dshs-koeln.de'
 )
