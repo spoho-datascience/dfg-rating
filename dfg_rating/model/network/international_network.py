@@ -261,7 +261,7 @@ class CountryLeague(BaseNetwork):
                 match[1],
                 season=season, round=match[2], day=match[2], competition_type='National'
             )
-            print(f"{match[0]} vs {match[1]} on Day {match[2]}")
+            # print(f"{match[0]} vs {match[1]} on Day {match[2]}")
     
     def fill_graph(self, season=0):
 
@@ -354,7 +354,7 @@ class CountryLeague(BaseNetwork):
         - keep mode will keep the rating of the team when team get promoted or relegated
         - mix mode will Same ratings + season delta + division mean difference
         - Interchange of ratings between promoted and relegated teams but keeping the original difference between teams. For example:
-        A, B, and C will relegate with ratings 8, 4, and 2, respectively. X, Y, Z will promote with ratings 1, 2, 3. A, B, C they will get values that have an average of 2, but keep that C = 2B = 4A
+        A, B, and C will relegate with ratings 8, 4, and 2, respectively. X, Y, Z will promote with ratings 1, 2, 3. A, B, C they will get values that have an average with 3, but keep that C = 2B = 4A
 
         """
         for level in ['level1', 'level2', 'level3', 'level4']:
@@ -422,13 +422,13 @@ class CountryLeague(BaseNetwork):
         relegated_teams = []
         # get promoted and relegated teams based on ranking
         for level in levels:
-            if self.promotion_number <= len(getattr(self, f'teams_{level}'))/2:
-                promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
-                relegate = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='bottom')
-            else:
-                promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
-                remaining_teams = [team for team in getattr(self, f'teams_{level}') if team not in promote]
-                relegate = self.select_teams(remaining_teams, self.promotion_number, season=season, selection_strategy='bottom')
+            # if self.promotion_number <= len(getattr(self, f'teams_{level}'))/2:
+            #     promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
+            #     relegate = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='bottom')
+            # else:
+            promote = self.select_teams(getattr(self, f'teams_{level}'), self.promotion_number, season=season, selection_strategy='top')
+            remaining_teams = [team for team in getattr(self, f'teams_{level}') if team not in promote]
+            relegate = self.select_teams(remaining_teams, self.promotion_number, season=season, selection_strategy='bottom')
             promoted_teams.extend(promote)
             relegated_teams.extend(relegate)
             setattr(self, f'promoted_teams_{level}', promote)
@@ -730,7 +730,7 @@ class InternationalCompetition_Combine(BaseNetwork):
                 match[1],
                 season=season, round=match[2], day=match[2], competition_type='international'
             )
-            print(f"{match[0]} vs {match[1]} on Day {match[2]}")
+            # print(f"{match[0]} vs {match[1]} on Day {match[2]}")
 
     def set_edge_state(self, season):
         teams_list = self.international_teams_list[season-1]

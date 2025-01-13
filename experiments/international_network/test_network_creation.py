@@ -38,7 +38,7 @@ def setup_network(nr_teams, teams_level1, teams_level2, teams_level3, country_id
     return test_network
 
 
-seasons = 5
+seasons = 10
 no_countries = 3
 # set number of teams per 1st league that play internationally and avg and min of matches per team
 teams_per_country_international = 6
@@ -76,25 +76,25 @@ network = {}
 
 rating_level1 = ControlledTrendRating(
     starting_point=ControlledRandomFunction(distribution='normal', loc=1200, scale=0),
-    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
-    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
-    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
+    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
+    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
+    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
     rating_name='true_rating'
 )
 
 rating_level2 = ControlledTrendRating(
     starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=0),
-    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
-    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
-    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
+    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
+    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
+    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
     rating_name='true_rating'
 )
 
 rating_level3 = ControlledTrendRating(
     starting_point=ControlledRandomFunction(distribution='normal', loc=800, scale=0),
-    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
-    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
-    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=0),
+    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
+    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
+    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
     rating_name='true_rating'
 )
 
@@ -127,5 +127,5 @@ international_network = InternationalCompetition_Combine(
 
 international_network.export(printing_ratings=['true_rating', 'ranking'], file_name='full_network_5.csv')
 
-app = Widgets.RatingsExplorer(network=international_network)
-app.run('external', port=8001)
+# app = Widgets.RatingsExplorer(network=international_network)
+# app.run('external', port=8001)
