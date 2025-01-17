@@ -61,7 +61,7 @@ rating_scale_level3 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 # set rating transfer for promotion and relegation (keep = teams keep their ranking when promoted/relegated,
 # mix= teams get difference of league rating means added (promotion) or subtracted (relegation),
 # interchange =
-rating_mode = ('mix', 'mix', 'mix', 'mix', 'mix', 'mix', 'mix',
+rating_mode = ('keep', 'mix', 'mix', 'mix', 'mix', 'mix', 'mix',
                'mix', 'mix', 'mix')
 # min and avg number of matches per team between each league
 min_match_level1_level2 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)

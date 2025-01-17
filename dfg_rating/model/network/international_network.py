@@ -383,7 +383,10 @@ class CountryLeague(BaseNetwork):
                         if data['season'] == season and data['competition_type'] == 'League' and (u == team or v == team)
                     ]
         closest_round = max([(day, round) for _, _, day, round in league_matches if day <= match_day], default=None, key=lambda x:x[0])[1]
-        rating = self.data.nodes[team].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
+        try:
+            rating = self.data.nodes[team].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round+1]
+        except:
+            rating = self.data.nodes[team].get('ratings', {}).get('true_rating', {}).get(season, 0)[closest_round]
         return rating, closest_round
     
     def add_forecast(self, forecast, forecast_name, season=0):

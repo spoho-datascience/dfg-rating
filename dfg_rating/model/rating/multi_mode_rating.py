@@ -44,8 +44,8 @@ class ControlledTrendRating(BaseRating):
         elif n.rating_mode == 'mix' or n.rating_mode == 'interchange':
             self.teams = getattr(n, f'teams_{level}')
         t = self.teams
-        games = [(u, v, key, data) for u, v, key, data in n.data.edges(t, keys=True, data=True) if data['season'] == season and data['competition_type'] == 'League' and u in t and v in t]
-        n_rounds = len(get_rounds(games))
+        games = [(u, v, key, data) for u, v, key, data in n.data.edges(t, keys=True, data=True) if data['season'] == season and data['competition_type'] == 'League' and (u in t or v in t)]
+        n_rounds = max(get_rounds(games))
         ratings = np.zeros([len(t), n_rounds + 1])
         self.agg = {}
         self.init_season_ratings(season, n, ratings)
@@ -56,10 +56,10 @@ class ControlledTrendRating(BaseRating):
             #     agg = {}
             if home_team in t:
                 i_home_team = indexOf(t, home_team)
-                ratings[i_home_team][match_data['round'] + 1] = ratings[i_home_team][match_data['round']] + self.new_rating_value(home_team, match_data)
+                ratings[i_home_team][match_data['round'] + 1:] = ratings[i_home_team][match_data['round']] + self.new_rating_value(home_team, match_data)
             if away_team in t:
                 i_away_team = indexOf(t, away_team)
-                ratings[i_away_team][match_data['round'] + 1] = ratings[i_away_team][match_data['round']] + self.new_rating_value(away_team, match_data)
+                ratings[i_away_team][match_data['round'] + 1:] = ratings[i_away_team][match_data['round']] + self.new_rating_value(away_team, match_data)
 
         return ratings, self.props
 
@@ -83,7 +83,7 @@ class ControlledTrendRating(BaseRating):
             ).setdefault(
                 'starting_points', []
             ).append(team_starting)
-            ratings[team_i, init_position] = team_starting
+            ratings[team_i, init_position:] = team_starting
 
     def init_ratings(self, team, current_season, n) -> float:
         if current_season == 0:
