@@ -10,7 +10,8 @@ import dfg_rating.viz.jupyter_widgets as Widgets
 
 
 def setup_network(nr_teams, teams_level1, teams_level2, teams_level3, country_id, rat_level1, rat_level2, rat_level3,
-                  min_match_1_2, avg_match_1_2, min_match_2_3, avg_match_2_3, min_match_3_1, avg_match_3_1, rat_mode):
+                  min_match_1_1, avg_match_1_1, min_match_1_2, avg_match_1_2, min_match_2_2, avg_match_2_2,
+                  min_match_2_3, avg_match_2_3, min_match_3_3, avg_match_3_3, min_match_3_1, avg_match_3_1, rat_mode):
     test_network = CountryLeague(
         teams=nr_teams,
         level1_teams=teams_level1,
@@ -30,19 +31,25 @@ def setup_network(nr_teams, teams_level1, teams_level2, teams_level3, country_id
         rating_mode=rat_mode,
         min_match_per_team_level1_level2=min_match_1_2,
         avg_match_per_team_level1_level2=avg_match_1_2,
+        min_match_per_team_level1_level1=min_match_1_1,
+        avg_match_per_team_level1_level1=avg_match_1_1,
         min_match_per_team_level2_level3=min_match_2_3,
         avg_match_per_team_level2_level3=avg_match_2_3,
+        min_match_per_team_level2_level2=min_match_2_2,
+        avg_match_per_team_level2_level2=avg_match_2_2,
         min_match_per_team_level3_level1=min_match_3_1,
         avg_match_per_team_level3_level1=avg_match_3_1,
+        min_match_per_team_level3_level3=min_match_3_3,
+        avg_match_per_team_level3_level3=avg_match_3_3,
     )
     return test_network
 
 
-seasons = 10
-no_countries = 3
+seasons = 15
+no_countries = 10
 # set number of teams per 1st league that play internationally and avg and min of matches per team
 teams_per_country_international = 6
-avg_match_international = 6
+avg_match_international = 7
 min_match_international = 3
 # names of the countries
 countries = ('c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10')
@@ -61,15 +68,22 @@ rating_scale_level3 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 # set rating transfer for promotion and relegation (keep = teams keep their ranking when promoted/relegated,
 # mix= teams get difference of league rating means added (promotion) or subtracted (relegation),
 # interchange =
-rating_mode = ('keep', 'mix', 'interchange', 'mix', 'mix', 'mix', 'mix',
-               'mix', 'mix', 'mix')
+rating_mode = ('keep', 'keep', 'keep', 'keep', 'keep', 'keep', 'keep',
+               'keep', 'keep', 'keep')
 # min and avg number of matches per team between each league
 min_match_level1_level2 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-avg_match_level1_level2 = (1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+avg_match_level1_level2 = (.8, .8, .8, .8, .8, .8, .8, .8, .8, .8)
 min_match_level2_level3 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-avg_match_level2_level3 = (1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+avg_match_level2_level3 = (.8, .8, .8, .8, .8, .8, .8, .8, .8, .8)
 min_match_level3_level1 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-avg_match_level3_level1 = (1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+avg_match_level3_level1 = (.8, .8, .8, .8, .8, .8, .8, .8, .8, .8)
+
+min_match_level1_level1 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+avg_match_level1_level1 = (.3, .3, .3, .3, .3, .3, .3, .3, .3, .3)
+min_match_level2_level2 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+avg_match_level2_level2 = (.3, .3, .3, .3, .3, .3, .3, .3, .3, .3)
+min_match_level3_level3 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+avg_match_level3_level3 = (.3, .3, .3, .3, .3, .3, .3, .3, .3, .3)
 
 df_networks = pd.DataFrame()
 network = {}
@@ -112,9 +126,12 @@ for i in range(0, no_countries):
     rating_level2.starting_point.distribution_arguments['scale'] = rating_scale_level2[i]
     rating_level3.starting_point.distribution_arguments['scale'] = rating_scale_level3[i]
     network[i] = setup_network(nr_teams_total[i], nr_teams_level1[i], nr_teams_level2[i], nr_teams_level3[i],
-                               countries[i], rating_level1, rating_level2, rating_level3, min_match_level1_level2[i],
-                               avg_match_level1_level2[i], min_match_level2_level3[i], avg_match_level2_level3[i],
-                               min_match_level3_level1[i], avg_match_level3_level1[i], rating_mode[i])
+                               countries[i], rating_level1, rating_level2, rating_level3,
+                               min_match_level1_level1[i], avg_match_level1_level1[i], min_match_level1_level2[i],
+                               avg_match_level1_level2[i], min_match_level2_level2[i], avg_match_level2_level2[i],
+                               min_match_level2_level3[i], avg_match_level2_level3[i], min_match_level3_level3[i],
+                               avg_match_level3_level3[i], min_match_level3_level1[i], avg_match_level3_level1[i],
+                               rating_mode[i])
 
 international_network = InternationalCompetition_Combine(
     countries_configs={countries[i]: network[i] for i in range(0, no_countries)},
@@ -125,7 +142,7 @@ international_network = InternationalCompetition_Combine(
     min_match_per_team=min_match_international,
 )
 
-international_network.export(printing_ratings=['true_rating', 'ranking'], file_name='full_network_5.csv')
+international_network.export(printing_ratings=['true_rating', 'ranking'], file_name='full_network_7.csv')
 
 # app = Widgets.RatingsExplorer(network=international_network)
 # app.run('external', port=8001)
