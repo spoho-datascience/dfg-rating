@@ -29,6 +29,24 @@ class FixedBetting(BaseBetting):
 
         bets = np.array([decide_betting(i) for i in betting_inputs])
         return bets
+  
+    
+class ThresholdBetting(BaseBetting):
+
+    def __init__(self, bank_role: int, error: ForecastError = None, threshold = 0):
+        super().__init__(error)
+        self.bank_role = bank_role
+        self.threshold = threshold
+
+    def bet(self, forecast, odds):
+        forecast_with_error = self.error.apply(forecast)
+        betting_inputs = [f * o for f, o in zip(forecast_with_error, odds)]
+
+        def decide_betting(i):
+            return 0.01 * self.bank_role if i > 1 + self.threshold else 0.0
+
+        bets = np.array([decide_betting(i) for i in betting_inputs])
+        return bets
     
     
 class KellyBetting(BaseBetting):
@@ -40,7 +58,7 @@ class KellyBetting(BaseBetting):
     def bet(self, forecast, odds):
         forecast_with_error = self.error.apply(forecast)
         betting_inputs = [(f * o - 1)/(o - 1) if o > 1 else 0 for f, o in zip(forecast_with_error, odds)]
-
+        
         def decide_betting(i):
             return i * 0.01 * self.bank_role if i > 0.0 else 0.0
 
