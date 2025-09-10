@@ -1,0 +1,83 @@
+1 + 9 + 9 Saisons with specifications
+
+c0_options = np.arange(-1.2, -0.7, 0.1)
+c1_options = np.arange(0.0, 0.5, 0.1)
+beta_options = np.arange(0.004, 0.014, 0.002)
+
+Fixed Average
+
+Experiment finished in 1647.380972146988 seconds with 125 observations.
+best likelihood :-30492.366412955755
+best betting returns :-1424.8900000000042
+CI 2.5% Likelihood vs. Returns: 234.3319999999997
+CI 5.0% Likelihood vs. Returns: 362.56650000000013
+Difference Likelihood vs. Returns: 969.3399999999997
+CI 95.0% Likelihood vs. Returns: 1570.5894999999994
+CI 97.5% Likelihood vs. Returns: 1683.3527499999998
+p (1 sided) i.e. % of differences <= 0: 0.48
+
+
+Kelly Average
+
+Experiment finished in 2262.529235601425 seconds with 125 observations.
+best likelihood :-30492.366412955755
+best betting returns :-156.9601301776295
+CI 2.5% Likelihood vs. Returns: -79.40299796433332
+CI 5.0% Likelihood vs. Returns: -70.45164343246239
+Difference Likelihood vs. Returns: -23.29843453595828
+CI 95.0% Likelihood vs. Returns: 22.869789368766284
+CI 97.5% Likelihood vs. Returns: 32.00034431052497
+p (1 sided) i.e. % of differences <= 0: 79.27
+
+
+Threshold 20% Average
+
+Experiment finished in 1587.1139001846313 seconds with 125 observations.
+best likelihood :-30492.366412955755
+best betting returns :-554.2000000000018
+CI 2.5% Likelihood vs. Returns: -38.441500000000055
+CI 5.0% Likelihood vs. Returns: 34.17649999999986
+Difference Likelihood vs. Returns: 410.74
+CI 95.0% Likelihood vs. Returns: 794.6189999999998
+CI 97.5% Likelihood vs. Returns: 868.8007499999999
+p (1 sided) i.e. % of differences <= 0: 3.5
+
+
+
+Fixed Maximum
+
+Experiment finished in 1590.4991571903229 seconds with 125 observations.
+best likelihood :-30492.366412955755
+best betting returns :231.84999999999906
+CI 2.5% Likelihood vs. Returns: -150.56224999999972
+CI 5.0% Likelihood vs. Returns: 9.647000000000304
+Difference Likelihood vs. Returns: 816.8800000000002
+CI 95.0% Likelihood vs. Returns: 1603.2360000000003
+CI 97.5% Likelihood vs. Returns: 1749.0867499999995
+p (1 sided) i.e. % of differences <= 0: 4.77
+
+
+Kelly Maximum
+
+Experiment finished in 2235.607996702194 seconds with 125 observations.
+best likelihood :-30492.366412955755
+best betting returns :111.87756200084381
+CI 2.5% Likelihood vs. Returns: -84.35092879649466
+CI 5.0% Likelihood vs. Returns: -68.38861350190345
+Difference Likelihood vs. Returns: 23.514004236473568
+CI 95.0% Likelihood vs. Returns: 115.65508996352935
+CI 97.5% Likelihood vs. Returns: 134.27105178789796
+p (1 sided) i.e. % of differences <= 0: 33.32
+
+
+Threshold 30% Maximum
+
+Experiment finished in 1631.7298929691315 seconds with 125 observations.
+best likelihood :-30492.366412955755
+best betting returns :98.1999999999995
+CI 2.5% Likelihood vs. Returns: -309.67075000000006
+CI 5.0% Likelihood vs. Returns: -225.71199999999993
+Difference Likelihood vs. Returns: 243.70999999999992
+CI 95.0% Likelihood vs. Returns: 724.8319999999997
+CI 97.5% Likelihood vs. Returns: 811.9112499999995
+p (1 sided) i.e. % of differences <= 0: 19.48
