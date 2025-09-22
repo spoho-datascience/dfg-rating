@@ -49,9 +49,10 @@ class ConfigurationModelNetwork(RoundRobinNetwork):
     without self-loops.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, random_number_generator = np.random.default_rng(), **kwargs):
         self.expected_matches = kwargs.get("expected_matches")
         self.variance_matches = kwargs.get("variance_matches", 0)
+        self.random_number_generator = random_number_generator
         super().__init__(**kwargs)
 
     def fill_graph(self, team_labels=None, season=0):
@@ -66,7 +67,7 @@ class ConfigurationModelNetwork(RoundRobinNetwork):
                 self.data.edges[match]["state"] = "inactive"
 
     def create_degree_sequence(self, expected, variance, total_sum=None):
-        sequence = np.random.default_rng().integers(
+        sequence = self.random_number_generator.integers(
             low=(expected - variance) if expected >= variance else 0,
             high=expected + variance,
             size=self.n_teams

@@ -1,5 +1,4 @@
 import numpy as np
-import random
 
 
 class ForecastError:
@@ -16,13 +15,14 @@ class ForecastNullError(ForecastError):
 
 class ForecastFactorError(ForecastError):
 
-    def __init__(self, error: float, scope: str = None):
+    def __init__(self, error: float, scope: str = None, random_number_generator = np.random.default_rng(),):
         self.type = 'factor'
         self.error = error
         self.scope = scope
+        self.random_number_generator = random_number_generator
 
     def apply(self, initial_probabilities):
-        error_factor = random.uniform(-1.0, 1.0)
+        error_factor = self.random_number_generator.uniform(-1.0, 1.0)
         if self.scope == "positive":
             abs_error = abs(error_factor) * self.error
         elif self.scope == "negative":
@@ -36,9 +36,10 @@ class ForecastFactorError(ForecastError):
 
 class ForecastSimulatedError(ForecastError):
 
-    def __init__(self, error: str, **args):
+    def __init__(self, error: str, random_number_generator = np.random.default_rng(), **args):
+        self.random_number_generator = random_number_generator
         try:
-            self.error_method = getattr(np.random.default_rng(), error)
+            self.error_method = getattr(self.random_number_generator, error)
         except AttributeError:
             print("Error method not available")
             return

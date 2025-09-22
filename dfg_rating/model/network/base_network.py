@@ -26,10 +26,10 @@ def get_seasons(games):
     return seasons
 
 
-def weighted_winner(forecast: BaseForecast, match_data, home_team, away_team, round_values):
+def weighted_winner(forecast: BaseForecast, match_data, home_team, away_team, round_values, random_number_generator):
     f = abs(forecast.get_forecast(match_data, home_team, away_team, round_values=round_values))
     weights = f.cumsum()
-    x = np.random.default_rng().uniform(0, 1)
+    x = random_number_generator.uniform(0, 1)
     for i in range(len(weights)):
         if x < weights[i]:
             return forecast.outcomes[i]
@@ -51,7 +51,8 @@ class BaseNetwork(ABC):
 
     """
 
-    def __init__(self, network_type: str, **kwargs):
+    def __init__(self, network_type: str, random_number_generator = np.random.default_rng(), **kwargs):
+        self.random_number_generator = random_number_generator
         self.data = None
         self.type = network_type
         self.params = kwargs
@@ -68,10 +69,11 @@ class BaseNetwork(ABC):
         self.true_rating = kwargs.get(
             'true_rating',
             ControlledTrendRating(
-                starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=150),
-                delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
-                trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
-                season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30)
+                starting_point=ControlledRandomFunction(random_number_generator = self.random_number_generator, distribution='normal', loc=1000, scale=150),
+                delta=ControlledRandomFunction(random_number_generator = self.random_number_generator, distribution='normal', loc=0, scale=.5),
+                trend=ControlledRandomFunction(random_number_generator = self.random_number_generator, distribution='normal', loc=0, scale=.2),
+                season_delta=ControlledRandomFunction(random_number_generator = self.random_number_generator, distribution='normal', loc=0, scale=30),
+                random_number_generator = self.random_number_generator
             )
         )
         self.true_forecast = kwargs.get(
@@ -148,7 +150,8 @@ class BaseNetwork(ABC):
                 edge_attributes,
                 self.data.nodes[home_team],
                 self.data.nodes[away_team],
-                rv
+                rv,                
+                self.random_number_generator,
             )
             self.data.edges[away_team, home_team, edge_key]['winner'] = winner
 
