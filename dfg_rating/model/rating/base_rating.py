@@ -81,9 +81,10 @@ class RatingNullError(RatingError):
 
 class RatingFunctionError(RatingError):
 
-    def __init__(self, error, **kwargs):
+    def __init__(self, error, random_number_generator = np.random.default_rng(), **kwargs):
+        self.random_number_generator = random_number_generator
         try:
-            self.error_method = getattr(np.random.default_rng(), error)
+            self.error_method = getattr(random_number_generator, error)
         except AttributeError:
             print("Error method not available")
             return
