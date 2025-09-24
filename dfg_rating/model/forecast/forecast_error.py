@@ -15,7 +15,7 @@ class ForecastNullError(ForecastError):
 
 class ForecastFactorError(ForecastError):
 
-    def __init__(self, error: float, scope: str = None, random_number_generator = np.random.default_rng(),):
+    def __init__(self, error: float, scope: str = None, random_number_generator = np.random.default_rng()):
         self.type = 'factor'
         self.error = error
         self.scope = scope
