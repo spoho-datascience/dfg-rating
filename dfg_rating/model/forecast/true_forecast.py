@@ -59,10 +59,14 @@ class BradleyTerryForecast(BaseForecast):
 
     def __init__(self, **kwargs):
         super().__init__('bradley-terry', **kwargs)
+        if(len(self.outcomes) != 3):
+            raise Exception(f"Bradley-Terry not applicable if number of outcomes does not equal 3")
         self.exponent = kwargs.get('exponent', 10)
         self.ha = kwargs.get('ha', 100)
         self.home_error = kwargs.get('home_team_error', RatingNullError())
         self.away_error = kwargs.get('away_team_error', RatingNullError())
+
+            
 
     def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating', round_values=None):
         round_pointer = indexOf(round_values, match_data['round'])
@@ -86,16 +90,12 @@ class BradleyTerryForecast(BaseForecast):
         home_strength = home_rating_transformed / (home_rating_transformed + away_rating_transformed)
         away_strength = away_rating_transformed / (home_rating_transformed + away_rating_transformed)
         draw_strength = math.sqrt(home_strength * away_strength)
-        
-        if(len(self.outcomes) != 3):
-            print("Bradley Terry only applicable to cases with three outcomes")
-            return[]
-        else:
-            self.probabilities[0] = home_strength/(home_strength + draw_strength + away_strength)
-            self.probabilities[1] = draw_strength/(home_strength + draw_strength + away_strength)
-            self.probabilities[2] = away_strength/(home_strength + draw_strength + away_strength)
-            self.computed = True
-            return self.probabilities
+
+        self.probabilities[0] = home_strength/(home_strength + draw_strength + away_strength)
+        self.probabilities[1] = draw_strength/(home_strength + draw_strength + away_strength)
+        self.probabilities[2] = away_strength/(home_strength + draw_strength + away_strength)
+        self.computed = True
+        return self.probabilities
 
 
 
