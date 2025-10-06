@@ -1,6 +1,7 @@
 import itertools
 import time
 from operator import indexOf
+from collections import defaultdict
 
 import numpy as np
 from tqdm import tqdm
@@ -21,7 +22,12 @@ class ELORating(BaseRating):
                 "c": kwargs.get("param_c", 10.0),
                 "d": kwargs.get("param_d", 400.0),
                 "k": kwargs.get("param_k", 14.0),
-                "w": kwargs.get("param_w", 80)
+                "w": kwargs.get("param_w", 80),
+                "lam": kwargs.get("param_lam", 1.6),
+                "league_average": kwargs.get("league_average", False),
+                "param_adjust": kwargs.get("param_adjust", False),
+                "split_k": kwargs.get("param_split_k", {}),
+                "split_lam": kwargs.get("param_split_lam", {})
             }
 
     def init_ratings(self, team, season, n, league=None):
@@ -53,12 +59,20 @@ class ELORating(BaseRating):
             1.0 + (self.settings['c'] ** ((away_value - home_value - self.settings['w']) / self.settings['d'])))
         return expected_home, 1 - expected_home
 
-    def compute_scores(self, result):
+    def compute_scores(self, match_data):
+        result = match_data['winner']
         home_score = 1.0 if result == 'home' else 0.5 if result == 'draw' else 0.0
         return home_score, 1 - home_score
+    
+    def get_adjusted_k(self, match_data):
+        if self.settings["param_adjust"] is True:
+            adjusted_k = self.settings['split_k'].get(match_data['competition'], None)
+        else:
+            adjusted_k = self.settings['k']
+        return adjusted_k
 
-    def update_elo(self, current, score, expected, match_data):
-        return current + (self.settings['k'] * (score - expected))
+    def update_elo(self, current, score, expected, adjusted_k, match_data):
+        return current + (adjusted_k * (score - expected))
 
     def end_season_ratings(self, network, ratings):
         end_position = (self.rounds_per_season + 2) - 1
@@ -66,6 +80,7 @@ class ELORating(BaseRating):
             ratings[team_i, end_position] = ratings[team_i, end_position - 1]
 
     def get_all_ratings(self, n: BaseNetwork, edge_filter=None, season=0, **params):
+        league_teams_dict = defaultdict(list)
         edge_filter = edge_filter or base_edge_filter
         self.teams = list(n.data.nodes)
         n_teams = len(self.teams)
@@ -93,19 +108,55 @@ class ELORating(BaseRating):
                         ratings[home_team_i, current_position - 1],
                         ratings[away_team_i, current_position - 1]
                     )
-                    home_score, away_score = self.compute_scores(match_data['winner'])
+                    home_score, away_score = self.compute_scores(match_data)
+                    adjusted_k = self.get_adjusted_k(match_data)
                     ratings[away_team_i, current_position] = self.update_elo(
                         ratings[away_team_i, current_position - 1],
                         away_score,
                         away_expected,
+                        adjusted_k,
                         match_data
                     )
                     ratings[home_team_i, current_position] = self.update_elo(
                         ratings[home_team_i, current_position - 1],
                         home_score,
                         home_expected,
+                        adjusted_k,
                         match_data
                     )
+                    if self.settings["league_average"] is True:
+                        # Check for International or Cup match
+                        if match_data['competition'] in ['International', 'Cup']:
+                            home_league_id = match_data['home_team_league_id']
+                            away_league_id = match_data['away_team_league_id']
+                            if home_league_id != away_league_id:
+                                # Get all teams in the respective leagues
+                                home_league_teams = [team for team in self.teams if
+                                                     n.data.nodes[team].get('league_id') == home_league_id]
+                                away_league_teams = [team for team in self.teams if
+                                                     n.data.nodes[team].get('league_id') == away_league_id]
+                                # Apply the league-wide rating adjustments
+                                for team in home_league_teams:
+                                    if team != home_team:
+                                        team_i = players_dict.get(team, team)
+                                        ratings[team_i, current_position] = self.update_elo(
+                                            ratings[team_i, current_position - 1],
+                                            home_score,  # Use home team's result to adjust all teams in its league
+                                            home_expected,
+                                            adjusted_k,
+                                            match_data
+                                        )
+                                for team in away_league_teams:
+                                    if team != away_team:
+                                        team_i = players_dict.get(team, team)
+                                        ratings[team_i, current_position] = self.update_elo(
+                                            ratings[team_i, current_position - 1],
+                                            away_score,  # Use away team's result to adjust all teams in its league
+                                            away_expected,
+                                            adjusted_k,
+                                            match_data
+                                        )
+                                teams_playing.update(home_league_teams, away_league_teams)
             # Dealing with teams not playing
             if len(teams_playing) != len(self.teams):
                 for team in self.teams:
@@ -132,3 +183,40 @@ class SplitELORating(ELORating):
             if k_factor is not None:
                 return current + (k_factor * (score - expected))
         return current + (self.settings['k'] * (score - expected))
+
+
+class GoalsELORating(ELORating):
+
+    def __init__(self, **kwargs):
+        self.home_score_key = kwargs.get('home_score_key', 'home_score')
+        self.away_score_key = kwargs.get('away_score_key', 'away_score')
+        super().__init__(**kwargs)
+
+    def get_adjusted_k(self, match_data):
+        home_score = match_data[self.home_score_key]
+        away_score = match_data[self.away_score_key]
+        if self.settings["param_adjust"] is True:
+            k = self.settings['split_k'].get(match_data['competition'], None)
+            lam = self.settings["split_lam"].get(match_data['competition'], None)
+            adjusted_k = k * (1 + np.absolute(home_score - away_score)) ** lam
+        else:
+            adjusted_k = self.settings['k'] * (1 + np.absolute(home_score - away_score)) ** self.settings['lam']
+        return adjusted_k
+
+
+class OddsELORating(ELORating):
+
+    def __init__(self, **kwargs):
+        self.home_odds_pointer = kwargs.get('home_odds_pointer', 'home_odds')
+        self.draw_odds_pointer = kwargs.get('draw_odds_pointer', 'draw_odds')
+        self.away_odds_pointer = kwargs.get('away_odds_pointer', 'away_odds')
+        super().__init__(**kwargs)
+
+    def compute_scores(self, match_data):
+        overround = 1 / match_data[self.home_odds_pointer] + 1 / match_data[self.draw_odds_pointer] + 1 / match_data[
+            self.away_odds_pointer]
+        home_pred = 1 / match_data[self.home_odds_pointer] / overround
+        draw_pred = 1 / match_data[self.draw_odds_pointer] / overround
+        home_score = home_pred + 0.5 * draw_pred
+        away_score = 1 - home_score
+        return home_score, away_score

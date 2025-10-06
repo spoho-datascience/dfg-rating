@@ -552,6 +552,11 @@ database.ini
 /experiments/scripts/Final_results/*.csv
 /experiments/notebooks/*.csv
 experiments/notebooks/network_analysis/RealData/results/*
+/experiments/international_network/*.csv
+/experiments/international_network/*:Zone.Identifier
+/experiments/international_network/*.xlsx
+/experiments/international_network/*.png
 /data/*
 *.tar.gz
 *.code-workspace
+*.csv
