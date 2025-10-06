@@ -10,9 +10,10 @@ from dfg_rating.model.rating.base_rating import BaseRating, get_rounds, get_roun
 
 class ControlledRandomFunction:
 
-    def __init__(self, **kwargs):
+    def __init__(self, random_number_generator = np.random.default_rng(), **kwargs):
+        self.random_number_generator = random_number_generator
         try:
-            self.distribution_method = getattr(np.random.default_rng(), kwargs['distribution'])
+            self.distribution_method = getattr(self.random_number_generator, kwargs['distribution'])
             kwargs.pop('distribution', None)
             self.distribution_arguments = kwargs
         except AttributeError as attr:
@@ -31,6 +32,7 @@ class ControlledTrendRating(BaseRating):
 
     def __init__(self, **kwargs):
         super().__init__('controlled-trend', **kwargs)
+        self.random_number_generator: ControlledRandomFunction = kwargs['random_number_generator']
         self.starting_point: ControlledRandomFunction = kwargs['starting_point']
         self.delta: ControlledRandomFunction = kwargs['delta']
         self.trend: ControlledRandomFunction = kwargs['trend']
@@ -38,6 +40,7 @@ class ControlledTrendRating(BaseRating):
         self.season_delta: ControlledRandomFunction = kwargs['season_delta']
         self.props = {}
         self.rating_name = kwargs.get('rating_name', 'true_rating')
+
 
     def get_all_ratings(self, n: BaseNetwork, edge_filter=None, season=0):
         print(season, "current_season")

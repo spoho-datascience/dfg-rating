@@ -1,8 +1,9 @@
+import os
 import pandas as pd
 import numpy as np
 from typing import Dict
 
-from dfg_rating.db.postgres import PostgreSQLDriver
+from dfg_rating.db.postgres import PostgreSQLDriver, DummyDriver
 from dfg_rating.model import factory
 from dfg_rating.model.betting.betting import BaseBetting
 from dfg_rating.model.bookmaker.base_bookmaker import BaseBookmaker
@@ -169,11 +170,19 @@ class Controller:
         }
     }
 
-    def __init__(self):
+    def __init__(self, db_driver=None):
         self.networks: Dict[str, BaseNetwork] = {}
         self.bookmakers: Dict[str, BaseBookmaker] = {}
         self.betting_strategies: Dict[str, BaseBetting] = {}
-        self.db = PostgreSQLDriver()
+
+        # Determine which database driver to use
+        if db_driver is None:
+            db_driver = os.environ.get('DFG_RATING_DB_DRIVER', 'dummy')
+
+        if db_driver.lower() == 'dummy':
+            self.db = DummyDriver()
+        else:
+            self.db = PostgreSQLDriver()
 
     def print_network(self, name, **kwargs):
         if name in self.networks:

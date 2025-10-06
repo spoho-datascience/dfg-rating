@@ -13,10 +13,11 @@ class FunctionRating(BaseRating):
         distribution (str): Function name
     """
 
-    def __init__(self, **args):
+    def __init__(self, random_number_generator = np.random.default_rng(), **args):
         super().__init__('random-function')
+        self.random_number_generator = random_number_generator
         try:
-            self.distribution_method = getattr(np.random.default_rng(), args['distribution'])
+            self.distribution_method = getattr(self.random_number_generator, args['distribution'])
             args.pop('distribution', None)
         except AttributeError as attr:
             self.distribution_method = None

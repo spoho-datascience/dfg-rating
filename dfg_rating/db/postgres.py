@@ -104,5 +104,31 @@ class PostgreSQLDriver:
             self.connection.commit()
 
 
+class DummyDriver:
+    def __init__(self, _config=None, _config_file='database.ini'):
+        self.connection_params = {}
+        self.connection = None
+        print("DummyDriver: Initialized in dummy mode - no actual database connection")
+
+    def read_config_params(self, _filename="database.ini", _section='postgresql'):
+        return {}
+
+    def connect(self):
+        print("DummyDriver: No database connection (dummy mode)")
+
+    def close(self):
+        print("DummyDriver: Connection closed (dummy mode)")
+
+    def execute_query(self, file_name=None, query=None, _commit=False):
+        if file_name is not None:
+            print(f"DummyDriver: Would execute SQL file: {file_name} (dummy mode)")
+        elif query is not None:
+            print(f"DummyDriver: Would execute query: {query[:50]}... (dummy mode)")
+        return []
+
+    def insert_many(self, query_string, values):
+        print(f"DummyDriver: Would insert {len(values)} records with query: {query_string[:50]}... (dummy mode)")
+
+
 
 
