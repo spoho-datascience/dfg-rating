@@ -559,7 +559,7 @@ class InternationalCompetition_Combine(BaseNetwork):
         self.countries_leagues = {}
         self.seasons = kwargs.get('seasons', 1)
         self.days_between_rounds = kwargs.get('days_between_rounds', 1)
-        self.choose_mode = kwargs.get('choose_mode', 'random')
+        self.choose_mode = kwargs.get('choose_mode', 'best')
         self.team_id_map = {}  # map from original team id to new unique team id
         self.selected_teams_list = []
         self.team_level_map = {}

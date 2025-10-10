@@ -49,22 +49,22 @@ seasons = 15
 no_countries = 10
 # set number of teams per 1st league that play internationally and avg and min of matches per team
 teams_per_country_international = 6
-avg_match_international = 7
-min_match_international = 3
+avg_match_international = 6
+min_match_international = 2
 # names of the countries
 countries = ('c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10')
 # set number of teams for whole country (1st to 4th league) and for first three leagues separately
-nr_teams_total = (72, 72, 72, 72, 72, 72, 72, 72, 72, 72)
-nr_teams_level1 = (18, 18, 18, 18, 18, 18, 18, 18, 18, 18)
-nr_teams_level2 = (18, 18, 18, 18, 18, 18, 18, 18, 18, 18)
-nr_teams_level3 = (18, 18, 18, 18, 18, 18, 18, 18, 18, 18)
+nr_teams_total = (80, 80, 80, 80, 80, 80, 80, 80, 80, 80)
+nr_teams_level1 = (20, 20, 20, 20, 20, 20, 20, 20, 20, 20)
+nr_teams_level2 = (20, 20, 20, 20, 20, 20, 20, 20, 20, 20)
+nr_teams_level3 = (20, 20, 20, 20, 20, 20, 20, 20, 20, 20)
 # set the starting mean rating for each level of each country and the deviation for all teams for that rating
-ratings_level1 = (1300, 1250, 1200, 1200, 1200, 1150, 1100, 1100, 1100, 1050)
-ratings_level2 = (1050, 1050, 950, 950, 1000, 900, 900, 950, 900, 850)
-ratings_level3 = (900, 950, 800, 850, 850, 800, 750, 750, 700, 700)
-rating_scale_level1 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-rating_scale_level2 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-rating_scale_level3 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+ratings_level1 = (1050, 1050, 1050, 1050, 1050, 1050, 1050, 1050, 1050, 1050)
+ratings_level2 = (1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000)
+ratings_level3 = (950, 950, 950, 950, 950, 950, 950, 950, 950, 950)
+rating_scale_level1 = (80, 80, 80, 80, 80, 80, 80, 80, 80, 80)
+rating_scale_level2 = (80, 80, 80, 80, 80, 80, 80, 80, 80, 80)
+rating_scale_level3 = (80, 80, 80, 80, 80, 80, 80, 80, 80, 80)
 # set rating transfer for promotion and relegation (keep = teams keep their ranking when promoted/relegated,
 # mix= teams get difference of league rating means added (promotion) or subtracted (relegation),
 # interchange =
@@ -89,26 +89,26 @@ df_networks = pd.DataFrame()
 network = {}
 
 rating_level1 = ControlledTrendRating(
-    starting_point=ControlledRandomFunction(distribution='normal', loc=1200, scale=0),
-    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
-    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
-    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
+    starting_point=ControlledRandomFunction(distribution='normal', loc=1050, scale=0),
+    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
+    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.1),
+    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=20),
     rating_name='true_rating'
 )
 
 rating_level2 = ControlledTrendRating(
     starting_point=ControlledRandomFunction(distribution='normal', loc=1000, scale=0),
-    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
-    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
-    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
+    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
+    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.1),
+    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=20),
     rating_name='true_rating'
 )
 
 rating_level3 = ControlledTrendRating(
-    starting_point=ControlledRandomFunction(distribution='normal', loc=800, scale=0),
-    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
-    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
-    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
+    starting_point=ControlledRandomFunction(distribution='normal', loc=950, scale=0),
+    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
+    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.1),
+    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=20),
     rating_name='true_rating'
 )
 
@@ -140,9 +140,10 @@ international_network = InternationalCompetition_Combine(
     create_country_network=False,
     avg_match_per_team=avg_match_international,
     min_match_per_team=min_match_international,
+    choose_mode="top"
 )
 
-international_network.export(printing_ratings=['true_rating', 'ranking'], file_name='full_network_7.csv')
+international_network.export(printing_ratings=['true_rating', 'ranking'], file_name='full_network_new_20.csv')
 
 # app = Widgets.RatingsExplorer(network=international_network)
 # app.run('external', port=8001)
