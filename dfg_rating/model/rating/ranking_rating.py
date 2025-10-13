@@ -63,6 +63,39 @@ class LeagueRating(BaseRankingRating):
 
         return ratings, self.points_system
 
+    def get_cluster_ratings(self, league_network: BaseNetwork, team: [TeamId], season=0, level=0):
+        # edge_filter = edge_filter or base_edge_filter
+        # home_games = list(league_network.data.in_edges(team, keys=True, data=True))
+        # away_games = list(league_network.data.out_edges(team, keys=True, data=True))
+        # if level=='level4':
+        #     season_games = [(u, v, key, data) for u, v, key, data in league_network.data.in_edges(team, keys=True, data=True) if data['season'] == season]
+        # else:
+        #     season_games = [(u, v, key, data) for u, v, key, data in league_network.data.in_edges(team, keys=True, data=True) if data['season'] == season and 'state' not in data]
+        # only get in level edges
+        season_games = [(u, v, key, data) for u, v, key, data in league_network.data.edges(keys=True, data=True) if u in team and v in team and data['season'] == season and data['competition_type']=='League']
+
+        n_rounds = len(get_rounds(season_games))
+        # n_rounds, round_value = league_network.get_rounds()
+        ratings = np.zeros([len(team), n_rounds + 1])
+        for away_team, home_team, match_key, data in sorted(season_games, key=lambda x: x[3]['day']):
+            if home_team in team:
+                i_home_team = indexOf(team, home_team)
+                ratings[i_home_team][data['round'] + 1] = ( # just get the value of the round
+                    self.points_system['win'] if data['winner'] == 'home'
+                    else self.points_system['draw'] if data['winner'] == 'draw'
+                    else self.points_system['lose']
+                )
+            if away_team in team:
+                i_away_team = indexOf(team, away_team)
+                ratings[i_away_team][data['round'] + 1] = (
+                    self.points_system['win'] if data['winner'] == 'away'
+                    else self.points_system['draw'] if data['winner'] == 'draw'
+                    else self.points_system['lose']
+                )
+        # accumulate ratings by round
+        ratings = np.cumsum(ratings, axis=1)
+        return ratings, self.points_system
+
     def get_ratings(self, league_network: BaseNetwork, team: [TeamId], edge_filter=None):
         edge_filter = edge_filter or base_edge_filter
         home_games = list(league_network.data.in_edges(team, keys=True, data=True))
