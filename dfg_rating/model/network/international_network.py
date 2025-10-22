@@ -399,12 +399,8 @@ class CountryLeague(BaseNetwork):
                     home_rating, home_closest_round = self.get_avaliable_rating(match[1],match_day,season)
                     away_rating, away_clostest_round = self.get_avaliable_rating(match[0],match_day,season)
                     forecast_object = deepcopy(forecast)
-                    diff = forecast_object.home_error.apply(home_rating) - forecast_object.away_error.apply(away_rating)
-                    for i in range(len(forecast_object.outcomes)):
-                        n = len(forecast_object.outcomes)
-                        j = i+1
-                        forecast_object.probabilities[i]=forecast_object.logit_link_function(n-j+1,diff)-forecast_object.logit_link_function(n-j,diff)
-                    forecast_object.computed = True
+                    #  use get_forecast_from_ratings to support all forecast types
+                    forecast_object.get_forecast_from_ratings(home_rating, away_rating)
                     self.data.edges[match].setdefault('forecasts', {})['true_forecast'] = forecast_object
 
     def play_sub_network(self, season):
@@ -609,12 +605,8 @@ class InternationalCompetition_Combine(BaseNetwork):
                 home_rating, home_closest_round = self.countries_leagues[home_country_id].get_avaliable_rating(home_id, match_day, season)
                 away_rating, away_closest_round = self.countries_leagues[away_country_id].get_avaliable_rating(away_id, match_day, season)
                 forecast_object = deepcopy(self.true_forecast)
-                diff = forecast_object.home_error.apply(home_rating) - forecast_object.away_error.apply(away_rating)
-                for i in range(len(forecast_object.outcomes)):
-                    n = len(forecast_object.outcomes)
-                    j = i+1
-                    forecast_object.probabilities[i]=forecast_object.logit_link_function(n-j+1,diff)-forecast_object.logit_link_function(n-j,diff)
-                forecast_object.computed = True
+                # use get_forecast_from_ratings to support all forecast types
+                forecast_object.get_forecast_from_ratings(home_rating, away_rating)
                 self.data.edges[match].setdefault('forecasts', {})['true_forecast'] = forecast_object
 
     def add_odds(self):

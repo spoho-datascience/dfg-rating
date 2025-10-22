@@ -27,6 +27,24 @@ class BaseForecast(ABC):
     def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating', round_values=None):
         pass
 
+    @abstractmethod
+    def get_forecast_from_ratings(self, home_rating, away_rating):
+        """
+        use the existing rating to calculate forecast
+        
+        for CountryLeague and InternationalCompetition， where the national/international matches are not played 
+        at the same time as the league matches (have ratings at that day/round), so the ratings are pre-requested with
+        the function get_avaliable_rating().
+        
+        Args:
+            home_rating
+            away_rating
+            
+        Returns:
+            self.outcomes
+        """
+        pass
+
     def print(self):
         forecast_string = ""
         for i in range(len(self.outcomes)):
@@ -42,4 +60,7 @@ class SimpleForecast(BaseForecast):
         self.computed = True
 
     def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_forecast', round_values=None):
+        return self.probabilities
+    
+    def get_forecast_from_ratings(self, home_rating, away_rating):
         return self.probabilities

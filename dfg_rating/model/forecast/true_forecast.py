@@ -53,6 +53,19 @@ class LogFunctionForecast(BaseForecast):
         f = 1 / (1 + np.exp(z))
         return f
     
+    def get_forecast_from_ratings(self, home_rating, away_rating):
+        diff = self.home_error.apply(home_rating) - self.away_error.apply(away_rating)
+        for i in range(len(self.outcomes)):
+            n = len(self.outcomes)
+            j = i + 1
+            self.probabilities[i] = self.logit_link_function(
+                outcome_number=n-j+1, covar=diff
+            ) - self.logit_link_function(
+                outcome_number=n-j, covar=diff
+            )
+        self.computed = True
+        return self.probabilities
+    
 #implementing a Bradley-Terry forecast, partly adopted from Hankin (2020), as an alternative true forecast
 #The specific BT model is only applicable for three outcomes
 class BradleyTerryForecast(BaseForecast):
@@ -94,6 +107,19 @@ class BradleyTerryForecast(BaseForecast):
         self.probabilities[0] = home_strength/(home_strength + draw_strength + away_strength)
         self.probabilities[1] = draw_strength/(home_strength + draw_strength + away_strength)
         self.probabilities[2] = away_strength/(home_strength + draw_strength + away_strength)
+        self.computed = True
+        return self.probabilities
+    
+    def get_forecast_from_ratings(self, home_rating, away_rating):
+        home_rating_transformed = (home_rating + self.ha) ** self.exponent
+        away_rating_transformed = away_rating ** self.exponent
+        home_strength = home_rating_transformed / (home_rating_transformed + away_rating_transformed)
+        away_strength = away_rating_transformed / (home_rating_transformed + away_rating_transformed)
+        draw_strength = math.sqrt(home_strength * away_strength)
+
+        self.probabilities[0] = home_strength / (home_strength + draw_strength + away_strength)
+        self.probabilities[1] = draw_strength / (home_strength + draw_strength + away_strength)
+        self.probabilities[2] = away_strength / (home_strength + draw_strength + away_strength)
         self.computed = True
         return self.probabilities
 
