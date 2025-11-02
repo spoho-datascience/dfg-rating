@@ -16,22 +16,34 @@ class LogFunctionForecast(BaseForecast):
         self.home_error = kwargs.get('home_team_error', RatingNullError())
         self.away_error = kwargs.get('away_team_error', RatingNullError())
 
-    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating', round_values=None):
-        round_pointer = indexOf(round_values, match_data['round'])
-        home_rating = home_team.get(
-            'ratings', {}
-        ).get(
-            base_ranking, {}
-        ).get(
-            match_data['season'], []
-        )[round_pointer]
-        away_rating = away_team.get(
-            'ratings', {}
-        ).get(
-            base_ranking, {}
-        ).get(
-            match_data['season'], []
-        )[round_pointer]
+    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating', 
+                     round_values=None, home_rating=None, away_rating=None):
+        # 1: ratings provided directly (for country and international networks)
+        if home_rating is not None and away_rating is not None:
+            if home_rating is None or away_rating is None:
+                raise ValueError("Both home_rating and away_rating must be provided when using direct rating mode")
+        # 2: retrieve ratings from team objects
+        else:
+            if match_data is None or home_team is None or away_team is None or round_values is None:
+                raise ValueError("match_data, home_team, away_team, and round_values must be provided when not using direct rating mode")
+            
+            round_pointer = indexOf(round_values, match_data['round'])
+            home_rating = home_team.get(
+                'ratings', {}
+            ).get(
+                base_ranking, {}
+            ).get(
+                match_data['season'], []
+            )[round_pointer]
+            away_rating = away_team.get(
+                'ratings', {}
+            ).get(
+                base_ranking, {}
+            ).get(
+                match_data['season'], []
+            )[round_pointer]
+        
+        # Calculate forecast using ratings
         diff = self.home_error.apply(home_rating) - self.away_error.apply(away_rating)
         for i in range(len(self.outcomes)):
             n = len(self.outcomes)
@@ -53,19 +65,6 @@ class LogFunctionForecast(BaseForecast):
         f = 1 / (1 + np.exp(z))
         return f
     
-    def get_forecast_from_ratings(self, home_rating, away_rating):
-        diff = self.home_error.apply(home_rating) - self.away_error.apply(away_rating)
-        for i in range(len(self.outcomes)):
-            n = len(self.outcomes)
-            j = i + 1
-            self.probabilities[i] = self.logit_link_function(
-                outcome_number=n-j+1, covar=diff
-            ) - self.logit_link_function(
-                outcome_number=n-j, covar=diff
-            )
-        self.computed = True
-        return self.probabilities
-    
 #implementing a Bradley-Terry forecast, partly adopted from Hankin (2020), as an alternative true forecast
 #The specific BT model is only applicable for three outcomes
 class BradleyTerryForecast(BaseForecast):
@@ -81,36 +80,36 @@ class BradleyTerryForecast(BaseForecast):
 
             
 
-    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating', round_values=None):
-        round_pointer = indexOf(round_values, match_data['round'])
-        home_rating = home_team.get(
-            'ratings', {}
-        ).get(
-            base_ranking, {}
-        ).get(
-            match_data['season'], []
-        )[round_pointer]
-        away_rating = away_team.get(
-            'ratings', {}
-        ).get(
-            base_ranking, {}
-        ).get(
-            match_data['season'], []
-        )[round_pointer]
-        #to ensure realistic probabilities, ratings need to be transformed
-        home_rating_transformed = (home_rating+self.ha)**self.exponent
-        away_rating_transformed = away_rating**self.exponent
-        home_strength = home_rating_transformed / (home_rating_transformed + away_rating_transformed)
-        away_strength = away_rating_transformed / (home_rating_transformed + away_rating_transformed)
-        draw_strength = math.sqrt(home_strength * away_strength)
-
-        self.probabilities[0] = home_strength/(home_strength + draw_strength + away_strength)
-        self.probabilities[1] = draw_strength/(home_strength + draw_strength + away_strength)
-        self.probabilities[2] = away_strength/(home_strength + draw_strength + away_strength)
-        self.computed = True
-        return self.probabilities
-    
-    def get_forecast_from_ratings(self, home_rating, away_rating):
+    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating', 
+                     round_values=None, home_rating=None, away_rating=None):
+        # Mode 1: Ratings provided directly (for complex networks)
+        if home_rating is not None and away_rating is not None:
+            # Validate ratings
+            if home_rating is None or away_rating is None:
+                raise ValueError("Both home_rating and away_rating must be provided when using direct rating mode")
+        # Mode 2: Retrieve ratings from team objects (for simple networks)
+        else:
+            if match_data is None or home_team is None or away_team is None or round_values is None:
+                raise ValueError("match_data, home_team, away_team, and round_values must be provided when not using direct rating mode")
+            
+            round_pointer = indexOf(round_values, match_data['round'])
+            home_rating = home_team.get(
+                'ratings', {}
+            ).get(
+                base_ranking, {}
+            ).get(
+                match_data['season'], []
+            )[round_pointer]
+            away_rating = away_team.get(
+                'ratings', {}
+            ).get(
+                base_ranking, {}
+            ).get(
+                match_data['season'], []
+            )[round_pointer]
+        
+        # Calculate forecast using ratings
+        # To ensure realistic probabilities, ratings need to be transformed
         home_rating_transformed = (home_rating + self.ha) ** self.exponent
         away_rating_transformed = away_rating ** self.exponent
         home_strength = home_rating_transformed / (home_rating_transformed + away_rating_transformed)
