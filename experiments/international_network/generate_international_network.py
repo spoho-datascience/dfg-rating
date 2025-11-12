@@ -1,6 +1,6 @@
 from dfg_rating.model.network.international_network import CountryLeague, InternationalCompetition_Combine
 from dfg_rating.model.rating.multi_mode_rating import ControlledRandomFunction, ControlledTrendRating
-from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
+from dfg_rating.model.forecast.true_forecast import LogFunctionForecast, BradleyTerryForecast
 import dfg_rating.viz.jupyter_widgets as DFGWidgets
 
 rating_level1 = ControlledTrendRating(
@@ -31,6 +31,12 @@ forecast_test = LogFunctionForecast(
     outcomes=['home', 'draw', 'away'],
     coefficients=[-0.9, 0.3],
     beta_parameter=0.006
+)
+
+forecast_BT = BradleyTerryForecast(
+    outcomes=['home', 'draw', 'away'],
+    exponent=10,
+    ha=100
 )
 
 country_network1 = CountryLeague(
@@ -126,6 +132,7 @@ country_network2 = CountryLeague(
 Inter_network = InternationalCompetition_Combine(
     countries_configs={'c1':country_network1, 'c2':country_network2},
     teams_per_country=2,
+    true_forecast=forecast_BT,
     # match_prob=0.0,
     seasons=3,
     # days_between_rounds=7,

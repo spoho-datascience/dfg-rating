@@ -24,7 +24,28 @@ class BaseForecast(ABC):
 
 
     @abstractmethod
-    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating', round_values=None):
+    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating', 
+                     round_values=None, home_rating=None, away_rating=None):
+        """
+        calculate forecast probabilities.
+        
+        work in two ways:
+        1. simple networks: provide match_data, home_team, away_team to retrieve ratings internally
+        2. countryLeague/InternationalCompetition: provide pre-fetched home_rating 
+           and away_rating via get_available_rating()
+        
+        args:
+            match_data: Match information dict
+            home_team: Home team dict
+            away_team: Away team dict
+            base_ranking: Rating key to use
+            round_values: List of round values
+            home_rating: Pre-fetched home team rating (for country/international networks)
+            away_rating: Pre-fetched away team rating (for country/international networks)
+
+        returns:
+            [probabilities of home win, draw, away win]
+        """
         pass
 
     def print(self):
@@ -41,5 +62,6 @@ class SimpleForecast(BaseForecast):
         super().__init__('simple', **kwargs)
         self.computed = True
 
-    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_forecast', round_values=None):
+    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_forecast', 
+                     round_values=None, home_rating=None, away_rating=None):
         return self.probabilities
