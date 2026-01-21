@@ -21,7 +21,7 @@ class RandomNetwork(RoundRobinNetwork):
             for v in range(self.n_teams):
                 if u != v:
                     self.data.edges[u, v, 0][
-                        'state'] = 'active' if random.random() < self.edge_probability else 'inactive'
+                        'state'] = 'active' if self.random_number_generator.random() < self.edge_probability else 'inactive'
 
 
 class RandomRoundsNetwork(RoundRobinNetwork):
@@ -32,7 +32,7 @@ class RandomRoundsNetwork(RoundRobinNetwork):
 
     def fill_graph(self, team_labels=None, season=0):
         super().fill_graph(team_labels, season)
-        selected_rounds = np.random.choice(self.n_rounds * 2, self.absolute_rounds, replace=False)
+        selected_rounds = self.random_number_generator.choice(self.n_rounds * 2, self.absolute_rounds, replace=False)
         # print("selected rounds: ", selected_rounds)
         for u in range(self.n_teams):
             for v in range(self.n_teams):
@@ -75,7 +75,7 @@ class ConfigurationModelNetwork(RoundRobinNetwork):
         if total_sum is not None:
             while sequence.sum() != total_sum:
                 diff = total_sum - sequence.sum()
-                random_index = np.random.randint(low=0, high=len(sequence))
+                random_index = self.random_number_generator.integers(low=0, high=len(sequence))
                 sequence[random_index] += 1 if diff > 0 else -1
         return sequence
 
@@ -97,4 +97,4 @@ class ClusteredNetwork(RoundRobinNetwork):
                     v_cluster = v % self.number_of_clusters
                     edge_probability = self.in_probability if u_cluster == v_cluster else self.out_probability
                     self.data.edges[u, v, 0][
-                        'state'] = 'active' if random.random() < edge_probability else 'inactive'
+                        'state'] = 'active' if self.random_number_generator.random() < edge_probability else 'inactive'

@@ -32,7 +32,7 @@ class ControlledTrendRating(BaseRating):
 
     def __init__(self, **kwargs):
         super().__init__('controlled-trend', **kwargs)
-        self.random_number_generator: ControlledRandomFunction = kwargs['random_number_generator']
+        self.random_number_generator: ControlledRandomFunction = kwargs.get('random_number_generator')
         self.starting_point: ControlledRandomFunction = kwargs['starting_point']
         self.delta: ControlledRandomFunction = kwargs['delta']
         self.trend: ControlledRandomFunction = kwargs['trend']

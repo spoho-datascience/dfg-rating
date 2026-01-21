@@ -23,6 +23,7 @@ from copy import deepcopy
 class CountryLeague(BaseNetwork):
     def __init__(self, **kwargs):
         self.type='national'
+        self.random_number_generator = kwargs.get('random_number_generator', np.random.default_rng())
         self.data=None
         self.seasons = kwargs.get('seasons', 1)
         self.country_id = kwargs.get('country_id', 0)+'_'
@@ -115,17 +116,17 @@ class CountryLeague(BaseNetwork):
     def select_teams(self, clusters, select_n_teams=None, season=0, selection_strategy='random'):
         def select_from_cluster(cluster, n, strategy):
             if strategy == 'random':
-                return random.sample(cluster, n) if n else cluster
+                return list(self.random_number_generator.choice(cluster, n, replace=False)) if n else cluster
             elif strategy == 'top':
                 if season in self.data.nodes[cluster[0]]['ratings'].get('ranking', {}):
-                    return sorted(cluster, key=lambda team: (self.data.nodes[team].get('ratings', {}).get('ranking', {}).get(season, {})[-1], random.random()), reverse=True)[:n]
+                    return sorted(cluster, key=lambda team: (self.data.nodes[team].get('ratings', {}).get('ranking', {}).get(season, {})[-1], self.random_number_generator.random()), reverse=True)[:n]
                 else:
-                    return sorted(cluster, key=lambda team: (self.data.nodes[team].get('ratings', {}).get('true_rating', {}).get(season, {})[-1], random.random()), reverse=True)[:n]
+                    return sorted(cluster, key=lambda team: (self.data.nodes[team].get('ratings', {}).get('true_rating', {}).get(season, {})[-1], self.random_number_generator.random()), reverse=True)[:n]
             elif strategy == 'bottom':
                 if season in self.data.nodes[cluster[0]]['ratings'].get('ranking', {}):
-                    return sorted(cluster, key=lambda team: (self.data.nodes[team].get('ratings', {}).get('ranking', {}).get(season, {})[-1], random.random()))[:n]
+                    return sorted(cluster, key=lambda team: (self.data.nodes[team].get('ratings', {}).get('ranking', {}).get(season, {})[-1], self.random_number_generator.random()))[:n]
                 else:
-                    return sorted(cluster, key=lambda team: (self.data.nodes[team].get('ratings', {}).get('true_rating', {}).get(season, {})[-1], random.random()))[:n]
+                    return sorted(cluster, key=lambda team: (self.data.nodes[team].get('ratings', {}).get('true_rating', {}).get(season, {})[-1], self.random_number_generator.random()))[:n]
             else:
                 raise ValueError(f"Unknown selection strategy: {strategy}")
         if clusters == []:
@@ -151,17 +152,17 @@ class CountryLeague(BaseNetwork):
             self.data.edges[v, u, key]['competition_type'] = type
             if type != 'League' or prob==0: # international and national both have inactive, national is oneleg, international is two leg
                 if not self.oneleg:
-                    state = 'active' if random.random() < prob else 'inactive'
+                    state = 'active' if self.random_number_generator.random() < prob else 'inactive'
                     self.data.edges[u, v, key]['state'] = state
                     self.data.edges[v, u, key]['state'] = state
 
                 else:
-                    if random.random() < 0.5: # choose direction randomly
-                        self.data.edges[u, v, key]['state'] = 'active' if random.random() < prob else 'inactive'
+                    if self.random_number_generator.random() < 0.5: # choose direction randomly
+                        self.data.edges[u, v, key]['state'] = 'active' if self.random_number_generator.random() < prob else 'inactive'
                         self.data.edges[v, u, key]['state'] = 'inactive'
 
                     else:
-                        self.data.edges[v, u, key]['state'] = 'active' if random.random() < prob else 'inactive'
+                        self.data.edges[v, u, key]['state'] = 'active' if self.random_number_generator.random() < prob else 'inactive'
                         self.data.edges[u, v, key]['state'] = 'inactive'
             else: # League is always two leg active
                 self.data.edges[u, v, key]['state'] = 'active'
@@ -199,14 +200,14 @@ class CountryLeague(BaseNetwork):
         #         if team1 != team2:
         #             possible_matches.append((team1, team2))
 
-        random.shuffle(possible_matches)
+        self.random_number_generator.shuffle(possible_matches)
         remaining_matches = possible_matches.copy()
         for match in possible_matches:
             team1, team2 = match
             # Check if both teams need more matches
             if team_matches[team1] < min_matches_per_team or team_matches[team2] < min_matches_per_team:
                 if oneleg:
-                    if random.choice([True, False]):
+                    if self.random_number_generator.choice([True, False]):
                         match = (team1, team2)
                     else:
                         match = (team2, team1)
@@ -232,7 +233,7 @@ class CountryLeague(BaseNetwork):
             pair = remaining_matches.pop()
             team1, team2 = pair
             if oneleg:
-                if random.choice([True, False]):
+                if self.random_number_generator.choice([True, False]):
                     match = (team1, team2)
                 else:
                     match = (team2, team1)
@@ -250,8 +251,8 @@ class CountryLeague(BaseNetwork):
         # random choose day during 365 days
         match_schedule = []
         available_days = list(range(1, 366))
-        for match in match_pairs:
-            day = random.choice(available_days)
+        for match in sorted(list(match_pairs)):
+            day = self.random_number_generator.choice(available_days)
             match_schedule.append((match[0], match[1], day))
         
         match_schedule.sort(key=lambda x: x[2])  # sort by match day
@@ -408,7 +409,7 @@ class CountryLeague(BaseNetwork):
         for away_team, home_team, edge_key, edge_attributes in season_games:
             f = abs(edge_attributes['forecasts']['true_forecast'].probabilities)
             weights = f.cumsum()
-            x = np.random.default_rng().uniform(0, 1)
+            x = self.random_number_generator.uniform(0, 1)
             for i in range(len(weights)):
                 if x < weights[i]:
                     winner = self.true_forecast.outcomes[i]
@@ -546,6 +547,7 @@ class InternationalCompetition_Combine(BaseNetwork):
         InternationalCompetition class
         """
         self.type='international'
+        self.random_number_generator = kwargs.get('random_number_generator', np.random.default_rng())
         self.countries_configs = kwargs.get('countries_configs', {})
         self.avg_match_per_team = kwargs.get('avg_match_per_team', 3)
         self.min_match_per_team = kwargs.get('min_match_per_team', 1)
@@ -575,7 +577,7 @@ class InternationalCompetition_Combine(BaseNetwork):
             for country_idx, country_config in self.countries_configs.items():
                 print('country:', country_idx)
                 country_config['seasons'] = self.seasons
-                country_league = CountryLeague(**country_config)
+                country_league = CountryLeague(random_number_generator=self.random_number_generator, **country_config)
                 # self.data = nx.compose(self.data, country_league.data)
                 self.countries_leagues[country_idx] = country_league
                 # self.team_level_map[country_idx] = {'level1': country_league.teams_level1, 'level2': country_league.teams_level2, 'level3': country_league.teams_level3}
@@ -644,7 +646,7 @@ class InternationalCompetition_Combine(BaseNetwork):
         for away_team, home_team, edge_key, edge_attributes in international_games_sorted:
             f = abs(edge_attributes['forecasts']['true_forecast'].probabilities)
             weights = f.cumsum()
-            x = np.random.default_rng().uniform(0, 1)
+            x = self.random_number_generator.uniform(0, 1)
             for i in range(len(weights)):
                 if x < weights[i]:
                     winner = self.true_forecast.outcomes[i]
@@ -664,7 +666,7 @@ class InternationalCompetition_Combine(BaseNetwork):
         team_matches = {team: 0 for team in teams_list}
 
         possible_matches = [(team1, team2) for idx1, team1 in enumerate(teams_list) for team2 in teams_list[idx1+1:]]
-        random.shuffle(possible_matches)
+        self.random_number_generator.shuffle(possible_matches)
         # print(possible_matches)
         remaining_matches = possible_matches.copy()
         for match in possible_matches:
@@ -672,7 +674,7 @@ class InternationalCompetition_Combine(BaseNetwork):
             # Check if both teams need more matches
             if team_matches[team1] < self.min_match_per_team or team_matches[team2] < self.min_match_per_team:
                 if oneleg:
-                    if random.choice([True, False]):
+                    if self.random_number_generator.choice([True, False]):
                         match = (team1, team2)
                     else:
                         match = (team2, team1)
@@ -698,7 +700,7 @@ class InternationalCompetition_Combine(BaseNetwork):
             pair = remaining_matches.pop()
             team1, team2 = pair
             if oneleg:
-                if random.choice([True, False]):
+                if self.random_number_generator.choice([True, False]):
                     match = (team1, team2)
                 else:
                     match = (team2, team1)
@@ -714,8 +716,8 @@ class InternationalCompetition_Combine(BaseNetwork):
             
         match_schedule = []
         available_days = list(range(1, 366))
-        for match in match_pairs:
-            day = random.choice(available_days)
+        for match in sorted(list(match_pairs)):
+            day = self.random_number_generator.choice(available_days)
             match_schedule.append((match[0], match[1], day))
         
         match_schedule.sort(key=lambda x: x[2])
@@ -734,7 +736,7 @@ class InternationalCompetition_Combine(BaseNetwork):
                 if t1 != t2:
                     edges_team1_2 = [(u, v, key) for u, v, key, data in self.data.edges(keys=True, data=True) if data['season'] == season and ((u == t1 and v == t2) or (u==t2 and v==t1)) and data.get('competition_type','')=='international']
                     if edges_team1_2 and not self.oneleg:
-                        if random.random() < self.international_prob:
+                        if self.random_number_generator.random() < self.international_prob:
                             for match in edges_team1_2:
                                 u, v, key = match
                                 self.data.edges[u, v, key]['state'] = 'active'

@@ -117,7 +117,7 @@ class BaseNetwork(ABC):
             print("---------------")
         if print_kwargs.get('attributes', False):
             if (print_kwargs.get('ratings', False)) & (
-                    'ratings' in self.data.nodes[np.random.choice(self.data.nodes())]):
+                    'ratings' in self.data.nodes[self.random_number_generator.choice(sorted(list(self.data.nodes())))]):
                 print("Teams ratings")
                 for team in self.data.nodes:
                     print(f"Team {team} attributes:")
