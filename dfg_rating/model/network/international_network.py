@@ -181,7 +181,7 @@ class CountryLeague(BaseNetwork):
         else:
             total_matches = math.ceil((num_teams * avg_matches_per_team) / 4)
 
-        match_pairs = set()
+        match_pairs = []
         team_matches = {team: 0 for team in all_teams}
 
         # possible_matches = [(team1, team2) for team1 in all_teams for team2 in all_teams if team1 != team2]
@@ -211,14 +211,14 @@ class CountryLeague(BaseNetwork):
                         match = (team1, team2)
                     else:
                         match = (team2, team1)
-                    match_pairs.add(match)
+                    match_pairs.append(match)
                     remaining_matches.remove((team1, team2))
                     team_matches[team1] += 1
                     team_matches[team2] += 1
                 else:
                     # Schedule both home and away matches
-                    match_pairs.add((team1, team2))
-                    match_pairs.add((team2, team1))
+                    match_pairs.append((team1, team2))
+                    match_pairs.append((team2, team1))
                     remaining_matches.remove(match)
                     team_matches[team1] += 2
                     team_matches[team2] += 2
@@ -237,13 +237,13 @@ class CountryLeague(BaseNetwork):
                     match = (team1, team2)
                 else:
                     match = (team2, team1)
-                match_pairs.add(match)
+                match_pairs.append(match)
                 team_matches[team1] += 1
                 team_matches[team2] += 1
             else:
                 # Schedule both home and away matches
-                match_pairs.add((team1, team2))
-                match_pairs.add((team2, team1))
+                match_pairs.append((team1, team2))
+                match_pairs.append((team2, team1))
                 team_matches[team1] += 2
                 team_matches[team2] += 2
 
@@ -251,7 +251,7 @@ class CountryLeague(BaseNetwork):
         # random choose day during 365 days
         match_schedule = []
         available_days = list(range(1, 366))
-        for match in sorted(list(match_pairs)):
+        for match in match_pairs:
             day = self.random_number_generator.choice(available_days)
             match_schedule.append((match[0], match[1], day))
         
@@ -662,7 +662,7 @@ class InternationalCompetition_Combine(BaseNetwork):
         else:
             total_matches = math.ceil((number_of_teams * self.avg_match_per_team) / 4)
 
-        match_pairs = set()
+        match_pairs = []
         team_matches = {team: 0 for team in teams_list}
 
         possible_matches = [(team1, team2) for idx1, team1 in enumerate(teams_list) for team2 in teams_list[idx1+1:]]
@@ -678,14 +678,14 @@ class InternationalCompetition_Combine(BaseNetwork):
                         match = (team1, team2)
                     else:
                         match = (team2, team1)
-                    match_pairs.add(match)
+                    match_pairs.append(match)
                     remaining_matches.remove((team1, team2))
                     team_matches[team1] += 1
                     team_matches[team2] += 1
                 else:
                     # Schedule both home and away matches
-                    match_pairs.add((team1, team2))
-                    match_pairs.add((team2, team1))
+                    match_pairs.append((team1, team2))
+                    match_pairs.append((team2, team1))
                     remaining_matches.remove(match)
                     team_matches[team1] += 2
                     team_matches[team2] += 2
@@ -704,19 +704,19 @@ class InternationalCompetition_Combine(BaseNetwork):
                     match = (team1, team2)
                 else:
                     match = (team2, team1)
-                match_pairs.add(match)
+                match_pairs.append(match)
                 team_matches[team1] += 1
                 team_matches[team2] += 1
             else:
                 # Schedule both home and away matches
-                match_pairs.add((team1, team2))
-                match_pairs.add((team2, team1))
+                match_pairs.append((team1, team2))
+                match_pairs.append((team2, team1))
                 team_matches[team1] += 2
                 team_matches[team2] += 2
             
         match_schedule = []
         available_days = list(range(1, 366))
-        for match in sorted(list(match_pairs)):
+        for match in match_pairs:
             day = self.random_number_generator.choice(available_days)
             match_schedule.append((match[0], match[1], day))
         
