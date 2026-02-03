@@ -2,29 +2,38 @@ from dfg_rating.model.network.international_network import CountryLeague, Intern
 from dfg_rating.model.rating.multi_mode_rating import ControlledRandomFunction, ControlledTrendRating
 from dfg_rating.model.forecast.true_forecast import LogFunctionForecast, BradleyTerryForecast
 import dfg_rating.viz.jupyter_widgets as DFGWidgets
+import numpy as np
+
+# --- Determinism Setup ---
+SEED = 42
+rng = np.random.default_rng(SEED)
+# -------------------------
 
 rating_level1 = ControlledTrendRating(
-    starting_point=ControlledRandomFunction(distribution='normal', loc=800, scale=100),
-    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
-    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
-    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
-    rating_name='true_rating'
+    starting_point=ControlledRandomFunction(distribution='normal', loc=800, scale=100, random_number_generator=rng),
+    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5, random_number_generator=rng),
+    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2, random_number_generator=rng),
+    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30, random_number_generator=rng),
+    rating_name='true_rating',
+    random_number_generator=rng
 )
 
 rating_level2 = ControlledTrendRating(
-    starting_point=ControlledRandomFunction(distribution='normal', loc=500, scale=50),
-    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
-    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
-    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
-    rating_name='true_rating'
+    starting_point=ControlledRandomFunction(distribution='normal', loc=500, scale=50, random_number_generator=rng),
+    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5, random_number_generator=rng),
+    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2, random_number_generator=rng),
+    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30, random_number_generator=rng),
+    rating_name='true_rating',
+    random_number_generator=rng
 )
 
 rating_level3 = ControlledTrendRating(
-    starting_point=ControlledRandomFunction(distribution='normal', loc=200, scale=10),
-    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5),
-    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2),
-    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30),
-    rating_name='true_rating'
+    starting_point=ControlledRandomFunction(distribution='normal', loc=200, scale=10, random_number_generator=rng),
+    delta=ControlledRandomFunction(distribution='normal', loc=0, scale=.5, random_number_generator=rng),
+    trend=ControlledRandomFunction(distribution='normal', loc=0, scale=.2, random_number_generator=rng),
+    season_delta=ControlledRandomFunction(distribution='normal', loc=0, scale=30, random_number_generator=rng),
+    rating_name='true_rating',
+    random_number_generator=rng
 )
 
 forecast_test = LogFunctionForecast(
@@ -40,6 +49,7 @@ forecast_BT = BradleyTerryForecast(
 )
 
 country_network1 = CountryLeague(
+    random_number_generator=rng,
     teams=16,
     level1_teams=6,
     level2_teams=4,
@@ -71,10 +81,11 @@ country_network1 = CountryLeague(
 )
 
 
-country_network1.export(printing_ratings=['true_rating','ranking'],file_name='test_NationalLeague_network.csv')
+country_network1.export(printing_ratings=['true_rating','ranking'],file_name='test_seed42_NationalLeague_network1.csv')
 
 
 country_network2 = CountryLeague(
+    random_number_generator=rng,
     teams=14,
     level1_teams=4,
     level2_teams=4,
@@ -141,6 +152,7 @@ Inter_network = InternationalCompetition_Combine(
     avg_match_per_team=3,
     min_match_per_team=1,
     oneleg=False,
+    random_number_generator=rng
 )
 
 from dfg_rating.model.rating.multi_mode_rating import ELORating
@@ -151,9 +163,9 @@ elo_rating1 = ELORating(
     rating_mean=1000,
 )
 Inter_network.add_rating(elo_rating1, 'elo_rating')
-country_network1.export(printing_ratings=['true_rating','ranking','elo_rating'],file_name='test_NationalLeague_network.csv')
+# country_network1.export(printing_ratings=['true_rating','ranking','elo_rating'],file_name='test_NationalLeague_network.csv')
 # Inter_network.add_rating(elo_rating1, 'elo_rating')
-Inter_network.export(printing_ratings=['true_rating','ranking','elo_rating'],file_name='test_InternationalLeague_network.csv')
+Inter_network.export(printing_ratings=['true_rating','ranking','elo_rating'],file_name='test_seed42_InternationalLeague_network1.csv')
 
 # # country_network1.export(printing_ratings=['true_rating','ranking','elo_rating'],file_name='test_NationalLeague_network.csv')
 '''

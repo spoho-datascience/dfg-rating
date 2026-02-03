@@ -8,9 +8,10 @@ from dfg_rating.model.rating.base_rating import BaseRating, get_rounds, get_roun
 
 class ControlledRandomFunction:
 
-    def __init__(self, **kwargs):
+    def __init__(self, random_number_generator=None, **kwargs):
+        rng = random_number_generator if random_number_generator is not None else np.random.default_rng()
         try:
-            self.distribution_method = getattr(np.random.default_rng(), kwargs['distribution'])
+            self.distribution_method = getattr(rng, kwargs['distribution'])
             kwargs.pop('distribution', None)
             self.distribution_arguments = kwargs
         except AttributeError as attr:
