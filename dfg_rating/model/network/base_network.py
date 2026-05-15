@@ -690,17 +690,23 @@ class WhiteNetwork(BaseNetwork):
             for season_id, season_info in rating_info.items():
                 for day_number, day_info in season_info.items():
                     for t in graph.nodes():
-                        if t in day_info:
-                            node_value = day_info[t]
-                        else:
-                            node_value = graph.nodes[t].get('ratings', {}).get(rating_name, {}).get(season_id, [0])[-1]
-                        graph.nodes[t].setdefault(
+                        ratings_list = graph.nodes[t].setdefault(
                             "ratings", {}
                         ).setdefault(
                             rating_name, {}
                         ).setdefault(
                             season_id, []
-                        ).append(node_value)
+                        )
+                        if t in day_info:
+                            node_value = day_info[t]
+                        else:
+                            node_value = ratings_list[-1] if ratings_list else 0
+                        ratings_list.append(node_value)
+                for t in graph.nodes():
+                    ratings_list = graph.nodes[t]["ratings"][rating_name][season_id]
+                    if ratings_list:
+                        ratings_list.insert(0, ratings_list[0])
+                        ratings_list.append(ratings_list[-1])
         self.n_teams = len(graph.nodes)
         self.round_values = {
             season: sorted(rounds)
