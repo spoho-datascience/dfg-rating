@@ -488,8 +488,11 @@ class BaseNetwork(ABC):
             for r in printing_ratings:
                 for team, name in [(home_team, 'Home'), (away_team, 'Away')]:
                     rating_dict = self.data.nodes[team].get('ratings', {}).get(r)
-                    match_dict[f"{r}#{name}"] = rating_dict.get(edge_attributes.get('season', 0))[
-                        edge_attributes.get('round', 0)]
+                    season = edge_attributes.get('season', 0)
+                    round_value = edge_attributes.get('round', 0)
+                    round_index = self.round_values[season].index(round_value)
+                    match_dict[f"{r}#{name}"] = rating_dict.get(season)[
+                        round_index + 1]
             for o in printing_odds:
                 for i, value in enumerate(edge_attributes.get('odds', {}).get(o, [])):
                     match_dict[f"{o}#odds#{i}"] = value
