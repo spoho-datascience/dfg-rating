@@ -85,8 +85,8 @@ class ELORating(BaseRating):
         self.teams = list(n.data.nodes)
         n_teams = len(self.teams)
         n_rounds, round_values = n.get_rounds()
-        self.rounds_per_season = n_rounds
-        ratings = np.zeros([n_teams, (n_rounds + 2)])
+        self.rounds_per_season = n_rounds[season]
+        ratings = np.zeros([n_teams, (n_rounds[season] + 2)])
         self.init_season_ratings(season, n, ratings)
         players_dict = {team: team_i for team_i, team in enumerate(self.teams)}
         games_by_round = {}
@@ -95,7 +95,7 @@ class ELORating(BaseRating):
         ):
             games_by_round.setdefault(k, []).append(next(g))
         for r in range(self.rounds_per_season):
-            r_value = round_values[r]
+            r_value = round_values[season][r]
             teams_playing = set(())
             for away_team, home_team, match_key, match_data in games_by_round.get(r_value, {}):
                 if match_data.get('state', 'active') == 'active':

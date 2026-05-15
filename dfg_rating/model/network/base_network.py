@@ -132,6 +132,11 @@ class BaseNetwork(ABC):
     def get_rounds(self):
         return self.n_rounds * 2, [r for r in range(self.n_rounds * 2)]
 
+    def get_rounds_by_season(self, season):
+        round_values = sorted(self.round_values[season])
+        n_rounds = len(round_values)
+        return n_rounds, round_values
+
     def iterate_over_games(self):
         return sorted(self.data.edges(keys=True, data=True), key=lambda t: (int(t[3].get('day', 0))))
 
@@ -172,7 +177,8 @@ class BaseNetwork(ABC):
 
     def _add_forecast_to_team(self, match, forecast: BaseForecast, forecast_name, base_ranking):
         match_data = self.data.edges[match]
-        n_rounds, round_values = self.get_rounds()
+        season = match_data['season']
+        n_rounds, round_values = self.get_rounds_by_season(season)
         forecast.get_forecast(
             match_data=match_data,
             home_team=self.data.nodes[match[1]],
@@ -604,7 +610,7 @@ class WhiteNetwork(BaseNetwork):
         graph = nx.MultiDiGraph()
         day = -1
         daily_ratings = {}
-        self.round_values = []
+        self.round_values = {}
         current_season = -1
         for row_id, row in self.table_data.iterrows():
             row_season = row[self.mapping['season']]
@@ -623,8 +629,10 @@ class WhiteNetwork(BaseNetwork):
             edge_dict['day'] = day
             edge_dict['round'] = edge_dict.get(self.mapping['round'], '0') if 'round' in self.mapping else '0'
             edge_dict['season'] = edge_dict.get(self.mapping['season'], '0') if 'season' in self.mapping else '0'
-            if edge_dict['round'] not in self.round_values:
-                self.round_values.append(edge_dict['round'])
+            if current_season not in self.round_values:
+                self.round_values.setdefault(current_season, [])
+            if edge_dict['round'] not in self.round_values[current_season]:
+                self.round_values[current_season].append(edge_dict['round'])
             if 'winner' in self.mapping:
                 winner_mapping = self.mapping.get('winner', {})
                 if 'id' in winner_mapping:
@@ -691,8 +699,14 @@ class WhiteNetwork(BaseNetwork):
                             season_id, []
                         ).append(node_value)
         self.n_teams = len(graph.nodes)
-        self.round_values = sorted(self.round_values)
-        self.n_rounds = len(self.round_values)
+        self.round_values = {
+            season: sorted(rounds)
+            for season, rounds in self.round_values.items()
+        }
+        self.n_rounds = {
+            season: len(rounds)
+            for season, rounds in self.round_values.items()
+        }
         self.data = graph
         return True
 
@@ -701,6 +715,11 @@ class WhiteNetwork(BaseNetwork):
 
     def get_rounds(self):
         return self.n_rounds, self.round_values
+
+    def get_rounds_by_season(self, season):
+        round_values = sorted(self.round_values[season])
+        n_rounds = len(round_values)
+        return n_rounds, round_values
 
     def add_rating(self, rating, rating_name, team_id=None, season=None):
         if season is not None:
@@ -733,6 +752,7 @@ class WhiteNetwork(BaseNetwork):
 
     def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker, base_forecast: str):
         for away_team, home_team, edge_key, edge_attributes in self.data.edges(keys=True, data=True):
+            season = edge_attributes['season']
             if base_forecast not in edge_attributes['forecasts']:
                 print(f"Missing <{base_forecast}> forecast in network")
             match_base_forecast = edge_attributes['forecasts'][base_forecast]
@@ -740,7 +760,7 @@ class WhiteNetwork(BaseNetwork):
                 match_data=edge_attributes,
                 home_team=self.data.nodes[home_team],
                 away_team=self.data.nodes[away_team],
-                round_values=self.get_rounds()[1]
+                round_values=self.get_rounds_by_season(season)[1]
             )
             self.data.edges[
                 away_team, home_team, edge_key
