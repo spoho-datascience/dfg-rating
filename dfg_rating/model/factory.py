@@ -9,6 +9,7 @@ from dfg_rating.model.network.simple_network import RoundRobinNetwork
 from dfg_rating.model.rating.base_rating import BaseRating
 from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
 from dfg_rating.model.rating.elo_rating import ELORating
+from dfg_rating.model.rating.player_elo_rating import PlayerELORating
 from dfg_rating.model.rating.function_rating import FunctionRating
 from dfg_rating.model.rating.ranking_rating import LeagueRating
 from dfg_rating.model.rating.winner_rating import WinnerRating
@@ -83,6 +84,42 @@ pre_mappings = {
             },
         },
         "bets": {}
+    },
+    "player-soccer": {
+        "node1": {
+            "id": "away_team",
+            "name": "away_team",
+        },
+        "node2": {
+            "id": "home_team",
+            "name": "home_team",
+        },
+        "day": "round",
+        "dayIsTimestamp": False,
+        "season": "season",
+        "round": "round",
+        "winner": {
+            "result": "result",
+            "translation": {
+                "Home": "home",
+                "Draw": "draw",
+                "Away": "away"
+            }
+        },
+        "lineups": {
+            "n_slots": 4,
+            "sides": {"home": "home", "away": "away"},
+            "columns": {
+                "player_id": "Player{i}_{side}",
+                "minutes": "Player{i}_{side}_minutes",
+                "goal_diff": "Player{i}_{side}_score",
+                "start": "Player{i}_{side}_start_score",
+                "end": "Player{i}_{side}_end_score"
+            }
+        },
+        "forecasts": {},
+        "odds": {},
+        "bets": {}
     }
 }
 
@@ -116,6 +153,8 @@ def new_rating(rating_type: str, **kwargs) -> BaseRating:
         return ControlledTrendRating(**kwargs)
     elif rating_type == 'elo-rating':
         return ELORating(**kwargs)
+    elif rating_type == 'player-elo':
+        return PlayerELORating(**kwargs)
     else:
         raise ValueError
 

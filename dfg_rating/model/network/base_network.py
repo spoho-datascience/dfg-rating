@@ -693,7 +693,95 @@ class WhiteNetwork(BaseNetwork):
         self.round_values = sorted(self.round_values)
         self.n_rounds = len(self.round_values)
         self.data = graph
+        self.players = {}
+        if 'lineups' in self.mapping:
+            self._import_lineups()
         return True
+
+    @staticmethod
+    def _lineup_val(data, columns, field, i, infix, default):
+        col = columns.get(field)
+        if not col:
+            return default
+        col = col.format(i=i, side=infix)
+        if col not in data:
+            return default
+        value = data[col]
+        if value is None or (isinstance(value, float) and np.isnan(value)):
+            return default
+        return value
+
+    def _import_lineups(self):
+        """Optional player-import mode: parse the wide per-player columns described by
+        ``mapping['lineups']`` into ``edge['lineups']`` and seed ``self.players``.
+
+        Active only when the mapping carries a ``lineups`` spec; otherwise the loader
+        behaves exactly as before. ``node1`` is the away team, ``node2`` the home team.
+        """
+        spec = self.mapping['lineups']
+        n_slots = spec.get('n_slots', 11)
+        sides = spec.get('sides', {'home': 'home', 'away': 'away'})
+        columns = spec['columns']
+        for away, home, key, data in self.data.edges(keys=True, data=True):
+            lineups = {}
+            for side_label, node_id in (('home', home), ('away', away)):
+                infix = sides.get(side_label, side_label)
+                roster = []
+                for i in range(1, n_slots + 1):
+                    pid_col = columns['player_id'].format(i=i, side=infix)
+                    if pid_col not in data:
+                        continue
+                    pid = data[pid_col]
+                    if pid is None or (isinstance(pid, float) and np.isnan(pid)):
+                        continue
+                    start = self._lineup_val(data, columns, 'start', i, infix, None)
+                    end = self._lineup_val(data, columns, 'end', i, infix, None)
+                    goal_diff = self._lineup_val(data, columns, 'goal_diff', i, infix, None)
+                    if goal_diff is None and start is not None and end is not None:
+                        goal_diff = end - start
+                    roster.append({
+                        'player_id': pid,
+                        'minutes': self._lineup_val(data, columns, 'minutes', i, infix, 0.0),
+                        'goal_diff': 0.0 if goal_diff is None else goal_diff,
+                        'start': start,
+                        'end': end,
+                    })
+                    self.players.setdefault(pid, {'ratings': {}, 'teams': {}})
+                    self.players[pid]['teams'].setdefault(data['season'], set()).add(node_id)
+                lineups[side_label] = roster
+            self.data.edges[away, home, key]['lineups'] = lineups
+
+    def add_player_rating(self, rating, rating_name=None):
+        """Compute player ratings in one all-seasons chronological pass.
+
+        Populates ``self.players[pid]['ratings'][rating_name]`` and the derived per-match
+        team rating on the team nodes (so the standard export/forecast pipeline works).
+        """
+        if not getattr(self, 'players', None):
+            raise ValueError(
+                "No player lineups imported; add a 'lineups' spec to the network mapping."
+            )
+        if rating_name is None:
+            rating_name = getattr(rating, 'rating_name', 'player_elo_rating')
+        self.add_rating(rating, rating_name)
+
+    def export_player_ratings(self, rating_name='player_elo_rating', filename='player_ratings.csv'):
+        """Export the per-player rating time series as a flat CSV."""
+        rows = []
+        for pid, info in getattr(self, 'players', {}).items():
+            for season, series in info.get('ratings', {}).get(rating_name, {}).items():
+                teams = info.get('teams', {}).get(season, set())
+                for round_idx, value in enumerate(series):
+                    rows.append({
+                        'player_id': pid,
+                        'season': season,
+                        'round': round_idx,
+                        'rating': value,
+                        'team': ';'.join(str(t) for t in teams),
+                    })
+        df = pd.DataFrame(rows)
+        df.to_csv(filename, index=False)
+        return df
 
     def get_seasons(self):
         return self.season_values
