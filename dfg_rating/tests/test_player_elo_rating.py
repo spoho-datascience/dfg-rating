@@ -152,3 +152,69 @@ def test_idempotent_across_repeated_runs():
     first = dict(rating.current)
     net.add_player_rating(rating)  # second full pass must reproduce the same result
     assert rating.current == first
+
+
+# --- list-column lineups (player-soccer-lists mapping) ---------------------
+
+def make_list_network():
+    """Two matches, lineups stored as per-side JSON lists (with a noise token)."""
+    df = pd.DataFrame([
+        {
+            "season_id": 1, "round": 1, "home_team": "A", "away_team": "B",
+            "home_score": 2, "away_score": 0, "result": "home", "date": "2023-01-01",
+            "home_player_list": '["Alpha A.", "Beta B.", "red_card_1"]',
+            "away_player_list": '["Gamma G.", "Delta D."]',
+            "home_minutes_list": "[90, 90, 0]",
+            "away_minutes_list": "[90, 90]",
+            "home_goal_diff_list": "[2, 2, 0]",
+            "away_goal_diff_list": "[-2, -2]",
+        },
+        {
+            "season_id": 1, "round": 2, "home_team": "B", "away_team": "A",
+            "home_score": 0, "away_score": 1, "result": "away", "date": "2023-01-08",
+            "home_player_list": '["Gamma G.", "Delta D."]',
+            "away_player_list": '["Alpha A.", "Beta B."]',
+            "home_minutes_list": "[90, 90]",
+            "away_minutes_list": "[90, 90]",
+            "home_goal_diff_list": "[-1, -1]",
+            "away_goal_diff_list": "[1, 1]",
+        },
+    ])
+    return WhiteNetwork(data=df, mapping=factory.pre_mappings["player-soccer-lists"])
+
+
+def test_list_mode_parses_and_drops_noise():
+    net = make_list_network()
+    # noise token "red_card_1" must not become a player
+    assert "red_card_1" not in net.players
+    assert {"Alpha A.", "Beta B.", "Gamma G.", "Delta D."} <= set(net.players)
+    # match 1 home roster: 2 real players, parsed from the list (noise dropped)
+    edge = next(d for _, _, _, d in net.data.edges(keys=True, data=True) if d["round"] == 1)
+    assert [p["player_id"] for p in edge["lineups"]["home"]] == ["Alpha A.", "Beta B."]
+    assert edge["lineups"]["home"][0]["goal_diff"] == 2
+    assert edge["lineups"]["away"][0]["minutes"] == 90
+
+
+def test_list_mode_player_rating_rises_for_winner():
+    net = make_list_network()
+    rating = PlayerELORating()
+    net.add_player_rating(rating)
+    # Alpha A. wins both matches -> above initial; Gamma G. loses both -> below
+    assert rating.current["Alpha A."] > rating.initial_rating
+    assert rating.current["Gamma G."] < rating.initial_rating
+
+
+def test_export_player_match_ratings_one_row_per_appearance(tmp_path):
+    net = make_list_network()
+    net.add_player_rating(PlayerELORating())
+    out = net.export_player_match_ratings(filename=str(tmp_path / "out.csv"))
+    assert list(out.columns) == ["Player", "season", "round", "team_at", "rating", "date"]
+    # Alpha A. played both matches: for A (home, round 1) then for A (away, round 2)
+    alpha = out[out.Player == "Alpha A."].sort_values("round")
+    assert len(alpha) == 2
+    assert alpha.iloc[0]["team_at"] == "A" and alpha.iloc[0]["round"] == 1
+    assert alpha.iloc[1]["team_at"] == "A" and alpha.iloc[1]["round"] == 2
+    # after-match rating matches the live rating object for the last appearance
+    rating = PlayerELORating()
+    net.add_player_rating(rating)
+    assert alpha.iloc[1]["rating"] == pytest.approx(rating.current["Alpha A."], abs=1e-9)

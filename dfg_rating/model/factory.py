@@ -120,6 +120,45 @@ pre_mappings = {
         "forecasts": {},
         "odds": {},
         "bets": {}
+    },
+    "player-soccer-lists": {
+        # Lineups stored as per-side list columns (JSON / Python literal), one entry
+        # per player: see ``WhiteNetwork._roster_from_lists``. Used for real data such
+        # as ``data_test.xlsx``. Expects a derived integer ``round`` column (e.g. the
+        # chronological match index within the season) since the source has no rounds.
+        "node1": {
+            "id": "away_team",
+            "name": "away_team",
+        },
+        "node2": {
+            "id": "home_team",
+            "name": "home_team",
+        },
+        "day": "round",
+        "dayIsTimestamp": False,
+        "season": "season_id",
+        "round": "round",
+        "winner": {
+            "result": "result",
+            "translation": {
+                "home": "home",
+                "draw": "draw",
+                "away": "away"
+            }
+        },
+        "lineups": {
+            "mode": "lists",
+            "drop_noise": True,
+            "sides": {"home": "home", "away": "away"},
+            "columns": {
+                "player_list": "{side}_player_list",
+                "minutes_list": "{side}_minutes_list",
+                "goal_diff_list": "{side}_goal_diff_list"
+            }
+        },
+        "forecasts": {},
+        "odds": {},
+        "bets": {}
     }
 }
 
