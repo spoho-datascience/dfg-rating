@@ -87,6 +87,28 @@ class Controller:
                     "cast": "controlled-random-function"
                 }
 
+            },
+            "player-elo": {
+                "initial_rating": {
+                    "label": "Initial rating for unseen players",
+                    "type": float
+                },
+                "k": {
+                    "label": "Player adjustment factor k (paper range 24-40)",
+                    "type": float
+                },
+                "q": {
+                    "label": "Personal-vs-team weighting q (paper range 0.5-1.0)",
+                    "type": float
+                },
+                "m_max": {
+                    "label": "Maximum minutes M_max",
+                    "type": float
+                },
+                "w": {
+                    "label": "Match-importance weight w",
+                    "type": float
+                }
             }
         },
         "forecast": {

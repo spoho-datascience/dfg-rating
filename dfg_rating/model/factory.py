@@ -9,6 +9,7 @@ from dfg_rating.model.network.simple_network import RoundRobinNetwork
 from dfg_rating.model.rating.base_rating import BaseRating
 from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
 from dfg_rating.model.rating.elo_rating import ELORating
+from dfg_rating.model.rating.player_elo_rating import PlayerELORating
 from dfg_rating.model.rating.function_rating import FunctionRating
 from dfg_rating.model.rating.ranking_rating import LeagueRating
 from dfg_rating.model.rating.winner_rating import WinnerRating
@@ -83,6 +84,81 @@ pre_mappings = {
             },
         },
         "bets": {}
+    },
+    "player-soccer": {
+        "node1": {
+            "id": "away_team",
+            "name": "away_team",
+        },
+        "node2": {
+            "id": "home_team",
+            "name": "home_team",
+        },
+        "day": "round",
+        "dayIsTimestamp": False,
+        "season": "season",
+        "round": "round",
+        "winner": {
+            "result": "result",
+            "translation": {
+                "Home": "home",
+                "Draw": "draw",
+                "Away": "away"
+            }
+        },
+        "lineups": {
+            "n_slots": 4,
+            "sides": {"home": "home", "away": "away"},
+            "columns": {
+                "player_id": "Player{i}_{side}",
+                "minutes": "Player{i}_{side}_minutes",
+                "goal_diff": "Player{i}_{side}_score",
+                "start": "Player{i}_{side}_start_score",
+                "end": "Player{i}_{side}_end_score"
+            }
+        },
+        "forecasts": {},
+        "odds": {},
+        "bets": {}
+    },
+    "player-soccer-lists": {
+        # Lineups stored as per-side list columns (JSON / Python literal), one entry
+        # per player: see ``WhiteNetwork._roster_from_lists``. Used for real data such
+        # as ``data_test.xlsx``. Expects a derived integer ``round`` column (e.g. the
+        # chronological match index within the season) since the source has no rounds.
+        "node1": {
+            "id": "away_team",
+            "name": "away_team",
+        },
+        "node2": {
+            "id": "home_team",
+            "name": "home_team",
+        },
+        "day": "round",
+        "dayIsTimestamp": False,
+        "season": "season_id",
+        "round": "round",
+        "winner": {
+            "result": "result",
+            "translation": {
+                "home": "home",
+                "draw": "draw",
+                "away": "away"
+            }
+        },
+        "lineups": {
+            "mode": "lists",
+            "drop_noise": True,
+            "sides": {"home": "home", "away": "away"},
+            "columns": {
+                "player_list": "{side}_player_list",
+                "minutes_list": "{side}_minutes_list",
+                "goal_diff_list": "{side}_goal_diff_list"
+            }
+        },
+        "forecasts": {},
+        "odds": {},
+        "bets": {}
     }
 }
 
@@ -116,6 +192,8 @@ def new_rating(rating_type: str, **kwargs) -> BaseRating:
         return ControlledTrendRating(**kwargs)
     elif rating_type == 'elo-rating':
         return ELORating(**kwargs)
+    elif rating_type == 'player-elo':
+        return PlayerELORating(**kwargs)
     else:
         raise ValueError
 
