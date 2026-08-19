@@ -61,6 +61,7 @@ class BaseNetwork(ABC):
         self.seasons = kwargs.get('seasons', 1)
         self.days_between_rounds = self.params.get('days_between_rounds', 1)
         self.network_info = {}
+        self.player_info = {}
 
         from dfg_rating.model.rating.controlled_trend_rating import ControlledTrendRating, ControlledRandomFunction
         from dfg_rating.model.forecast.true_forecast import LogFunctionForecast
@@ -175,7 +176,7 @@ class BaseNetwork(ABC):
             rating_name, {}
         )[season] = rating_hyperparameters[team_id] if team_id in rating_hyperparameters else rating_hyperparameters
 
-    def _add_forecast_to_team(self, match, forecast: BaseForecast, forecast_name, base_ranking):
+    def _add_forecast_to_team(self, match, forecast: BaseForecast, forecast_name, base_ranking, use_player_rating):
         match_data = self.data.edges[match]
         season = match_data['season']
         n_rounds, round_values = self.get_rounds_by_season(season)
@@ -184,7 +185,8 @@ class BaseNetwork(ABC):
             home_team=self.data.nodes[match[1]],
             away_team=self.data.nodes[match[0]],
             base_ranking=base_ranking,
-            round_values=round_values
+            round_values=round_values,
+            use_player_rating=use_player_rating
         )
         self.data.edges[match].setdefault('forecasts', {})[forecast_name] = forecast
 
@@ -477,9 +479,23 @@ class BaseNetwork(ABC):
                 "Result": edge_attributes.get('winner', 'none'),
                 "League_ID": edge_attributes.get('league_id', 0),
                 "Competition": edge_attributes.get('competition', 0),
-                "state": edge_attributes.get('state', 'active'),
                 'competition_type': edge_attributes.get('competition_type', 'League')
             }
+            if "lineup" in edge_attributes:
+                match_dict["home_players"] = edge_attributes['lineup']['home'].get('name', [])
+                match_dict["home_player_ids"] = edge_attributes['lineup']['home'].get('id', [])
+                match_dict["home_player_minutes"] = edge_attributes['lineup']['home'].get('minutes', [])
+                match_dict["home_player_goal_diff"] = edge_attributes['lineup']['home'].get('goal_difference', [])
+                match_dict["home_player_starting"] = edge_attributes['lineup']['home'].get('starting', [])
+                match_dict["home_player_rating"] = edge_attributes.get('home_player_ratings', [])
+                match_dict["home_player_prev_rating"] = edge_attributes.get('home_player_prev_ratings', [])
+                match_dict["away_players"] = edge_attributes['lineup']['away'].get('name', [])
+                match_dict["away_player_ids"] = edge_attributes['lineup']['away'].get('id', [])
+                match_dict["away_player_minutes"] = edge_attributes['lineup']['away'].get('minutes', [])
+                match_dict["away_player_goal_diff"] = edge_attributes['lineup']['away'].get('goal_difference', [])
+                match_dict["away_player_starting"] = edge_attributes['lineup']['away'].get('starting', [])
+                match_dict["away_player_rating"] = edge_attributes.get('away_player_ratings', [])
+                match_dict["away_player_prev_rating"] = edge_attributes.get('away_player_prev_ratings', [])
             for f in printing_forecasts:
                 forecast_object: BaseForecast = edge_attributes.get('forecasts', {}).get(f, None)
                 if forecast_object is not None:
@@ -615,14 +631,19 @@ class WhiteNetwork(BaseNetwork):
         daily_ratings = {}
         self.round_values = {}
         current_season = -1
-        for row_id, row in self.table_data.iterrows():
+        self.player_name_to_id = {}
+        next_player_id = 1
+        if self.mapping['dayIsTimestamp']:
+            season_start_dates = (
+                self.table_data.groupby(self.mapping['season'])[self.mapping['day']]
+                .min()
+                .to_dict()
+            )
+        for row_id, row in zip(self.table_data.index, self.table_data.to_dict('records')):
             row_season = row[self.mapping['season']]
-            if current_season != row_season:
-                current_season = row_season
-                day = -1
+            current_season = row_season
             if self.mapping['dayIsTimestamp']:
-                if day == -1:
-                    first_date = row[self.mapping['day']]
+                first_date = season_start_dates[row_season]
                 delta = row[self.mapping['day']] - first_date
                 day = delta.days
             else:
@@ -671,6 +692,33 @@ class WhiteNetwork(BaseNetwork):
                     ).setdefault(
                         "teams_playing", {}
                     )[n] = n
+            if 'lineup' in self.mapping:
+                for side, info in self.mapping.get('lineup', {}).items():
+                    for info_name, info_values in info.items():
+                        values = edge_dict.get(info_values, [])
+                        edge_dict.setdefault(
+                            'lineup', {}
+                        ).setdefault(
+                            side, {}
+                        )[info_name] = values
+                        if info_name == "name":
+                            for player in values:
+                                if player not in self.player_name_to_id:
+                                    self.player_name_to_id[player] = next_player_id
+                                    self.player_info[next_player_id] = {}
+                                    self.player_info[next_player_id]["name"] = player
+                                    self.player_info[next_player_id]["k"] = 150
+                                    self.player_info[next_player_id]["q"] = 1
+                                    self.player_info[next_player_id]["current_team"] = None
+                                    self.player_info[next_player_id]["last_team"] = None
+                                    self.player_info[next_player_id]["played"] = False
+                                    self.player_info[next_player_id]["rating"] = np.nan
+                                    next_player_id += 1
+                            edge_dict.setdefault(
+                                'lineup', {}
+                            ).setdefault(
+                                side, {}
+                            )["id"] = [self.player_name_to_id[name] for name in values]
             graph.add_edge(node1_id, node2_id, **edge_dict)
             for n in ['node1', 'node2']:
                 for node_property_key, row_column in self.mapping[n].items():
@@ -754,10 +802,10 @@ class WhiteNetwork(BaseNetwork):
             for team_i, team in enumerate(self.data.nodes):
                 self._add_rating_to_team(team, ratings[team_i], rating_hp, rating_name, season=season)
 
-    def add_forecast(self, forecast: BaseForecast, forecast_name, base_ranking='true_rating', season=None):
+    def add_forecast(self, forecast: BaseForecast, forecast_name, base_ranking='true_rating', season=None, use_player_rating=False):
         for match in self.data.edges(keys=True):
             if (season is None) or (self.data.edges[match].get('season', 0) == season):
-                self._add_forecast_to_team(match, deepcopy(forecast), forecast_name, base_ranking)
+                self._add_forecast_to_team(match, deepcopy(forecast), forecast_name, base_ranking, use_player_rating)
 
     def add_odds(self, bookmaker_name: str, bookmaker: BaseBookmaker, base_forecast: str):
         for away_team, home_team, edge_key, edge_attributes in self.data.edges(keys=True, data=True):

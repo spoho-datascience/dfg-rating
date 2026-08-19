@@ -22,9 +22,8 @@ class BaseForecast(ABC):
         if self.probabilities.sum() < 0.99995:
             print(f"Warning: Forecast probabilities should sum 1 {self.probabilities}")
 
-
     @abstractmethod
-    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating', round_values=None):
+    def get_forecast(self, match_data=None, home_team=None, away_team=None, base_ranking='true_rating', round_values=None, use_player_rating=False):
         pass
 
     def print(self):
