@@ -27,7 +27,8 @@ OUTCOMES = ("home", "draw", "away")
 CYCLE = np.array([[0, 1, -1], [-1, 0, 1], [1, -1, 0]])
 
 
-def generate(output_dir, teams, seed, severity, pure_cycle=False):
+def generate(output_dir, teams, seed, severity, pure_cycle=False, probability_suite=False,
+             rating_drift=5.0):
     rating_seed, style_seed, draw_seed = np.random.SeedSequence(seed).spawn(3)
     rating_rng = np.random.default_rng(rating_seed)
     style_rng = np.random.default_rng(style_seed)
@@ -43,7 +44,7 @@ def generate(output_dir, teams, seed, severity, pure_cycle=False):
     if not pure_cycle:
         rating = ControlledTrendRating(
             starting_point=normal(1000, 100),
-            delta=normal(0, 5),
+            delta=normal(0, rating_drift),
             trend=normal(0, 0),
             season_delta=normal(0, 0),
             rating_name="true_rating",
@@ -103,6 +104,39 @@ def generate(output_dir, teams, seed, severity, pure_cycle=False):
             uniforms < 1 - p_not_home, "home", np.where(uniforms < 1 - p_away, "draw", "away")
         )
         frame.to_csv(output_dir / f"{condition}.csv", index=False)
+    if probability_suite:
+        if pure_cycle:
+            raise ValueError("probability suite requires the ordinary strength trajectories")
+        base = pd.read_csv(output_dir / "olr.csv")
+        base_probs = base[[f"true_forecast#{name}" for name in OUTCOMES]].to_numpy()
+        style_home = np.where(style_effect == 1, .90, np.where(style_effect == -1, .05, .475))
+        style_probs = np.column_stack([style_home, np.full(len(base), .05), .95 - style_home])
+        probabilities = {
+            f"direct_{int(weight * 100):03d}": (1 - weight) * base_probs + weight * style_probs
+            for weight in (0.0, .5, .8, 1.0)
+        }
+        # No style labels enter these three maps. Fixed draw probability matches
+        # the nonlinear controls; swapping teams reverses the decisive odds.
+        monotone = 1 / (1 + np.exp(-.006 * diff))
+        wave = .5 + .45 * np.sin(np.pi * diff / 200)
+        reversal = np.where((np.abs(diff) >= 100) & (np.abs(diff) < 250), -1, 1)
+        band = .5 + .45 * np.tanh(diff / 50) * reversal
+        for name, decisive_home in (("monotone", monotone), ("wave", wave), ("band", band)):
+            probabilities[f"nonolr_{name}"] = np.column_stack([
+                .95 * decisive_home, np.full(len(base), .05), .95 * (1 - decisive_home)
+            ])
+        draw_peak = .05 + .75 * np.exp(-.5 * ((np.abs(diff) - 160) / 45) ** 2)
+        probabilities["nonolr_draw"] = np.column_stack([
+            (1 - draw_peak) * monotone, draw_peak, (1 - draw_peak) * (1 - monotone)
+        ])
+        for name, probs in probabilities.items():
+            assert np.isfinite(probs).all() and (probs >= 0).all()
+            np.testing.assert_allclose(probs.sum(axis=1), 1)
+            frame = base.copy()
+            frame[[f"true_forecast#{outcome}" for outcome in OUTCOMES]] = probs
+            frame["Result"] = np.where(uniforms < probs[:, 0], "home", np.where(
+                uniforms < probs[:, 0] + probs[:, 1], "draw", "away"))
+            frame.to_csv(output_dir / f"{name}.csv", index=False)
     pd.DataFrame({"Team": np.arange(teams), "Style": styles}).to_csv(
         output_dir / "team_styles.csv", index=False
     )
@@ -115,9 +149,18 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--severity", type=float, default=1.0)
     parser.add_argument("--pure-cycle", action="store_true", help="Generate the style-only condition.")
+    parser.add_argument("--probability-suite", action="store_true",
+                        help="Add direct cyclic probability mixtures and nonmonotone strength maps.")
+    parser.add_argument("--rating-drift", type=float, default=5.0,
+                        help="Per-round strength increment standard deviation; zero gives static strengths.")
     args = parser.parse_args()
     if args.teams < 6 or args.teams % 6:
         parser.error("--teams must be a positive multiple of six")
     if not np.isfinite(args.severity) or args.severity < 0:
         parser.error("--severity must be finite and nonnegative")
-    generate(args.output_dir, args.teams, args.seed, args.severity, args.pure_cycle)
+    if not np.isfinite(args.rating_drift) or args.rating_drift < 0:
+        parser.error("--rating-drift must be finite and nonnegative")
+    if args.probability_suite and args.pure_cycle:
+        parser.error("--probability-suite cannot be combined with --pure-cycle")
+    generate(args.output_dir, args.teams, args.seed, args.severity, args.pure_cycle,
+             args.probability_suite, args.rating_drift)
