@@ -115,6 +115,23 @@ def generate(output_dir, teams, seed, severity, pure_cycle=False, probability_su
             f"direct_{int(weight * 100):03d}": (1 - weight) * base_probs + weight * style_probs
             for weight in (0.0, .5, .8, 1.0)
         }
+        # Explicit probability table equivalent to the old severity=.7 pure
+        # cycle: preserve the same-style draw signal as a positive control.
+        favored_win = .9321377064230059
+        favored_loss = .0013316552752606
+        neutral_win = .11920292202211755
+        legacy_home = np.where(style_effect == 1, favored_win,
+                               np.where(style_effect == -1, favored_loss, neutral_win))
+        legacy_away = np.where(style_effect == 1, favored_loss,
+                               np.where(style_effect == -1, favored_win, neutral_win))
+        probabilities["direct_legacy"] = np.column_stack([
+            legacy_home, 1 - legacy_home - legacy_away, legacy_away
+        ])
+        highdraw_home = np.where(style_effect == 0, neutral_win, style_home)
+        highdraw_draw = np.where(style_effect == 0, 1 - 2 * neutral_win, .05)
+        probabilities["direct_highdraw"] = np.column_stack([
+            highdraw_home, highdraw_draw, 1 - highdraw_home - highdraw_draw
+        ])
         # No style labels enter these three maps. Fixed draw probability matches
         # the nonlinear controls; swapping teams reverses the decisive odds.
         monotone = 1 / (1 + np.exp(-.006 * diff))

@@ -45,3 +45,15 @@ All nonlinear rules satisfy p_home(-d)=p_away(d) and p_draw(-d)=p_draw(d).
 These are deliberately engineered diagnostics. Non-OLR generation does not
 by itself establish Elo failure or GNN learnability; both require held-out
 forecast comparisons. Elo can reorder ratings and refit the OLR slope.
+
+## Same-style draw ablation and equivalence check
+
+- direct_highdraw: same cross-style (.90,.05,.05) as direct_100; only
+  equal-style probabilities change to (.1192029220,.7615941560,.1192029220).
+  This isolates whether draws provide an easy same-style grouping signal.
+- direct_legacy: explicit table equal to the previous pure-cycle severity=.7
+  probabilities. Cross-style favored win=.9321377064, loss=.0013316553;
+  equal styles use the high draw probabilities above. Its fixture keys,
+  probabilities and outcomes reproduce the previous condition (floating-point
+  tolerance only). No fresh model training is needed to establish this
+  parameterization equivalence.
