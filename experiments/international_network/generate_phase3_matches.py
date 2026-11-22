@@ -28,7 +28,7 @@ CYCLE = np.array([[0, 1, -1], [-1, 0, 1], [1, -1, 0]])
 
 
 def generate(output_dir, teams, seed, severity, pure_cycle=False, probability_suite=False,
-             rating_drift=5.0):
+             rating_drift=5.0, period_points=400.0, peak_width=45.0, fixed_style_win=.90):
     rating_seed, style_seed, draw_seed = np.random.SeedSequence(seed).spawn(3)
     rating_rng = np.random.default_rng(rating_seed)
     style_rng = np.random.default_rng(style_seed)
@@ -109,7 +109,8 @@ def generate(output_dir, teams, seed, severity, pure_cycle=False, probability_su
             raise ValueError("probability suite requires the ordinary strength trajectories")
         base = pd.read_csv(output_dir / "olr.csv")
         base_probs = base[[f"true_forecast#{name}" for name in OUTCOMES]].to_numpy()
-        style_home = np.where(style_effect == 1, .90, np.where(style_effect == -1, .05, .475))
+        style_home = np.where(style_effect == 1, fixed_style_win,
+                              np.where(style_effect == -1, .95-fixed_style_win, .475))
         style_probs = np.column_stack([style_home, np.full(len(base), .05), .95 - style_home])
         probabilities = {
             f"direct_{int(weight * 100):03d}": (1 - weight) * base_probs + weight * style_probs
@@ -135,14 +136,14 @@ def generate(output_dir, teams, seed, severity, pure_cycle=False, probability_su
         # No style labels enter these three maps. Fixed draw probability matches
         # the nonlinear controls; swapping teams reverses the decisive odds.
         monotone = 1 / (1 + np.exp(-.006 * diff))
-        wave = .5 + .45 * np.sin(np.pi * diff / 200)
+        wave = .5 + .45 * np.sin(2 * np.pi * diff / period_points)
         reversal = np.where((np.abs(diff) >= 100) & (np.abs(diff) < 250), -1, 1)
         band = .5 + .45 * np.tanh(diff / 50) * reversal
         for name, decisive_home in (("monotone", monotone), ("wave", wave), ("band", band)):
             probabilities[f"nonolr_{name}"] = np.column_stack([
                 .95 * decisive_home, np.full(len(base), .05), .95 * (1 - decisive_home)
             ])
-        draw_peak = .05 + .75 * np.exp(-.5 * ((np.abs(diff) - 160) / 45) ** 2)
+        draw_peak = .05 + .75 * np.exp(-.5 * ((np.abs(diff) - 160) / peak_width) ** 2)
         probabilities["nonolr_draw"] = np.column_stack([
             (1 - draw_peak) * monotone, draw_peak, (1 - draw_peak) * (1 - monotone)
         ])
@@ -170,6 +171,12 @@ if __name__ == "__main__":
                         help="Add direct cyclic probability mixtures and nonmonotone strength maps.")
     parser.add_argument("--rating-drift", type=float, default=5.0,
                         help="Per-round strength increment standard deviation; zero gives static strengths.")
+    parser.add_argument("--period-points", type=float, default=400.0,
+                        help="Period of the periodic probability map, in rating-difference points.")
+    parser.add_argument("--peak-width", type=float, default=45.0,
+                        help="Gaussian width of the two draw peaks, in rating points.")
+    parser.add_argument("--fixed-style-win", type=float, default=.90,
+                        help="Favored-style win probability; draw stays .05 and loss is the remainder.")
     args = parser.parse_args()
     if args.teams < 6 or args.teams % 6:
         parser.error("--teams must be a positive multiple of six")
@@ -179,5 +186,12 @@ if __name__ == "__main__":
         parser.error("--rating-drift must be finite and nonnegative")
     if args.probability_suite and args.pure_cycle:
         parser.error("--probability-suite cannot be combined with --pure-cycle")
+    if not np.isfinite(args.period_points) or args.period_points <= 0:
+        parser.error("--period-points must be finite and positive")
+    if not np.isfinite(args.peak_width) or args.peak_width <= 0:
+        parser.error("--peak-width must be finite and positive")
+    if not np.isfinite(args.fixed_style_win) or not .475 <= args.fixed_style_win <= .95:
+        parser.error("--fixed-style-win must be between .475 and .95")
     generate(args.output_dir, args.teams, args.seed, args.severity, args.pure_cycle,
-             args.probability_suite, args.rating_drift)
+             args.probability_suite, args.rating_drift, args.period_points, args.peak_width,
+             args.fixed_style_win)

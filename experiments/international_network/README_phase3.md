@@ -57,3 +57,24 @@ forecast comparisons. Elo can reorder ratings and refit the OLR slope.
   probabilities and outcomes reproduce the previous condition (floating-point
   tolerance only). No fresh model training is needed to establish this
   parameterization equivalence.
+
+## Main four-mechanism sweep (one changed parameter at a time)
+
+All settings use teams=180, seed=42 and the default rating trajectories.
+Nonlinear maps retain their common default probabilities except for the swept
+parameter. The direct-style mechanism ignores latent strengths in sampling;
+the additive-score mechanism retains the strength term.
+
+| Family | Parameter | Values |
+| --- | --- | --- |
+| Periodic outcome probabilities | --period-points | 200, 400, 800 |
+| Two draw-probability peaks | --peak-width | 30, 45, 90 |
+| Direct style probability table | --fixed-style-win | .475, .60, .80, .90 |
+| Additive cyclic rating difference | --severity (times 250 points) | 0, .15, .30, .50, .70, 1 |
+
+All three new flags require --probability-suite to affect probability-suite
+outputs. Direct style draw probability remains .05, loss=.95-win, and
+same-style probabilities stay (.475,.05,.475); .475 means zero cyclic edge.
+The two-peak height stays .8 at ±160; changing width also changes probabilities
+away from the peaks, including at zero rating difference. Use separate output
+directories for every parameter setting. Existing defaults are unchanged.
