@@ -28,7 +28,8 @@ CYCLE = np.array([[0, 1, -1], [-1, 0, 1], [1, -1, 0]])
 
 
 def generate(output_dir, teams, seed, severity, pure_cycle=False, probability_suite=False,
-             rating_drift=5.0, period_points=400.0, peak_width=45.0, fixed_style_win=.90):
+             rating_drift=5.0, period_points=400.0, peak_width=45.0, fixed_style_win=.90,
+             staircase_width=100.0):
     rating_seed, style_seed, draw_seed = np.random.SeedSequence(seed).spawn(3)
     rating_rng = np.random.default_rng(rating_seed)
     style_rng = np.random.default_rng(style_seed)
@@ -147,6 +148,14 @@ def generate(output_dir, teams, seed, severity, pure_cycle=False, probability_su
         probabilities["nonolr_draw"] = np.column_stack([
             (1 - draw_peak) * monotone, draw_peak, (1 - draw_peak) * (1 - monotone)
         ])
+        # Symmetric five-level decisive win probability, including threshold
+        # ties: q(-d)=1-q(d). Draw probability is held at .05.
+        level = np.where(np.abs(diff) < staircase_width, 0,
+                         np.where(np.abs(diff) < 2 * staircase_width, 1, 2))
+        step_home = .5 + np.sign(diff) * np.take([0.0, .25, .40], level)
+        probabilities["nonolr_staircase"] = np.column_stack([
+            .95 * step_home, np.full(len(base), .05), .95 * (1 - step_home)
+        ])
         for name, probs in probabilities.items():
             assert np.isfinite(probs).all() and (probs >= 0).all()
             np.testing.assert_allclose(probs.sum(axis=1), 1)
@@ -177,6 +186,8 @@ if __name__ == "__main__":
                         help="Gaussian width of the two draw peaks, in rating points.")
     parser.add_argument("--fixed-style-win", type=float, default=.90,
                         help="Favored-style win probability; draw stays .05 and loss is the remainder.")
+    parser.add_argument("--staircase-width", type=float, default=100.0,
+                        help="Staircase thresholds are at plus/minus this width and twice this width.")
     args = parser.parse_args()
     if args.teams < 6 or args.teams % 6:
         parser.error("--teams must be a positive multiple of six")
@@ -192,6 +203,8 @@ if __name__ == "__main__":
         parser.error("--peak-width must be finite and positive")
     if not np.isfinite(args.fixed_style_win) or not .475 <= args.fixed_style_win <= .95:
         parser.error("--fixed-style-win must be between .475 and .95")
+    if not np.isfinite(args.staircase_width) or args.staircase_width <= 0:
+        parser.error("--staircase-width must be finite and positive")
     generate(args.output_dir, args.teams, args.seed, args.severity, args.pure_cycle,
              args.probability_suite, args.rating_drift, args.period_points, args.peak_width,
-             args.fixed_style_win)
+             args.fixed_style_win, args.staircase_width)

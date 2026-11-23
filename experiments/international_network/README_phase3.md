@@ -78,3 +78,24 @@ same-style probabilities stay (.475,.05,.475); .475 means zero cyclic edge.
 The two-peak height stays .8 at ±160; changing width also changes probabilities
 away from the peaks, including at zero rating difference. Use separate output
 directories for every parameter setting. Existing defaults are unchanged.
+
+## Staircase probability mechanism
+
+`--probability-suite --staircase-width H` additionally writes
+`nonolr_staircase.csv`. Let d be the true home-away rating difference.
+Draw probability is .05. The decisive home share q is symmetric:
+
+| d | q | absolute home-win probability |
+| --- | --- | --- |
+| d <= -2H | .10 | .0950 |
+| -2H < d <= -H | .25 | .2375 |
+| -H < d < H | .50 | .4750 |
+| H <= d < 2H | .75 | .7125 |
+| d >= 2H | .90 | .8550 |
+
+The implementation defines threshold equality through abs(d), preserving
+q(-d)=1-q(d); at d=-2H it uses .10 and at d=-H it uses .25.
+Away probability is .95*(1-q). Default H=100, with experiment sweep50/100/200.
+Fixtures, latent rating trajectories, split and outcome-sampling uniforms are
+shared with all previous probability conditions. True values remain evaluation
+information only. Existing mechanism formulas are unchanged.
